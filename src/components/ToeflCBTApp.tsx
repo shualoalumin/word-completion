@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Loader2, RotateCcw, Check } from 'lucide-react';
+import { Loader2, RotateCcw, Check, Moon, Sun } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,16 +21,157 @@ const ToeflCBTApp = () => {
   const [passageData, setPassageData] = useState<PassageData | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [showResults, setShowResults] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  // Timer state
+  const [timeRemaining, setTimeRemaining] = useState(180);
+  const [timerActive, setTimerActive] = useState(false);
+  const [overtime, setOvertime] = useState(0);
+  
+  // Focus management - simple approach with refs
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
   const blankOrder = useRef<number[]>([]);
+  const focusTarget = useRef<string | null>(null);
+  const lastFocusedKey = useRef<string | null>(null);
+  const focusLocked = useRef(false);
+
+  // Register input ref
+  const setInputRef = useCallback((key: string, el: HTMLInputElement | null) => {
+    if (el) {
+      inputRefs.current.set(key, el);
+    } else {
+      inputRefs.current.delete(key);
+    }
+  }, []);
+
+  // Get input by key
+  const getInput = useCallback((wordId: number, charIndex: number) => {
+    return inputRefs.current.get(`${wordId}-${charIndex}`);
+  }, []);
+
+  // Focus an input immediately
+  const focusNow = useCallback((wordId: number, charIndex: number) => {
+    const input = getInput(wordId, charIndex);
+    if (input) {
+      input.focus();
+      // Put cursor at end
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
+    }
+  }, [getInput]);
+
+  // Schedule focus for after render
+  const scheduleFocus = useCallback((wordId: number, charIndex: number) => {
+    focusTarget.current = `${wordId}-${charIndex}`;
+  }, []);
+
+  // Apply scheduled focus after each render
+  useEffect(() => {
+    if (focusTarget.current) {
+      const input = inputRefs.current.get(focusTarget.current);
+      if (input) {
+        // Use multiple attempts to ensure focus
+        focusLocked.current = true;
+        input.focus();
+        lastFocusedKey.current = focusTarget.current;
+        requestAnimationFrame(() => {
+          input.focus();
+          const len = input.value.length;
+          input.setSelectionRange(len, len);
+          setTimeout(() => {
+            focusLocked.current = false;
+          }, 100);
+        });
+      }
+      focusTarget.current = null;
+    }
+  });
+
+  // Maintain focus - prevent focus loss
+  useEffect(() => {
+    if (showResults || !passageData) return;
+    
+    const checkFocus = () => {
+      if (focusLocked.current) return;
+      
+      const activeEl = document.activeElement;
+      const isOurInput = activeEl && 
+                        activeEl.tagName === 'INPUT' && 
+                        activeEl.getAttribute('type') === 'text' &&
+                        Array.from(inputRefs.current.values()).includes(activeEl as HTMLInputElement);
+      
+      if (isOurInput) {
+        // Good, one of our inputs is focused
+        const key = Array.from(inputRefs.current.entries())
+          .find(([, el]) => el === activeEl)?.[0];
+        if (key) lastFocusedKey.current = key;
+      } else {
+        // No input focused - restore focus
+        const keyToFocus = lastFocusedKey.current || `${blankOrder.current[0]}-0`;
+        const input = inputRefs.current.get(keyToFocus);
+        if (input) {
+          console.log('Restoring focus to:', keyToFocus);
+          focusLocked.current = true;
+          input.focus();
+          setTimeout(() => {
+            focusLocked.current = false;
+          }, 100);
+        }
+      }
+    };
+    
+    const interval = setInterval(checkFocus, 150);
+    
+    // Initial focus
+    setTimeout(() => {
+      if (blankOrder.current.length > 0) {
+        const firstKey = `${blankOrder.current[0]}-0`;
+        const input = inputRefs.current.get(firstKey);
+        if (input) {
+          console.log('Initial focus:', firstKey);
+          focusLocked.current = true;
+          input.focus();
+          lastFocusedKey.current = firstKey;
+          setTimeout(() => {
+            focusLocked.current = false;
+          }, 100);
+        }
+      }
+    }, 200);
+    
+    return () => clearInterval(interval);
+  }, [showResults, passageData]);
+
+  // Timer effect
+  useEffect(() => {
+    if (!timerActive || showResults) return;
+    
+    const interval = setInterval(() => {
+      if (timeRemaining > 0) {
+        setTimeRemaining(prev => prev - 1);
+      } else {
+        setOvertime(prev => prev + 1);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [timerActive, timeRemaining, showResults]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(Math.abs(seconds) / 60);
+    const secs = Math.abs(seconds) % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const generatePassage = async (retryCount = 0) => {
     setLoading(true);
     setPassageData(null);
     setUserAnswers({});
     setShowResults(false);
-    inputRefs.current = {};
+    setTimeRemaining(180);
+    setOvertime(0);
+    setTimerActive(false);
+    inputRefs.current.clear();
     blankOrder.current = [];
 
     try {
@@ -39,11 +180,11 @@ const ToeflCBTApp = () => {
       if (error) throw error;
       if (data.error) throw new Error(data.error);
       
-      // Extract blank order
       const blanks = data.content_parts.filter((p: ContentPart) => p.type === 'blank');
       blankOrder.current = blanks.map((b: ContentPart) => b.id as number);
       
       setPassageData(data);
+      setTimerActive(true);
     } catch (err) {
       console.error('Error generating passage:', err);
       if (retryCount < 3) {
@@ -64,21 +205,6 @@ const ToeflCBTApp = () => {
     generatePassage();
   }, []);
 
-  // Auto-focus first blank when passage loads
-  useEffect(() => {
-    if (passageData && !showResults && blankOrder.current.length > 0) {
-      const firstWordId = blankOrder.current[0];
-      // Small delay to ensure inputs are rendered
-      requestAnimationFrame(() => {
-        const firstInput = inputRefs.current[`${firstWordId}-0`];
-        if (firstInput) {
-          firstInput.focus();
-          firstInput.setSelectionRange(0, 0);
-        }
-      });
-    }
-  }, [passageData, showResults]);
-
   const calculateScore = () => {
     if (!passageData) return 0;
     const blanks = passageData.content_parts.filter(p => p.type === 'blank');
@@ -97,250 +223,306 @@ const ToeflCBTApp = () => {
     return blank.full_word.length - blank.prefix.length;
   }, [passageData]);
 
-  // Focus helper with cursor positioning
-  const focusInput = useCallback((wordId: number, charIndex: number, cursorPos: 'start' | 'end' = 'end') => {
-    const input = inputRefs.current[`${wordId}-${charIndex}`];
-    if (input) {
-      input.focus();
-      // Set cursor position after focus
-      requestAnimationFrame(() => {
-        const pos = cursorPos === 'start' ? 0 : input.value.length;
-        input.setSelectionRange(pos, pos);
-      });
-    }
-    return input;
-  }, []);
+  // Get previous blank info
+  const getPrevBlank = useCallback((wordId: number) => {
+    const idx = blankOrder.current.indexOf(wordId);
+    if (idx <= 0) return null;
+    const prevWordId = blankOrder.current[idx - 1];
+    return { wordId: prevWordId, length: getBlankLength(prevWordId) };
+  }, [getBlankLength]);
 
-  // Navigate to adjacent blank
-  const navigateToBlank = useCallback((currentWordId: number, direction: 'next' | 'prev') => {
-    const idx = blankOrder.current.indexOf(currentWordId);
-    if (idx === -1) return false;
-    
-    const targetIdx = direction === 'next' ? idx + 1 : idx - 1;
-    if (targetIdx < 0 || targetIdx >= blankOrder.current.length) return false;
-    
-    const targetWordId = blankOrder.current[targetIdx];
-    const targetLength = getBlankLength(targetWordId);
-    if (targetLength === 0) return false;
-    
-    const targetCharIdx = direction === 'next' ? 0 : targetLength - 1;
-    const cursorPos = direction === 'next' ? 'start' : 'end';
-    focusInput(targetWordId, targetCharIdx, cursorPos);
-    return true;
-  }, [getBlankLength, focusInput]);
+  // Get next blank info
+  const getNextBlank = useCallback((wordId: number) => {
+    const idx = blankOrder.current.indexOf(wordId);
+    if (idx < 0 || idx >= blankOrder.current.length - 1) return null;
+    const nextWordId = blankOrder.current[idx + 1];
+    return { wordId: nextWordId, length: getBlankLength(nextWordId) };
+  }, [getBlankLength]);
 
-  // Get chars array for a word
-  const getCharsArray = useCallback((wordId: number, expectedLength: number, answersState?: Record<number, string>) => {
-    const state = answersState ?? userAnswers;
-    const currentStr = state[wordId] || "";
-    const chars = currentStr.split('');
-    while (chars.length < expectedLength) chars.push('');
-    return chars;
-  }, [userAnswers]);
-
-  const handleCharChange = useCallback((wordId: number, charIndex: number, inputValue: string, expectedLength: number) => {
+  // Unified input handler
+  const handleInput = useCallback((
+    wordId: number, 
+    charIndex: number, 
+    expectedLength: number,
+    action: 'type' | 'backspace' | 'delete' | 'left' | 'right' | 'up' | 'down' | 'home' | 'end' | 'tab' | 'shift-tab',
+    char?: string
+  ) => {
     if (showResults) return;
 
-    // Force English letters only
-    const englishOnly = inputValue.replace(/[^a-zA-Z]/g, '');
-    const char = englishOnly.slice(-1).toLowerCase();
+    switch (action) {
+      case 'type': {
+        if (!char) return;
+        // Only accept English letters
+        const englishChar = char.replace(/[^a-zA-Z]/g, '').slice(-1).toLowerCase();
+        
+        setUserAnswers(prev => {
+          const currentStr = prev[wordId] || '';
+          const chars = currentStr.padEnd(expectedLength, ' ').split('');
+          chars[charIndex] = englishChar;
+          return { ...prev, [wordId]: chars.join('').replace(/ /g, '') };
+        });
 
-    setUserAnswers(prev => {
-      const chars = getCharsArray(wordId, expectedLength, prev);
-      chars[charIndex] = char;
-      return { ...prev, [wordId]: chars.join('').slice(0, expectedLength) };
-    });
-
-    // Auto-advance on character input
-    if (char) {
-      requestAnimationFrame(() => {
-        if (charIndex < expectedLength - 1) {
-          focusInput(wordId, charIndex + 1, 'start');
+        // Move to next position if valid char entered
+        if (englishChar) {
+          if (charIndex < expectedLength - 1) {
+            scheduleFocus(wordId, charIndex + 1);
+          } else {
+            const next = getNextBlank(wordId);
+            if (next) scheduleFocus(next.wordId, 0);
+          }
         } else {
-          navigateToBlank(wordId, 'next');
+          // Invalid char, stay in place
+          scheduleFocus(wordId, charIndex);
         }
-      });
-    }
-  }, [showResults, getCharsArray, focusInput, navigateToBlank]);
+        break;
+      }
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, wordId: number, charIndex: number, expectedLength: number) => {
-    if (showResults) return;
-
-    const input = e.currentTarget;
-    const cursorPos = input.selectionStart ?? 0;
-    const hasSelection = input.selectionStart !== input.selectionEnd;
-
-    switch (e.key) {
-      case 'Backspace': {
-        e.preventDefault();
-        
-        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
-        
-        if (currentChar) {
-          // Has content - just clear it, stay in place
-          setUserAnswers(prev => {
-            const chars = getCharsArray(wordId, expectedLength, prev);
-            chars[charIndex] = '';
-            return { ...prev, [wordId]: chars.join('') };
-          });
-        } else if (charIndex > 0) {
-          // Current empty, move to previous char in same blank and clear it
-          setUserAnswers(prev => {
-            const chars = getCharsArray(wordId, expectedLength, prev);
-            chars[charIndex - 1] = '';
-            return { ...prev, [wordId]: chars.join('') };
-          });
-          focusInput(wordId, charIndex - 1, 'end');
-        } else {
-          // At first char of blank - go to previous blank's last char and clear it
-          const idx = blankOrder.current.indexOf(wordId);
-          if (idx > 0) {
-            const prevWordId = blankOrder.current[idx - 1];
-            const prevLength = getBlankLength(prevWordId);
-            if (prevLength > 0) {
-              setUserAnswers(prev => {
-                const prevChars = getCharsArray(prevWordId, prevLength, prev);
-                prevChars[prevLength - 1] = '';
-                return { ...prev, [prevWordId]: prevChars.join('') };
-              });
-              focusInput(prevWordId, prevLength - 1, 'end');
+      case 'backspace': {
+        setUserAnswers(prev => {
+          const currentStr = prev[wordId] || '';
+          const chars = currentStr.padEnd(expectedLength, ' ').split('');
+          
+          if (chars[charIndex].trim()) {
+            // Has content - clear it
+            chars[charIndex] = ' ';
+            scheduleFocus(wordId, charIndex);
+            return { ...prev, [wordId]: chars.join('').replace(/ /g, '') };
+          } else if (charIndex > 0) {
+            // Empty - go back and clear previous
+            chars[charIndex - 1] = ' ';
+            scheduleFocus(wordId, charIndex - 1);
+            return { ...prev, [wordId]: chars.join('').replace(/ /g, '') };
+          } else {
+            // At first position - go to previous blank
+            const prevBlank = getPrevBlank(wordId);
+            if (prevBlank && prevBlank.length > 0) {
+              const prevStr = prev[prevBlank.wordId] || '';
+              const prevChars = prevStr.padEnd(prevBlank.length, ' ').split('');
+              prevChars[prevBlank.length - 1] = ' ';
+              scheduleFocus(prevBlank.wordId, prevBlank.length - 1);
+              return { ...prev, [prevBlank.wordId]: prevChars.join('').replace(/ /g, '') };
             }
+            scheduleFocus(wordId, charIndex);
+            return prev;
           }
-        }
+        });
         break;
       }
 
-      case 'Delete': {
-        e.preventDefault();
-        
-        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
-        
-        if (currentChar) {
-          // Clear current char
-          setUserAnswers(prev => {
-            const chars = getCharsArray(wordId, expectedLength, prev);
-            chars[charIndex] = '';
-            return { ...prev, [wordId]: chars.join('') };
-          });
-        } else {
-          // Current is empty - move to next position
-          if (charIndex < expectedLength - 1) {
-            focusInput(wordId, charIndex + 1, 'start');
+      case 'delete': {
+        setUserAnswers(prev => {
+          const currentStr = prev[wordId] || '';
+          const chars = currentStr.padEnd(expectedLength, ' ').split('');
+          
+          if (chars[charIndex].trim()) {
+            // Has content - clear it
+            chars[charIndex] = ' ';
+            scheduleFocus(wordId, charIndex);
+            return { ...prev, [wordId]: chars.join('').replace(/ /g, '') };
           } else {
-            navigateToBlank(wordId, 'next');
+            // Empty - move forward
+            if (charIndex < expectedLength - 1) {
+              scheduleFocus(wordId, charIndex + 1);
+            } else {
+              const next = getNextBlank(wordId);
+              if (next) scheduleFocus(next.wordId, 0);
+              else scheduleFocus(wordId, charIndex);
+            }
+            return prev;
           }
-        }
+        });
         break;
       }
 
-      case 'ArrowLeft': {
-        e.preventDefault();
-        
-        // If cursor is at start or no content, move to previous input
-        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
-        const shouldMove = cursorPos === 0 || !currentChar || hasSelection;
-        
-        if (shouldMove) {
-          if (charIndex > 0) {
-            focusInput(wordId, charIndex - 1, 'end');
-          } else {
-            navigateToBlank(wordId, 'prev');
-          }
+      case 'left': {
+        if (charIndex > 0) {
+          scheduleFocus(wordId, charIndex - 1);
         } else {
-          // Move cursor within input
-          input.setSelectionRange(0, 0);
+          const prev = getPrevBlank(wordId);
+          if (prev) scheduleFocus(prev.wordId, prev.length - 1);
         }
         break;
       }
 
-      case 'ArrowRight': {
-        e.preventDefault();
-        
-        // If cursor is at end or no content, move to next input
-        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
-        const shouldMove = cursorPos === currentChar.length || !currentChar || hasSelection;
-        
-        if (shouldMove) {
-          if (charIndex < expectedLength - 1) {
-            focusInput(wordId, charIndex + 1, 'start');
-          } else {
-            navigateToBlank(wordId, 'next');
-          }
+      case 'right': {
+        if (charIndex < expectedLength - 1) {
+          scheduleFocus(wordId, charIndex + 1);
         } else {
-          // Move cursor within input
-          input.setSelectionRange(currentChar.length, currentChar.length);
+          const next = getNextBlank(wordId);
+          if (next) scheduleFocus(next.wordId, 0);
         }
         break;
       }
 
-      case 'ArrowUp': {
-        e.preventDefault();
-        // Jump to previous blank's same position or last char
-        const idx = blankOrder.current.indexOf(wordId);
-        if (idx > 0) {
-          const prevWordId = blankOrder.current[idx - 1];
-          const prevLength = getBlankLength(prevWordId);
-          const targetIdx = Math.min(charIndex, prevLength - 1);
-          focusInput(prevWordId, targetIdx, 'end');
+      case 'up': {
+        const prev = getPrevBlank(wordId);
+        if (prev) {
+          const targetIdx = Math.min(charIndex, prev.length - 1);
+          scheduleFocus(prev.wordId, targetIdx);
         }
         break;
       }
 
-      case 'ArrowDown': {
-        e.preventDefault();
-        // Jump to next blank's same position or last char
-        const idx = blankOrder.current.indexOf(wordId);
-        if (idx < blankOrder.current.length - 1) {
-          const nextWordId = blankOrder.current[idx + 1];
-          const nextLength = getBlankLength(nextWordId);
-          const targetIdx = Math.min(charIndex, nextLength - 1);
-          focusInput(nextWordId, targetIdx, 'start');
+      case 'down': {
+        const next = getNextBlank(wordId);
+        if (next) {
+          const targetIdx = Math.min(charIndex, next.length - 1);
+          scheduleFocus(next.wordId, targetIdx);
         }
         break;
       }
 
-      case 'Tab': {
-        e.preventDefault();
-        navigateToBlank(wordId, e.shiftKey ? 'prev' : 'next');
+      case 'home': {
+        scheduleFocus(wordId, 0);
         break;
       }
 
-      case 'Home': {
-        e.preventDefault();
-        // Go to first char of current blank
-        if (e.ctrlKey || e.metaKey) {
-          // Go to very first blank
-          const firstWordId = blankOrder.current[0];
-          if (firstWordId !== undefined) {
-            focusInput(firstWordId, 0, 'start');
-          }
-        } else {
-          focusInput(wordId, 0, 'start');
-        }
+      case 'end': {
+        scheduleFocus(wordId, expectedLength - 1);
         break;
       }
 
-      case 'End': {
-        e.preventDefault();
-        // Go to last char of current blank
-        if (e.ctrlKey || e.metaKey) {
-          // Go to very last blank
-          const lastWordId = blankOrder.current[blankOrder.current.length - 1];
-          if (lastWordId !== undefined) {
-            const lastLength = getBlankLength(lastWordId);
-            focusInput(lastWordId, lastLength - 1, 'end');
-          }
-        } else {
-          focusInput(wordId, expectedLength - 1, 'end');
-        }
+      case 'tab': {
+        const next = getNextBlank(wordId);
+        if (next) scheduleFocus(next.wordId, 0);
         break;
       }
 
-      default:
-        // Allow normal character input to flow through
+      case 'shift-tab': {
+        const prev = getPrevBlank(wordId);
+        if (prev) scheduleFocus(prev.wordId, 0);
         break;
+      }
     }
-  }, [showResults, userAnswers, getCharsArray, getBlankLength, focusInput, navigateToBlank]);
+  }, [showResults, getNextBlank, getPrevBlank, scheduleFocus]);
+
+  // Single character input component
+  const CharInput = React.memo(({ 
+    wordId, 
+    charIndex, 
+    expectedLength,
+    value,
+    isCorrect,
+    showResult,
+    darkMode
+  }: {
+    wordId: number;
+    charIndex: number;
+    expectedLength: number;
+    value: string;
+    isCorrect: boolean;
+    showResult: boolean;
+    darkMode: boolean;
+  }) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+      if (inputRef.current) {
+        setInputRef(`${wordId}-${charIndex}`, inputRef.current);
+      }
+      return () => {
+        setInputRef(`${wordId}-${charIndex}`, null);
+      };
+    }, [wordId, charIndex]);
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (showResults) return;
+
+      // Prevent default for navigation keys
+      const navKeys = ['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab', 'Home', 'End'];
+      if (navKeys.includes(e.key)) {
+        e.preventDefault();
+      }
+
+      switch (e.key) {
+        case 'Backspace':
+          handleInput(wordId, charIndex, expectedLength, 'backspace');
+          break;
+        case 'Delete':
+          handleInput(wordId, charIndex, expectedLength, 'delete');
+          break;
+        case 'ArrowLeft':
+          handleInput(wordId, charIndex, expectedLength, 'left');
+          break;
+        case 'ArrowRight':
+          handleInput(wordId, charIndex, expectedLength, 'right');
+          break;
+        case 'ArrowUp':
+          handleInput(wordId, charIndex, expectedLength, 'up');
+          break;
+        case 'ArrowDown':
+          handleInput(wordId, charIndex, expectedLength, 'down');
+          break;
+        case 'Home':
+          handleInput(wordId, charIndex, expectedLength, 'home');
+          break;
+        case 'End':
+          handleInput(wordId, charIndex, expectedLength, 'end');
+          break;
+        case 'Tab':
+          handleInput(wordId, charIndex, expectedLength, e.shiftKey ? 'shift-tab' : 'tab');
+          break;
+        default:
+          // Let onChange handle regular character input
+          break;
+      }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newValue = e.target.value;
+      // Get the last character typed
+      const typedChar = newValue.slice(-1);
+      if (typedChar) {
+        handleInput(wordId, charIndex, expectedLength, 'type', typedChar);
+      }
+    };
+
+    // Determine styling
+    let textColor = darkMode ? "text-gray-100" : "text-gray-900";
+    let borderColor = darkMode ? "border-gray-500" : "border-gray-600";
+    
+    if (showResult) {
+      if (isCorrect) {
+        textColor = "text-green-500";
+        borderColor = "border-green-500";
+      } else {
+        textColor = "text-red-500";
+        borderColor = "border-red-500";
+      }
+    }
+
+    return (
+      <input
+        ref={inputRef}
+        type="text"
+        inputMode="text"
+        autoCapitalize="off"
+        autoCorrect="off"
+        autoComplete="off"
+        spellCheck={false}
+        value={value}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        disabled={showResult}
+        className={`
+          w-[11px] h-[20px] mx-[0.5px]
+          text-center text-[17px]
+          border-b-2 ${borderColor} ${textColor}
+          bg-transparent outline-none
+          focus:border-blue-500 
+          ${darkMode ? 'focus:bg-blue-900/40' : 'focus:bg-blue-100/60'}
+          disabled:cursor-default
+          p-0 leading-tight
+          caret-blue-500
+        `}
+        style={{ 
+          fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif",
+        }}
+      />
+    );
+  });
+
+  CharInput.displayName = 'CharInput';
 
   const WordCompletion = ({ blank }: { blank: ContentPart }) => {
     const { id, full_word, prefix } = blank;
@@ -354,58 +536,25 @@ const ToeflCBTApp = () => {
 
     return (
       <span className="inline-flex items-baseline whitespace-nowrap">
-        <span className="text-gray-900">{prefix}</span>
+        <span className={darkMode ? "text-gray-100" : "text-gray-900"}>{prefix}</span>
         {Array.from({ length: suffixLen }).map((_, idx) => {
-          const char = (userAnswers[id] || "")[idx] || "";
+          const char = userSuffix[idx] || "";
           
-          let textColor = "text-gray-900";
-          let borderColor = "border-gray-800";
-          
-          if (showResults) {
-            if (isCorrect) {
-              textColor = "text-green-600";
-              borderColor = "border-green-500";
-            } else {
-              textColor = "text-red-600";
-              borderColor = "border-red-500";
-            }
-          }
-
           return (
-            <input
+            <CharInput
               key={idx}
-              ref={el => { inputRefs.current[`${id}-${idx}`] = el; }}
-              type="text"
-              inputMode="text"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
+              wordId={id}
+              charIndex={idx}
+              expectedLength={suffixLen}
               value={char}
-              onChange={(e) => handleCharChange(id, idx, e.target.value, suffixLen)}
-              onKeyDown={(e) => handleKeyDown(e, id, idx, suffixLen)}
-              onFocus={(e) => {
-                // Position cursor at end on focus
-                const len = e.target.value.length;
-                e.target.setSelectionRange(len, len);
-              }}
-              disabled={showResults}
-              className={`
-                w-[10px] h-[18px] mx-[0.5px]
-                text-center text-[15px] font-medium
-                border-b-2 ${borderColor} ${textColor}
-                bg-transparent outline-none
-                focus:border-blue-600 focus:bg-blue-50/80
-                focus:caret-blue-600
-                disabled:cursor-default
-                p-0 leading-tight
-                transition-colors duration-100
-              `}
-              style={{ fontFamily: 'inherit' }}
+              isCorrect={isCorrect}
+              showResult={showResults}
+              darkMode={darkMode}
             />
           );
         })}
         {showResults && !isCorrect && (
-          <span className="ml-1 text-[11px] text-green-700 font-medium">({full_word})</span>
+          <span className="ml-1 text-[11px] text-green-500 font-medium">({full_word})</span>
         )}
       </span>
     );
@@ -413,29 +562,60 @@ const ToeflCBTApp = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-gray-600 animate-spin mb-3" />
-        <p className="text-gray-500 text-sm">Preparing passage...</p>
+      <div className={`min-h-screen flex flex-col items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
+        <Loader2 className={`w-10 h-10 animate-spin mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
+        <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Preparing passage...</p>
       </div>
     );
   }
 
   if (!passageData) return null;
 
+  const isOvertime = timeRemaining <= 0;
+
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-['Arial_Narrow',_'Helvetica_Condensed',_sans-serif]">
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900 text-gray-100' : 'bg-white text-gray-900'}`}>
       <div className="max-w-4xl mx-auto px-6 py-10">
+        {/* Top bar */}
+        <div className="flex justify-between items-center mb-6">
+          {/* Timer */}
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg font-mono text-lg ${
+            isOvertime 
+              ? darkMode ? 'bg-red-900/40 text-red-400' : 'bg-red-100 text-red-700'
+              : darkMode 
+                ? 'bg-gray-800 text-gray-200' 
+                : 'bg-gray-100 text-gray-800'
+          }`}>
+            <span className="text-sm font-sans mr-2">{isOvertime ? 'Overtime:' : 'Time:'}</span>
+            <span className={`font-bold ${isOvertime ? 'text-red-500' : ''}`}>
+              {isOvertime ? `+${formatTime(overtime)}` : formatTime(timeRemaining)}
+            </span>
+          </div>
+
+          {/* Dark mode toggle */}
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className={`p-2 rounded-lg transition-colors ${
+              darkMode 
+                ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            }`}
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+        </div>
+
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900 mb-1">
+          <h1 className={`text-xl font-bold mb-1 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
             Fill in the missing letters in the paragraph.
           </h1>
-          <p className="text-lg font-bold text-gray-900">(Questions 1-10)</p>
+          <p className={`text-lg font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>(Questions 1-10)</p>
         </div>
 
         {/* Passage */}
         <div 
-          className="text-[17px] leading-[1.9] text-gray-900 text-justify tracking-tight"
+          className={`text-[17px] leading-[1.9] text-justify tracking-tight ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}
           style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
         >
           {passageData.content_parts.map((part, index) => {
@@ -451,15 +631,26 @@ const ToeflCBTApp = () => {
         <div className="mt-10 flex items-center gap-4">
           {!showResults ? (
             <button 
-              onClick={() => setShowResults(true)} 
-              className="px-5 py-2 bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 transition-colors rounded flex items-center gap-2"
+              onClick={() => {
+                setShowResults(true);
+                setTimerActive(false);
+              }} 
+              className={`px-5 py-2 text-sm font-semibold transition-colors rounded flex items-center gap-2 ${
+                darkMode 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-gray-800 text-white hover:bg-gray-900'
+              }`}
             >
               <Check className="w-4 h-4" /> Check Answers
             </button>
           ) : (
             <button 
               onClick={() => generatePassage()} 
-              className="px-5 py-2 bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 transition-colors rounded flex items-center gap-2"
+              className={`px-5 py-2 text-sm font-semibold transition-colors rounded flex items-center gap-2 ${
+                darkMode 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'bg-gray-800 text-white hover:bg-gray-900'
+              }`}
             >
               <RotateCcw className="w-4 h-4" /> Next Passage
             </button>
@@ -469,16 +660,23 @@ const ToeflCBTApp = () => {
         {/* Results */}
         {showResults && (
           <div className="mt-8 space-y-6">
-            {/* Score */}
-            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg inline-block">
-              <p className="text-gray-800">
-                Score: <span className="font-bold text-gray-900">{calculateScore()}</span> / 10
-              </p>
+            <div className="flex gap-4 flex-wrap">
+              <div className={`p-4 rounded-lg inline-block ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
+                <p className={darkMode ? 'text-gray-200' : 'text-gray-800'}>
+                  Score: <span className={`font-bold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>{calculateScore()}</span> / 10
+                </p>
+              </div>
+              <div className={`p-4 rounded-lg inline-block ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
+                <p className={darkMode ? 'text-gray-200' : 'text-gray-800'}>
+                  Time: <span className={`font-bold ${isOvertime ? 'text-red-500' : darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                    {isOvertime ? `3:00 + ${formatTime(overtime)}` : formatTime(180 - timeRemaining)}
+                  </span>
+                </p>
+              </div>
             </div>
 
-            {/* Vocabulary Explanations */}
-            <div className="border-t border-gray-200 pt-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Vocabulary & Explanations</h2>
+            <div className={`border-t pt-6 ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <h2 className={`text-lg font-bold mb-4 ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>Vocabulary & Explanations</h2>
               <div className="grid gap-3">
                 {passageData.content_parts
                   .filter(p => p.type === 'blank')
@@ -492,29 +690,31 @@ const ToeflCBTApp = () => {
                         key={blank.id} 
                         className={`p-3 rounded-lg border ${
                           isCorrect 
-                            ? 'bg-green-50 border-green-200' 
-                            : 'bg-red-50 border-red-200'
+                            ? darkMode ? 'bg-green-900/30 border-green-700' : 'bg-green-50 border-green-200'
+                            : darkMode ? 'bg-red-900/30 border-red-700' : 'bg-red-50 border-red-200'
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                            isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                            isCorrect 
+                              ? darkMode ? 'bg-green-800 text-green-200' : 'bg-green-200 text-green-800'
+                              : darkMode ? 'bg-red-800 text-red-200' : 'bg-red-200 text-red-800'
                           }`}>
                             {blank.id}
                           </span>
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-900">
+                            <p className={`font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                               {blank.prefix}
-                              <span className={isCorrect ? 'text-green-700' : 'text-red-700'}>
+                              <span className={isCorrect ? 'text-green-500' : 'text-red-500'}>
                                 {isCorrect ? userSuffix : correctSuffix}
                               </span>
                               {!isCorrect && (
-                                <span className="ml-2 text-sm text-gray-500">
+                                <span className={`ml-2 text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                   (You wrote: {blank.prefix}{userSuffix || '___'})
                                 </span>
                               )}
                             </p>
-                            <p className="text-sm text-gray-600 mt-1">
+                            <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                               <strong>{blank.full_word}</strong> — Common word used in academic contexts.
                             </p>
                           </div>
