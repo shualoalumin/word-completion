@@ -9,6 +9,7 @@ interface ContentPart {
   id?: number;
   full_word?: string;
   prefix?: string;
+  clue?: string;
 }
 
 interface PassageData {
@@ -715,7 +716,7 @@ const ToeflCBTApp = () => {
                               )}
                             </p>
                             <p className={`text-sm mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                              <strong>{blank.full_word}</strong> — Common word used in academic contexts.
+                              <strong>{blank.full_word}</strong> — {blank.clue || "Common word used in academic contexts."}
                             </p>
                           </div>
                         </div>
