@@ -32,16 +32,27 @@ serve(async (req) => {
       console.error("Error fetching cached exercises:", fetchError);
     }
 
-    // If we have cached exercises, return a random one
-    if (cachedExercises && cachedExercises.length > 0) {
-      const randomIndex = Math.floor(Math.random() * cachedExercises.length);
+    // Cache strategy:
+    // - If less than 20 cached: 80% chance to generate new (build up cache)
+    // - If 20+ cached: 90% chance to use cache, 10% to generate new (keep fresh)
+    const MIN_CACHE_SIZE = 20;
+    const cacheCount = cachedExercises?.length || 0;
+    
+    const shouldUseCache = cacheCount >= MIN_CACHE_SIZE 
+      ? Math.random() < 0.9  // 90% use cache when enough cached
+      : Math.random() < 0.2; // 20% use cache when building up
+    
+    if (cachedExercises && cacheCount > 0 && shouldUseCache) {
+      const randomIndex = Math.floor(Math.random() * cacheCount);
       const cached = cachedExercises[randomIndex];
-      console.log(`Returning cached exercise: ${cached.topic}`);
+      console.log(`Returning cached exercise (${cacheCount} in pool): ${cached.topic}`);
       
       return new Response(JSON.stringify(cached.content), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    console.log(`Cache has ${cacheCount} exercises. Generating new one...`);
 
     // Step 2: No cache available, generate new with AI
     console.log("No cached exercises found, generating new one...");
