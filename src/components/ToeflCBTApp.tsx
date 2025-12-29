@@ -669,7 +669,7 @@ const ToeflCBTApp = () => {
               <div className={`p-4 rounded-lg inline-block ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
                 <p className={darkMode ? 'text-gray-200' : 'text-gray-800'}>
                   Duration: <span className={`font-bold ${isOvertime ? 'text-red-500' : darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
-                    {isOvertime ? `3:00 + ${formatTime(overtime)}` : formatTime(180 - timeRemaining)}
+                    {isOvertime ? formatTime(180 + overtime) : formatTime(180 - timeRemaining)}
                   </span>
                 </p>
               </div>
