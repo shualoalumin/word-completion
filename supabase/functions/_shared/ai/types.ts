@@ -11,3 +11,4 @@ export interface AIProvider {
 export type AIProviderName = 'lovable' | 'openai' | 'gemini';
 
 
+
