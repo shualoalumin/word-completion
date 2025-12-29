@@ -505,7 +505,7 @@ const ToeflCBTApp = () => {
         onKeyDown={handleKeyDown}
         disabled={showResult}
         className={`
-          w-[11px] h-[20px] mx-[0.5px]
+          w-[11px] h-[20px] ${darkMode ? 'mx-[1px]' : 'mx-[0.5px]'}
           text-center text-[17px]
           border-b-2 ${borderColor} ${textColor}
           bg-transparent outline-none
@@ -586,7 +586,7 @@ const ToeflCBTApp = () => {
                 ? 'bg-gray-800 text-gray-200' 
                 : 'bg-gray-100 text-gray-800'
           }`}>
-            <span className="text-sm font-sans mr-2">{isOvertime ? 'Overtime:' : 'Time:'}</span>
+            <span className="text-sm font-sans mr-2">{isOvertime ? 'Overtime:' : 'Timer:'}</span>
             <span className={`font-bold ${isOvertime ? 'text-red-500' : ''}`}>
               {isOvertime ? `+${formatTime(overtime)}` : formatTime(timeRemaining)}
             </span>
@@ -668,7 +668,7 @@ const ToeflCBTApp = () => {
               </div>
               <div className={`p-4 rounded-lg inline-block ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-gray-50 border border-gray-200'}`}>
                 <p className={darkMode ? 'text-gray-200' : 'text-gray-800'}>
-                  Time: <span className={`font-bold ${isOvertime ? 'text-red-500' : darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
+                  Duration: <span className={`font-bold ${isOvertime ? 'text-red-500' : darkMode ? 'text-gray-100' : 'text-gray-900'}`}>
                     {isOvertime ? `3:00 + ${formatTime(overtime)}` : formatTime(180 - timeRemaining)}
                   </span>
                 </p>
