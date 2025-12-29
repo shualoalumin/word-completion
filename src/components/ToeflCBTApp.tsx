@@ -123,6 +123,31 @@ const ToeflCBTApp = () => {
     }
   }, [showResults, getAdjacentBlankInput]);
 
+  // Check if a blank is completely empty
+  const isBlankEmpty = useCallback((wordId: number) => {
+    const str = userAnswers[wordId] || "";
+    return str.replace(/\s/g, '').length === 0;
+  }, [userAnswers]);
+
+  // Clear previous blank's last character and get input ref
+  const clearPrevBlankLastChar = useCallback((wordId: number) => {
+    const idx = blankOrder.current.indexOf(wordId);
+    if (idx <= 0) return null;
+    
+    const prevWordId = blankOrder.current[idx - 1];
+    const prevLength = getBlankLength(prevWordId);
+    if (prevLength === 0) return null;
+    
+    // Clear last char of previous blank
+    const prevStr = userAnswers[prevWordId] || "";
+    const prevChars = prevStr.split('');
+    while (prevChars.length < prevLength) prevChars.push('');
+    prevChars[prevLength - 1] = '';
+    setUserAnswers(prev => ({ ...prev, [prevWordId]: prevChars.join('') }));
+    
+    return inputRefs.current[`${prevWordId}-${prevLength - 1}`];
+  }, [userAnswers, getBlankLength]);
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent, wordId: number, charIndex: number, expectedLength: number) => {
     if (showResults) return;
 
@@ -134,28 +159,34 @@ const ToeflCBTApp = () => {
       e.preventDefault();
       
       if (chars[charIndex]) {
-        // Clear current
+        // Clear current char
         chars[charIndex] = '';
         setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
       } else if (charIndex > 0) {
-        // Move back and clear previous
+        // Move back and clear previous char
         chars[charIndex - 1] = '';
         setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
         inputRefs.current[`${wordId}-${charIndex - 1}`]?.focus();
       } else {
-        // At first char, move to previous blank's last char
-        const prevInput = getAdjacentBlankInput(wordId, 'prev');
+        // At first char of word - move to previous blank's last char and clear it
+        const prevInput = clearPrevBlankLastChar(wordId);
         if (prevInput) prevInput.focus();
       }
     } else if (e.key === 'Delete') {
       e.preventDefault();
-      chars[charIndex] = '';
-      setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
+      if (chars[charIndex]) {
+        chars[charIndex] = '';
+        setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
+      } else if (charIndex === expectedLength - 1 && isBlankEmpty(wordId)) {
+        // At last char and word is empty, move to next blank
+        getAdjacentBlankInput(wordId, 'next')?.focus();
+      }
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
       if (charIndex > 0) {
         inputRefs.current[`${wordId}-${charIndex - 1}`]?.focus();
       } else {
+        // At first char, move to previous blank's last char
         getAdjacentBlankInput(wordId, 'prev')?.focus();
       }
     } else if (e.key === 'ArrowRight') {
@@ -163,6 +194,7 @@ const ToeflCBTApp = () => {
       if (charIndex < expectedLength - 1) {
         inputRefs.current[`${wordId}-${charIndex + 1}`]?.focus();
       } else {
+        // At last char, move to next blank's first char
         getAdjacentBlankInput(wordId, 'next')?.focus();
       }
     } else if (e.key === 'Tab') {
@@ -172,7 +204,7 @@ const ToeflCBTApp = () => {
         : getAdjacentBlankInput(wordId, 'next');
       target?.focus();
     }
-  }, [showResults, userAnswers, getAdjacentBlankInput]);
+  }, [showResults, userAnswers, getAdjacentBlankInput, isBlankEmpty, clearPrevBlankLastChar]);
 
   const WordCompletion = ({ blank }: { blank: ContentPart }) => {
     const { id, full_word, prefix } = blank;
@@ -294,10 +326,62 @@ const ToeflCBTApp = () => {
 
         {/* Results */}
         {showResults && (
-          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg inline-block">
-            <p className="text-gray-800">
-              Score: <span className="font-bold text-gray-900">{calculateScore()}</span> / 10
-            </p>
+          <div className="mt-8 space-y-6">
+            {/* Score */}
+            <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg inline-block">
+              <p className="text-gray-800">
+                Score: <span className="font-bold text-gray-900">{calculateScore()}</span> / 10
+              </p>
+            </div>
+
+            {/* Vocabulary Explanations */}
+            <div className="border-t border-gray-200 pt-6">
+              <h2 className="text-lg font-bold text-gray-900 mb-4">Vocabulary & Explanations</h2>
+              <div className="grid gap-3">
+                {passageData.content_parts
+                  .filter(p => p.type === 'blank')
+                  .map((blank) => {
+                    const userSuffix = userAnswers[blank.id!] || "";
+                    const correctSuffix = blank.full_word!.slice(blank.prefix!.length);
+                    const isCorrect = userSuffix.toLowerCase() === correctSuffix.toLowerCase();
+                    
+                    return (
+                      <div 
+                        key={blank.id} 
+                        className={`p-3 rounded-lg border ${
+                          isCorrect 
+                            ? 'bg-green-50 border-green-200' 
+                            : 'bg-red-50 border-red-200'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                            isCorrect ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'
+                          }`}>
+                            {blank.id}
+                          </span>
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">
+                              {blank.prefix}
+                              <span className={isCorrect ? 'text-green-700' : 'text-red-700'}>
+                                {isCorrect ? userSuffix : correctSuffix}
+                              </span>
+                              {!isCorrect && (
+                                <span className="ml-2 text-sm text-gray-500">
+                                  (You wrote: {blank.prefix}{userSuffix || '___'})
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-sm text-gray-600 mt-1">
+                              <strong>{blank.full_word}</strong> — Common word used in academic contexts.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
           </div>
         )}
       </div>

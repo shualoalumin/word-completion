@@ -19,21 +19,25 @@ serve(async (req) => {
     const systemPrompt = `
 You are an ETS TOEFL test content generator for the "Text Completion" question type.
 
-TASK: Generate a short academic passage (~80-100 words, 5-6 lines when displayed) with exactly 10 blanks to complete.
+TASK: Generate a short academic passage (70-90 words TOTAL, fitting in 5-6 lines) with exactly 10 blanks.
 
-STRUCTURE RULES:
-1. The passage should be about an academic topic (science, history, geography, nature, technology).
-2. First 60% of passage contains ALL 10 blanks. Last 40% is complete text providing context clues.
-3. Blanks should be common English words: nouns, verbs, adjectives, pronouns, conjunctions.
-4. Each blank shows a prefix (first 1-3 letters) and the student fills in remaining letters.
-5. Words should be simple to intermediate level (e.g., "show", "location", "places", "cities", "and", "these", "guides", "also", "types", "information").
+CRITICAL STRUCTURE (follow the ETS sample exactly):
+1. FIRST HALF (~35-45 words): Contains ALL 10 blanks. Multiple blanks per sentence is normal and expected.
+2. SECOND HALF (~35-45 words): Complete text with NO blanks. This provides context clues for solving.
+3. Total passage must be SHORT: 70-90 words maximum, 5-6 lines when displayed.
+
+BLANK RULES:
+- All 10 blanks MUST appear in the first 50% of the passage
+- Multiple blanks in one sentence is REQUIRED (like the ETS sample)
+- Use common academic words: nouns, verbs, adjectives, prepositions, conjunctions
+- Simple to intermediate vocabulary only
 
 PREFIX RULES:
-- 3-4 letter words: show 1 letter (e.g., "and" → prefix "a")
-- 5-6 letter words: show 2 letters (e.g., "cities" → prefix "ci")  
-- 7+ letter words: show 2-4 letters (e.g., "location" → prefix "loca")
+- 3-4 letter words: show 1-2 letters (e.g., "and" → "a", "show" → "sh")
+- 5-6 letter words: show 2 letters (e.g., "cities" → "ci", "places" → "pla")  
+- 7+ letter words: show 3-5 letters (e.g., "location" → "loca", "information" → "infor")
 
-EXAMPLE OUTPUT FORMAT:
+EXAMPLE (follow this structure exactly):
 {
   "topic": "Maps and Geography",
   "content_parts": [
@@ -57,11 +61,11 @@ EXAMPLE OUTPUT FORMAT:
     { "type": "blank", "id": 9, "full_word": "types", "prefix": "ty" },
     { "type": "text", "value": " of " },
     { "type": "blank", "id": 10, "full_word": "information", "prefix": "infor" },
-    { "type": "text", "value": ", such as climate or population. There are many kinds, including physical, political, and thematic versions. The study of maps and cartography, the process by which they are made, can teach us about the geography of our planet and how people live in different regions." }
+    { "type": "text", "value": ", such as climate or population. There are many kinds, including physical, political, and thematic versions. The study of maps and cartography can teach us about geography." }
   ]
 }
 
-Generate a NEW passage on a DIFFERENT topic. Keep it concise (~80-100 words total).
+Generate a NEW passage on a DIFFERENT academic topic. Keep it SHORT (70-90 words, 5-6 lines).
 `;
 
     console.log("Calling Lovable AI Gateway to generate passage...");
