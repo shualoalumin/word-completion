@@ -26,3 +26,4 @@ Set it in Supabase Dashboard:
 The Edge Function `generate-passage` has been deployed to this project, but it will fail until `LOVABLE_API_KEY` is set.
 
 
+

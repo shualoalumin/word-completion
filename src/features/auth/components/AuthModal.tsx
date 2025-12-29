@@ -203,3 +203,4 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
   );
 }
 
+
