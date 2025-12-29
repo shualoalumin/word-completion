@@ -132,6 +132,33 @@ Return strictly a JSON object matching this schema:
   } catch (error) {
     console.error("Error generating passage:", error);
     
+    // Fallback: Try to return a cached exercise even if AI failed
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      const { data: fallbackExercises } = await supabase
+        .from("exercises")
+        .select("*")
+        .eq("section", "reading")
+        .eq("exercise_type", "text-completion")
+        .eq("is_active", true)
+        .limit(50);
+      
+      if (fallbackExercises && fallbackExercises.length > 0) {
+        const randomIndex = Math.floor(Math.random() * fallbackExercises.length);
+        const cached = fallbackExercises[randomIndex];
+        console.log(`Returning fallback cached exercise after AI error: ${cached.topic}`);
+        
+        return new Response(JSON.stringify(cached.content), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (fallbackError) {
+      console.error("Fallback also failed:", fallbackError);
+    }
+    
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
     return new Response(JSON.stringify({ error: errorMessage }), {
