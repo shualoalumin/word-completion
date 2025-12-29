@@ -1,7 +1,7 @@
-import ToeflCBTApp from "@/components/ToeflCBTApp";
+import ToefliBTApp from "@/components/ToefliBTApp";
 
 const Index = () => {
-  return <ToeflCBTApp />;
+  return <ToefliBTApp />;
 };
 
 export default Index;
