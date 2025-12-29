@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Clock, Volume2, HelpCircle, RotateCcw, Save } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Loader2, RotateCcw, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
@@ -21,42 +21,27 @@ const ToeflCBTApp = () => {
   const [passageData, setPassageData] = useState<PassageData | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [showResults, setShowResults] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(600);
   
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
-
-  useEffect(() => {
-    if (!passageData || showResults) return;
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [passageData, showResults]);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+  const blankOrder = useRef<number[]>([]);
 
   const generatePassage = async (retryCount = 0) => {
     setLoading(true);
     setPassageData(null);
     setUserAnswers({});
     setShowResults(false);
-    setTimeLeft(600);
     inputRefs.current = {};
+    blankOrder.current = [];
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-passage');
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
       
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      // Extract blank order
+      const blanks = data.content_parts.filter((p: ContentPart) => p.type === 'blank');
+      blankOrder.current = blanks.map((b: ContentPart) => b.id as number);
       
       setPassageData(data);
     } catch (err) {
@@ -90,109 +75,104 @@ const ToeflCBTApp = () => {
     }, 0);
   };
 
-  const handleCharChange = (wordId: number, charIndex: number, inputValue: string, expectedLength: number) => {
-    if (showResults) return;
-
-    const char = inputValue.slice(-1);
-    const currentStr = userAnswers[wordId] || "";
-    const chars = currentStr.split('');
+  // Get next/prev blank's first input
+  const getAdjacentBlankInput = useCallback((currentWordId: number, direction: 'next' | 'prev') => {
+    const idx = blankOrder.current.indexOf(currentWordId);
+    if (idx === -1) return null;
     
-    while (chars.length < expectedLength) chars.push('');
-    chars[charIndex] = char;
+    const targetIdx = direction === 'next' ? idx + 1 : idx - 1;
+    if (targetIdx < 0 || targetIdx >= blankOrder.current.length) return null;
     
-    const newStr = chars.join('').slice(0, expectedLength);
-    setUserAnswers(prev => ({ ...prev, [wordId]: newStr }));
+    const targetWordId = blankOrder.current[targetIdx];
+    const targetCharIdx = direction === 'next' ? 0 : getBlankLength(targetWordId) - 1;
+    return inputRefs.current[`${targetWordId}-${targetCharIdx}`];
+  }, []);
 
-    if (char && charIndex < expectedLength - 1) {
-      const nextRef = inputRefs.current[`${wordId}-${charIndex + 1}`];
-      if (nextRef) nextRef.focus();
-    }
+  const getBlankLength = (wordId: number) => {
+    if (!passageData) return 0;
+    const blank = passageData.content_parts.find(p => p.type === 'blank' && p.id === wordId);
+    if (!blank?.full_word || !blank?.prefix) return 0;
+    return blank.full_word.length - blank.prefix.length;
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, wordId: number, charIndex: number, expectedLength: number) => {
+  const handleCharChange = useCallback((wordId: number, charIndex: number, inputValue: string, expectedLength: number) => {
     if (showResults) return;
+
+    // Force English letters only
+    const englishOnly = inputValue.replace(/[^a-zA-Z]/g, '');
+    const char = englishOnly.slice(-1).toLowerCase();
+
+    setUserAnswers(prev => {
+      const currentStr = prev[wordId] || "";
+      const chars = currentStr.split('');
+      while (chars.length < expectedLength) chars.push('');
+      chars[charIndex] = char;
+      return { ...prev, [wordId]: chars.join('').slice(0, expectedLength) };
+    });
+
+    // Auto-advance
+    if (char) {
+      setTimeout(() => {
+        if (charIndex < expectedLength - 1) {
+          inputRefs.current[`${wordId}-${charIndex + 1}`]?.focus();
+        } else {
+          // Move to next blank
+          getAdjacentBlankInput(wordId, 'next')?.focus();
+        }
+      }, 0);
+    }
+  }, [showResults, getAdjacentBlankInput]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent, wordId: number, charIndex: number, expectedLength: number) => {
+    if (showResults) return;
+
+    const currentStr = userAnswers[wordId] || "";
+    const chars = currentStr.split('');
+    while (chars.length < expectedLength) chars.push('');
 
     if (e.key === 'Backspace') {
       e.preventDefault();
-      const currentStr = userAnswers[wordId] || "";
-      const chars = currentStr.split('');
       
-      if (!chars[charIndex] && charIndex > 0) {
-        const prevRef = inputRefs.current[`${wordId}-${charIndex - 1}`];
-        if (prevRef) {
-          prevRef.focus();
-          chars[charIndex - 1] = '';
-          setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
-        }
-      } else {
+      if (chars[charIndex]) {
+        // Clear current
         chars[charIndex] = '';
         setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
+      } else if (charIndex > 0) {
+        // Move back and clear previous
+        chars[charIndex - 1] = '';
+        setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
+        inputRefs.current[`${wordId}-${charIndex - 1}`]?.focus();
+      } else {
+        // At first char, move to previous blank's last char
+        const prevInput = getAdjacentBlankInput(wordId, 'prev');
+        if (prevInput) prevInput.focus();
       }
+    } else if (e.key === 'Delete') {
+      e.preventDefault();
+      chars[charIndex] = '';
+      setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
     } else if (e.key === 'ArrowLeft') {
       e.preventDefault();
       if (charIndex > 0) {
         inputRefs.current[`${wordId}-${charIndex - 1}`]?.focus();
+      } else {
+        getAdjacentBlankInput(wordId, 'prev')?.focus();
       }
     } else if (e.key === 'ArrowRight') {
       e.preventDefault();
       if (charIndex < expectedLength - 1) {
         inputRefs.current[`${wordId}-${charIndex + 1}`]?.focus();
+      } else {
+        getAdjacentBlankInput(wordId, 'next')?.focus();
       }
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const target = e.shiftKey 
+        ? getAdjacentBlankInput(wordId, 'prev') 
+        : getAdjacentBlankInput(wordId, 'next');
+      target?.focus();
     }
-  };
-
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select();
-  };
-
-  const Header = () => (
-    <header className="h-14 bg-slate-700 text-white flex items-center justify-between px-6 shrink-0 shadow-sm border-b border-slate-600 select-none">
-      <div className="flex items-center gap-4">
-        <span className="font-bold text-lg tracking-wide text-slate-100">Reading Section</span>
-        {passageData && (
-          <>
-            <div className="h-5 w-px bg-slate-500 mx-2"></div>
-            <span className="text-slate-300 text-sm font-medium">{passageData.topic}</span>
-          </>
-        )}
-      </div>
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 bg-slate-800 px-3 py-1 rounded text-slate-200 border border-slate-600">
-          <Clock className="w-4 h-4" />
-          <span className="font-mono font-bold tracking-wider">{formatTime(timeLeft)}</span>
-        </div>
-        <div className="flex gap-1">
-           <button className="p-2 hover:bg-slate-600 rounded text-slate-300 transition-colors"><Volume2 className="w-5 h-5" /></button>
-           <button className="p-2 hover:bg-slate-600 rounded text-slate-300 transition-colors"><HelpCircle className="w-5 h-5" /></button>
-        </div>
-      </div>
-    </header>
-  );
-
-  const SubHeader = () => (
-    <div className="h-12 bg-slate-100 border-b border-slate-300 flex items-center justify-between px-6 shrink-0 select-none">
-       <div className="text-base font-bold text-slate-800">
-         Fill in the missing letters in the paragraph. (Questions 1-10)
-       </div>
-       <div className="flex items-center gap-2">
-         {showResults ? (
-           <button 
-             onClick={() => generatePassage()} 
-             className="px-4 py-1.5 bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 transition-colors shadow-sm rounded flex items-center gap-2"
-           >
-             <RotateCcw className="w-3 h-3" /> Next Passage
-           </button>
-         ) : (
-           <button 
-             onClick={() => setShowResults(true)} 
-             className="px-4 py-1.5 bg-white border border-slate-400 text-slate-800 text-sm font-bold hover:bg-slate-50 transition-colors shadow-sm rounded flex items-center gap-2"
-           >
-             <Save className="w-3 h-3" /> Check Answers
-           </button>
-         )}
-       </div>
-    </div>
-  );
+  }, [showResults, userAnswers, getAdjacentBlankInput]);
 
   const WordCompletion = ({ blank }: { blank: ContentPart }) => {
     const { id, full_word, prefix } = blank;
@@ -203,64 +183,55 @@ const ToeflCBTApp = () => {
     
     const userSuffix = userAnswers[id] || "";
     const isCorrect = userSuffix.toLowerCase() === suffix.toLowerCase();
-    
-    const inputs = Array.from({ length: suffixLen });
 
     return (
-      <span className="inline-flex items-baseline mx-0.5 relative group">
-        <span className="inline-flex items-baseline font-serif text-[19px]">
-          <span className="text-slate-900">{prefix}</span>
+      <span className="inline-flex items-baseline whitespace-nowrap">
+        <span className="text-gray-900">{prefix}</span>
+        {Array.from({ length: suffixLen }).map((_, idx) => {
+          const char = (userAnswers[id] || "")[idx] || "";
           
-          <span className="inline-flex mx-px">
-            {inputs.map((_, idx) => {
-              const char = (userAnswers[id] || "")[idx] || "";
-              
-              let borderColor = "border-slate-800";
-              let textColor = "text-slate-900";
-              let bgColor = "bg-transparent";
+          let textColor = "text-gray-900";
+          let borderColor = "border-gray-800";
+          
+          if (showResults) {
+            if (isCorrect) {
+              textColor = "text-green-600";
+              borderColor = "border-green-500";
+            } else {
+              textColor = "text-red-600";
+              borderColor = "border-red-500";
+            }
+          }
 
-              if (showResults) {
-                if (isCorrect) {
-                  borderColor = "border-green-600";
-                  textColor = "text-green-700";
-                  bgColor = "bg-green-50";
-                } else {
-                  borderColor = "border-red-500";
-                  textColor = "text-red-600";
-                  bgColor = "bg-red-50";
-                }
-              }
-
-              return (
-                <input
-                  key={idx}
-                  ref={el => { inputRefs.current[`${id}-${idx}`] = el; }}
-                  type="text"
-                  value={char}
-                  onChange={(e) => handleCharChange(id, idx, e.target.value, suffixLen)}
-                  onKeyDown={(e) => handleKeyDown(e, id, idx, suffixLen)}
-                  onFocus={handleFocus}
-                  disabled={showResults}
-                  className={`
-                    w-[14px] h-[22px] 
-                    mx-[1px]
-                    text-center font-sans text-lg font-bold leading-none
-                    border-b-2 outline-none rounded-none
-                    ${borderColor} ${textColor} ${bgColor}
-                    focus:border-indigo-600 focus:bg-indigo-50
-                    transition-colors p-0
-                  `}
-                  autoComplete="off"
-                />
-              );
-            })}
-          </span>
-        </span>
-
+          return (
+            <input
+              key={idx}
+              ref={el => { inputRefs.current[`${id}-${idx}`] = el; }}
+              type="text"
+              inputMode="text"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              value={char}
+              onChange={(e) => handleCharChange(id, idx, e.target.value, suffixLen)}
+              onKeyDown={(e) => handleKeyDown(e, id, idx, suffixLen)}
+              onFocus={(e) => e.target.select()}
+              disabled={showResults}
+              className={`
+                w-[10px] h-[18px] mx-[0.5px]
+                text-center text-[15px] font-medium
+                border-b ${borderColor} ${textColor}
+                bg-transparent outline-none
+                focus:border-blue-600 focus:bg-blue-50/50
+                disabled:cursor-default
+                p-0 leading-tight
+              `}
+              style={{ fontFamily: 'inherit' }}
+            />
+          );
+        })}
         {showResults && !isCorrect && (
-          <span className="absolute -bottom-8 left-0 bg-slate-800 text-white text-xs px-2 py-1 rounded shadow z-20 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-            {full_word}
-          </span>
+          <span className="ml-1 text-[11px] text-green-700 font-medium">({full_word})</span>
         )}
       </span>
     );
@@ -268,9 +239,9 @@ const ToeflCBTApp = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-slate-50 flex flex-col items-center justify-center font-sans">
-        <Loader2 className="w-12 h-12 text-indigo-600 animate-spin mb-4" />
-        <p className="text-slate-600 font-medium">Preparing Reading Task...</p>
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-gray-600 animate-spin mb-3" />
+        <p className="text-gray-500 text-sm">Preparing passage...</p>
       </div>
     );
   }
@@ -278,40 +249,58 @@ const ToeflCBTApp = () => {
   if (!passageData) return null;
 
   return (
-    <div className="h-screen flex flex-col font-sans bg-slate-100 text-slate-900 overflow-hidden">
-      <Header />
-      <SubHeader />
+    <div className="min-h-screen bg-white text-gray-900 font-['Arial_Narrow',_'Helvetica_Condensed',_sans-serif]">
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-gray-900 mb-1">
+            Fill in the missing letters in the paragraph.
+          </h1>
+          <p className="text-lg font-bold text-gray-900">(Questions 1-10)</p>
+        </div>
 
-      <main className="flex-1 overflow-y-auto bg-white p-8 md:p-12 shadow-inner flex justify-center">
-        <div className="max-w-3xl w-full">
-          <div className="text-[19px] leading-loose font-serif text-slate-800 text-justify">
-            {passageData.content_parts.map((part, index) => {
-              if (part.type === 'text') {
-                return <span key={index} dangerouslySetInnerHTML={{ __html: part.value || '' }} />;
-              } else {
-                return <WordCompletion key={index} blank={part} />;
-              }
-            })}
-          </div>
+        {/* Passage */}
+        <div 
+          className="text-[17px] leading-[1.9] text-gray-900 text-justify tracking-tight"
+          style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
+        >
+          {passageData.content_parts.map((part, index) => {
+            if (part.type === 'text') {
+              return <span key={index}>{part.value}</span>;
+            } else {
+              return <WordCompletion key={index} blank={part} />;
+            }
+          })}
+        </div>
 
-          {showResults && (
-            <div className="mt-12 p-6 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between animate-in slide-in-from-bottom-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1">Results</h3>
-                <p className="text-slate-600">
-                  You scored <span className="font-bold text-indigo-600">{calculateScore()}</span> out of 10.
-                </p>
-              </div>
-              <button 
-                onClick={() => generatePassage()}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow-sm transition-colors flex items-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4" /> Try Another
-              </button>
-            </div>
+        {/* Actions */}
+        <div className="mt-10 flex items-center gap-4">
+          {!showResults ? (
+            <button 
+              onClick={() => setShowResults(true)} 
+              className="px-5 py-2 bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 transition-colors rounded flex items-center gap-2"
+            >
+              <Check className="w-4 h-4" /> Check Answers
+            </button>
+          ) : (
+            <button 
+              onClick={() => generatePassage()} 
+              className="px-5 py-2 bg-gray-800 text-white text-sm font-semibold hover:bg-gray-900 transition-colors rounded flex items-center gap-2"
+            >
+              <RotateCcw className="w-4 h-4" /> Next Passage
+            </button>
           )}
         </div>
-      </main>
+
+        {/* Results */}
+        {showResults && (
+          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg inline-block">
+            <p className="text-gray-800">
+              Score: <span className="font-bold text-gray-900">{calculateScore()}</span> / 10
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

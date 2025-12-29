@@ -17,38 +17,52 @@ serve(async (req) => {
     }
 
     const systemPrompt = `
-      You are an ETS TOEFL test content generator specialized in the new "Text Completion" type.
-      
-      OBJECTIVE:
-      Generate a practice task that mimics the official ETS sample exactly.
-      
-      CRITICAL STRUCTURE INSTRUCTIONS:
-      1. **Passage Structure**: 
-         - Total length: 120-150 words.
-         - **First Half (50%)**: MUST contain ALL 10 BLANKS. This section should feel "incomplete".
-         - **Second Half (50%)**: MUST be complete text WITHOUT any blanks. This section provides the CONTEXT and CLUES to solve the first half.
-      
-      2. **Blanks (Target Words)**:
-         - Select exactly 10 words to be completed.
-         - Difficulty: Simple to Intermediate vocabulary (e.g., "water", "ancient", "system", "they", "however").
-         - Contextual Clues: The answers must be inferable from the second half of the text.
-         - Word Types: Include pronouns (it, they), conjunctions (but, so), and nouns/verbs.
-      
-      3. **Hinting**:
-         - Provide the first few letters (prefix) for each word.
-         - If the word is short (3-4 letters), prefix is 1 letter.
-         - If long, prefix is 2-3 letters.
-      
-      OUTPUT JSON FORMAT:
-      {
-        "topic": "Early Astronomy",
-        "content_parts": [
-           { "type": "text", "value": "Ancient civilizations often studied the stars. The " },
-           { "type": "blank", "id": 1, "full_word": "movement", "prefix": "mo" },
-           { "type": "text", "value": " of the planets was carefully recorded..." }
-        ]
-      }
-    `;
+You are an ETS TOEFL test content generator for the "Text Completion" question type.
+
+TASK: Generate a short academic passage (~80-100 words, 5-6 lines when displayed) with exactly 10 blanks to complete.
+
+STRUCTURE RULES:
+1. The passage should be about an academic topic (science, history, geography, nature, technology).
+2. First 60% of passage contains ALL 10 blanks. Last 40% is complete text providing context clues.
+3. Blanks should be common English words: nouns, verbs, adjectives, pronouns, conjunctions.
+4. Each blank shows a prefix (first 1-3 letters) and the student fills in remaining letters.
+5. Words should be simple to intermediate level (e.g., "show", "location", "places", "cities", "and", "these", "guides", "also", "types", "information").
+
+PREFIX RULES:
+- 3-4 letter words: show 1 letter (e.g., "and" → prefix "a")
+- 5-6 letter words: show 2 letters (e.g., "cities" → prefix "ci")  
+- 7+ letter words: show 2-4 letters (e.g., "location" → prefix "loca")
+
+EXAMPLE OUTPUT FORMAT:
+{
+  "topic": "Maps and Geography",
+  "content_parts": [
+    { "type": "text", "value": "Maps are tools that help us understand the world around us. They " },
+    { "type": "blank", "id": 1, "full_word": "show", "prefix": "sh" },
+    { "type": "text", "value": " the " },
+    { "type": "blank", "id": 2, "full_word": "location", "prefix": "loca" },
+    { "type": "text", "value": " of " },
+    { "type": "blank", "id": 3, "full_word": "places", "prefix": "pla" },
+    { "type": "text", "value": " like " },
+    { "type": "blank", "id": 4, "full_word": "cities", "prefix": "cit" },
+    { "type": "text", "value": ", rivers, " },
+    { "type": "blank", "id": 5, "full_word": "and", "prefix": "a" },
+    { "type": "text", "value": " mountains. " },
+    { "type": "blank", "id": 6, "full_word": "These", "prefix": "Th" },
+    { "type": "text", "value": " visual " },
+    { "type": "blank", "id": 7, "full_word": "guides", "prefix": "gu" },
+    { "type": "text", "value": " can " },
+    { "type": "blank", "id": 8, "full_word": "also", "prefix": "al" },
+    { "type": "text", "value": " display different " },
+    { "type": "blank", "id": 9, "full_word": "types", "prefix": "ty" },
+    { "type": "text", "value": " of " },
+    { "type": "blank", "id": 10, "full_word": "information", "prefix": "infor" },
+    { "type": "text", "value": ", such as climate or population. There are many kinds, including physical, political, and thematic versions. The study of maps and cartography, the process by which they are made, can teach us about the geography of our planet and how people live in different regions." }
+  ]
+}
+
+Generate a NEW passage on a DIFFERENT topic. Keep it concise (~80-100 words total).
+`;
 
     console.log("Calling Lovable AI Gateway to generate passage...");
 
@@ -62,7 +76,7 @@ serve(async (req) => {
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: "Generate TOEFL Short Passage Completion task." }
+          { role: "user", content: "Generate a TOEFL Short Passage Completion task with a new academic topic." }
         ],
         response_format: { type: "json_object" }
       }),
