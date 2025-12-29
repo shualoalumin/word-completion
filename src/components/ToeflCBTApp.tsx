@@ -615,7 +615,7 @@ const ToeflCBTApp = () => {
 
         {/* Passage */}
         <div 
-          className={`text-[17px] leading-[1.9] text-justify tracking-tight ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}
+          className={`text-[17px] leading-[1.9] text-justify tracking-normal ${darkMode ? 'text-gray-100' : 'text-gray-900'}`}
           style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
         >
           {passageData.content_parts.map((part, index) => {
