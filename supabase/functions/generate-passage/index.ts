@@ -19,19 +19,18 @@ serve(async (req) => {
     const systemPrompt = `
 You are an ETS TOEFL test content generator for the "Text Completion" question type.
 
-TASK: Generate a well-structured academic passage (100-130 words TOTAL) with exactly 10 blanks.
+TASK: Generate a short academic passage (70-90 words TOTAL, fitting in 5-6 lines) with exactly 10 blanks.
 
 CRITICAL STRUCTURE (follow the ETS sample exactly):
-1. FIRST HALF (~50-60 words): Contains ALL 10 blanks. Multiple blanks per sentence is normal and expected.
-2. SECOND HALF (~50-70 words): Complete text with NO blanks. This provides context clues for solving.
-3. Total passage length: 100-130 words.
-4. Logical Flow: Ensure the text has a clear introduction, supporting details, and a conclusion or elaboration. The second half must provide context that helps solve the blanks in the first half.
+1. FIRST HALF (~35-45 words): Contains ALL 10 blanks. Multiple blanks per sentence is normal and expected.
+2. SECOND HALF (~35-45 words): Complete text with NO blanks. This provides context clues for solving.
+3. Total passage must be SHORT: 70-90 words maximum, 5-6 lines when displayed.
 
 BLANK RULES:
-- All 10 blanks MUST appear in the first 50-60% of the passage
+- All 10 blanks MUST appear in the first 50% of the passage
 - Multiple blanks in one sentence is REQUIRED (like the ETS sample)
-- Use common academic words: nouns, verbs, adjectives, prepositions, conjunctions, transition words
-- Provide a "clue" for each blank explaining WHY it is the correct answer (grammar, collocation, context, reference, etc.)
+- Use common academic words: nouns, verbs, adjectives, prepositions, conjunctions
+- Simple to intermediate vocabulary only
 
 PREFIX RULES:
 - 3-4 letter words: show 1-2 letters (e.g., "and" → "a", "show" → "sh")
@@ -43,30 +42,30 @@ EXAMPLE (follow this structure exactly):
   "topic": "Maps and Geography",
   "content_parts": [
     { "type": "text", "value": "Maps are tools that help us understand the world around us. They " },
-    { "type": "blank", "id": 1, "full_word": "show", "prefix": "sh", "clue": "Verb needed; maps demonstrate or display features." },
+    { "type": "blank", "id": 1, "full_word": "show", "prefix": "sh" },
     { "type": "text", "value": " the " },
-    { "type": "blank", "id": 2, "full_word": "location", "prefix": "loca", "clue": "Noun indicating position; follows 'the'." },
+    { "type": "blank", "id": 2, "full_word": "location", "prefix": "loca" },
     { "type": "text", "value": " of " },
-    { "type": "blank", "id": 3, "full_word": "places", "prefix": "pla", "clue": "Plural noun referring to general locations." },
+    { "type": "blank", "id": 3, "full_word": "places", "prefix": "pla" },
     { "type": "text", "value": " like " },
-    { "type": "blank", "id": 4, "full_word": "cities", "prefix": "cit", "clue": "Example of a place; plural noun." },
+    { "type": "blank", "id": 4, "full_word": "cities", "prefix": "cit" },
     { "type": "text", "value": ", rivers, " },
-    { "type": "blank", "id": 5, "full_word": "and", "prefix": "a", "clue": "Conjunction connecting list items." },
+    { "type": "blank", "id": 5, "full_word": "and", "prefix": "a" },
     { "type": "text", "value": " mountains. " },
-    { "type": "blank", "id": 6, "full_word": "These", "prefix": "Th", "clue": "Demonstrative pronoun referring back to maps." },
+    { "type": "blank", "id": 6, "full_word": "These", "prefix": "Th" },
     { "type": "text", "value": " visual " },
-    { "type": "blank", "id": 7, "full_word": "guides", "prefix": "gu", "clue": "Noun synonym for maps/tools." },
+    { "type": "blank", "id": 7, "full_word": "guides", "prefix": "gu" },
     { "type": "text", "value": " can " },
-    { "type": "blank", "id": 8, "full_word": "also", "prefix": "al", "clue": "Adverb adding information." },
+    { "type": "blank", "id": 8, "full_word": "also", "prefix": "al" },
     { "type": "text", "value": " display different " },
-    { "type": "blank", "id": 9, "full_word": "types", "prefix": "ty", "clue": "Noun meaning kinds or categories." },
+    { "type": "blank", "id": 9, "full_word": "types", "prefix": "ty" },
     { "type": "text", "value": " of " },
-    { "type": "blank", "id": 10, "full_word": "information", "prefix": "infor", "clue": "Noun; what maps provide." },
-    { "type": "text", "value": ", such as climate or population. There are many kinds, including physical, political, and thematic versions. By studying maps, we can learn about the relationships between different regions and how geography influences human activity. Modern technology has also introduced digital maps, which offer real-time data and interactive features for navigation." }
+    { "type": "blank", "id": 10, "full_word": "information", "prefix": "infor" },
+    { "type": "text", "value": ", such as climate or population. There are many kinds, including physical, political, and thematic versions. The study of maps and cartography can teach us about geography." }
   ]
 }
 
-Generate a NEW passage on a DIFFERENT academic topic. Keep it focused and logical.
+Generate a NEW passage on a DIFFERENT academic topic. Keep it SHORT (70-90 words, 5-6 lines).
 `;
 
     console.log("Calling Lovable AI Gateway to generate passage...");
