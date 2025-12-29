@@ -1,0 +1,4 @@
+project_id = "xshxuggxwtsrdhzrkdyj"
+
+[functions.generate-passage]
+verify_jwt = false
