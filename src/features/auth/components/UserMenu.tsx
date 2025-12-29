@@ -94,3 +94,4 @@ export function UserMenu({ user, onSignOut, darkMode = false }: UserMenuProps) {
   );
 }
 
+
