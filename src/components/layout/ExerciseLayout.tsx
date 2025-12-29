@@ -1,8 +1,9 @@
 import React from 'react';
-import { Check, RotateCcw } from 'lucide-react';
+import { Check, RotateCcw, User } from 'lucide-react';
 import { Timer, DarkModeToggle, ScoreCard } from '@/components/common';
 import { UseTimerReturn } from '@/core/hooks';
 import { cn } from '@/lib/utils';
+import { useAuth, AuthModal, UserMenu } from '@/features/auth';
 
 export interface ExerciseLayoutProps {
   // Required
@@ -45,6 +46,9 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   renderResults,
   className,
 }) => {
+  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const [showAuthModal, setShowAuthModal] = React.useState(false);
+
   return (
     <div
       className={cn(
@@ -62,8 +66,42 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
             isOvertime={timer.isOvertime}
             darkMode={darkMode}
           />
-          <DarkModeToggle darkMode={darkMode} onToggle={onDarkModeToggle} />
+          <div className="flex items-center gap-3">
+            <DarkModeToggle darkMode={darkMode} onToggle={onDarkModeToggle} />
+            
+            {/* Auth Section */}
+            {!authLoading && (
+              isAuthenticated && user ? (
+                <UserMenu 
+                  user={user} 
+                  onSignOut={() => {}} 
+                  darkMode={darkMode} 
+                />
+              ) : (
+                <button
+                  onClick={() => setShowAuthModal(true)}
+                  className={cn(
+                    'p-2 rounded-full transition-colors',
+                    darkMode 
+                      ? 'hover:bg-zinc-700 text-zinc-400 hover:text-white' 
+                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
+                  )}
+                  title="Sign in"
+                >
+                  <User className="w-5 h-5" />
+                </button>
+              )
+            )}
+          </div>
         </div>
+
+        {/* Auth Modal */}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => setShowAuthModal(false)}
+          darkMode={darkMode}
+        />
 
         {/* Header */}
         <div className="mb-6">

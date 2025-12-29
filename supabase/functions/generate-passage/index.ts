@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { AIClient } from "../_shared/ai/client.ts";
 
 const corsHeaders = {
@@ -12,6 +13,38 @@ serve(async (req) => {
   }
 
   try {
+    // Initialize Supabase client with service role for DB access
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Step 1: Try to get a cached exercise from DB
+    console.log("Checking for cached exercises...");
+    const { data: cachedExercises, error: fetchError } = await supabase
+      .from("exercises")
+      .select("*")
+      .eq("section", "reading")
+      .eq("exercise_type", "text-completion")
+      .eq("is_active", true)
+      .limit(50);
+
+    if (fetchError) {
+      console.error("Error fetching cached exercises:", fetchError);
+    }
+
+    // If we have cached exercises, return a random one
+    if (cachedExercises && cachedExercises.length > 0) {
+      const randomIndex = Math.floor(Math.random() * cachedExercises.length);
+      const cached = cachedExercises[randomIndex];
+      console.log(`Returning cached exercise: ${cached.topic}`);
+      
+      return new Response(JSON.stringify(cached.content), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Step 2: No cache available, generate new with AI
+    console.log("No cached exercises found, generating new one...");
     const aiClient = new AIClient();
 
     const systemPrompt = `
@@ -61,6 +94,26 @@ Return strictly a JSON object matching this schema:
     const passageData = await aiClient.generate(systemPrompt, userPrompt);
     console.log("AI generation successful");
 
+    // Step 3: Save to DB for future caching
+    const { error: insertError } = await supabase
+      .from("exercises")
+      .insert({
+        section: "reading",
+        exercise_type: "text-completion",
+        topic: passageData.topic || "Unknown Topic",
+        topic_category: "General",
+        difficulty: "intermediate",
+        content: passageData,
+        is_active: true,
+      });
+
+    if (insertError) {
+      console.error("Error saving exercise to cache:", insertError);
+      // Continue anyway, just log the error
+    } else {
+      console.log("Exercise saved to cache successfully");
+    }
+
     return new Response(JSON.stringify(passageData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -68,7 +121,6 @@ Return strictly a JSON object matching this schema:
   } catch (error) {
     console.error("Error generating passage:", error);
     
-    // Check for specific error types if needed
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     
     return new Response(JSON.stringify({ error: errorMessage }), {
