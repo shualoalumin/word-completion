@@ -64,6 +64,21 @@ const ToeflCBTApp = () => {
     generatePassage();
   }, []);
 
+  // Auto-focus first blank when passage loads
+  useEffect(() => {
+    if (passageData && !showResults && blankOrder.current.length > 0) {
+      const firstWordId = blankOrder.current[0];
+      // Small delay to ensure inputs are rendered
+      requestAnimationFrame(() => {
+        const firstInput = inputRefs.current[`${firstWordId}-0`];
+        if (firstInput) {
+          firstInput.focus();
+          firstInput.setSelectionRange(0, 0);
+        }
+      });
+    }
+  }, [passageData, showResults]);
+
   const calculateScore = () => {
     if (!passageData) return 0;
     const blanks = passageData.content_parts.filter(p => p.type === 'blank');
@@ -75,25 +90,53 @@ const ToeflCBTApp = () => {
     }, 0);
   };
 
-  // Get next/prev blank's first input
-  const getAdjacentBlankInput = useCallback((currentWordId: number, direction: 'next' | 'prev') => {
-    const idx = blankOrder.current.indexOf(currentWordId);
-    if (idx === -1) return null;
-    
-    const targetIdx = direction === 'next' ? idx + 1 : idx - 1;
-    if (targetIdx < 0 || targetIdx >= blankOrder.current.length) return null;
-    
-    const targetWordId = blankOrder.current[targetIdx];
-    const targetCharIdx = direction === 'next' ? 0 : getBlankLength(targetWordId) - 1;
-    return inputRefs.current[`${targetWordId}-${targetCharIdx}`];
-  }, []);
-
-  const getBlankLength = (wordId: number) => {
+  const getBlankLength = useCallback((wordId: number) => {
     if (!passageData) return 0;
     const blank = passageData.content_parts.find(p => p.type === 'blank' && p.id === wordId);
     if (!blank?.full_word || !blank?.prefix) return 0;
     return blank.full_word.length - blank.prefix.length;
-  };
+  }, [passageData]);
+
+  // Focus helper with cursor positioning
+  const focusInput = useCallback((wordId: number, charIndex: number, cursorPos: 'start' | 'end' = 'end') => {
+    const input = inputRefs.current[`${wordId}-${charIndex}`];
+    if (input) {
+      input.focus();
+      // Set cursor position after focus
+      requestAnimationFrame(() => {
+        const pos = cursorPos === 'start' ? 0 : input.value.length;
+        input.setSelectionRange(pos, pos);
+      });
+    }
+    return input;
+  }, []);
+
+  // Navigate to adjacent blank
+  const navigateToBlank = useCallback((currentWordId: number, direction: 'next' | 'prev') => {
+    const idx = blankOrder.current.indexOf(currentWordId);
+    if (idx === -1) return false;
+    
+    const targetIdx = direction === 'next' ? idx + 1 : idx - 1;
+    if (targetIdx < 0 || targetIdx >= blankOrder.current.length) return false;
+    
+    const targetWordId = blankOrder.current[targetIdx];
+    const targetLength = getBlankLength(targetWordId);
+    if (targetLength === 0) return false;
+    
+    const targetCharIdx = direction === 'next' ? 0 : targetLength - 1;
+    const cursorPos = direction === 'next' ? 'start' : 'end';
+    focusInput(targetWordId, targetCharIdx, cursorPos);
+    return true;
+  }, [getBlankLength, focusInput]);
+
+  // Get chars array for a word
+  const getCharsArray = useCallback((wordId: number, expectedLength: number, answersState?: Record<number, string>) => {
+    const state = answersState ?? userAnswers;
+    const currentStr = state[wordId] || "";
+    const chars = currentStr.split('');
+    while (chars.length < expectedLength) chars.push('');
+    return chars;
+  }, [userAnswers]);
 
   const handleCharChange = useCallback((wordId: number, charIndex: number, inputValue: string, expectedLength: number) => {
     if (showResults) return;
@@ -103,108 +146,201 @@ const ToeflCBTApp = () => {
     const char = englishOnly.slice(-1).toLowerCase();
 
     setUserAnswers(prev => {
-      const currentStr = prev[wordId] || "";
-      const chars = currentStr.split('');
-      while (chars.length < expectedLength) chars.push('');
+      const chars = getCharsArray(wordId, expectedLength, prev);
       chars[charIndex] = char;
       return { ...prev, [wordId]: chars.join('').slice(0, expectedLength) };
     });
 
-    // Auto-advance
+    // Auto-advance on character input
     if (char) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         if (charIndex < expectedLength - 1) {
-          inputRefs.current[`${wordId}-${charIndex + 1}`]?.focus();
+          focusInput(wordId, charIndex + 1, 'start');
         } else {
-          // Move to next blank
-          getAdjacentBlankInput(wordId, 'next')?.focus();
+          navigateToBlank(wordId, 'next');
         }
-      }, 0);
+      });
     }
-  }, [showResults, getAdjacentBlankInput]);
+  }, [showResults, getCharsArray, focusInput, navigateToBlank]);
 
-  // Check if a blank is completely empty
-  const isBlankEmpty = useCallback((wordId: number) => {
-    const str = userAnswers[wordId] || "";
-    return str.replace(/\s/g, '').length === 0;
-  }, [userAnswers]);
-
-  // Clear previous blank's last character and get input ref
-  const clearPrevBlankLastChar = useCallback((wordId: number) => {
-    const idx = blankOrder.current.indexOf(wordId);
-    if (idx <= 0) return null;
-    
-    const prevWordId = blankOrder.current[idx - 1];
-    const prevLength = getBlankLength(prevWordId);
-    if (prevLength === 0) return null;
-    
-    // Clear last char of previous blank
-    const prevStr = userAnswers[prevWordId] || "";
-    const prevChars = prevStr.split('');
-    while (prevChars.length < prevLength) prevChars.push('');
-    prevChars[prevLength - 1] = '';
-    setUserAnswers(prev => ({ ...prev, [prevWordId]: prevChars.join('') }));
-    
-    return inputRefs.current[`${prevWordId}-${prevLength - 1}`];
-  }, [userAnswers, getBlankLength]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent, wordId: number, charIndex: number, expectedLength: number) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, wordId: number, charIndex: number, expectedLength: number) => {
     if (showResults) return;
 
-    const currentStr = userAnswers[wordId] || "";
-    const chars = currentStr.split('');
-    while (chars.length < expectedLength) chars.push('');
+    const input = e.currentTarget;
+    const cursorPos = input.selectionStart ?? 0;
+    const hasSelection = input.selectionStart !== input.selectionEnd;
 
-    if (e.key === 'Backspace') {
-      e.preventDefault();
-      
-      if (chars[charIndex]) {
-        // Clear current char
-        chars[charIndex] = '';
-        setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
-      } else if (charIndex > 0) {
-        // Move back and clear previous char
-        chars[charIndex - 1] = '';
-        setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
-        inputRefs.current[`${wordId}-${charIndex - 1}`]?.focus();
-      } else {
-        // At first char of word - move to previous blank's last char and clear it
-        const prevInput = clearPrevBlankLastChar(wordId);
-        if (prevInput) prevInput.focus();
+    switch (e.key) {
+      case 'Backspace': {
+        e.preventDefault();
+        
+        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
+        
+        if (currentChar) {
+          // Has content - just clear it, stay in place
+          setUserAnswers(prev => {
+            const chars = getCharsArray(wordId, expectedLength, prev);
+            chars[charIndex] = '';
+            return { ...prev, [wordId]: chars.join('') };
+          });
+        } else if (charIndex > 0) {
+          // Current empty, move to previous char in same blank and clear it
+          setUserAnswers(prev => {
+            const chars = getCharsArray(wordId, expectedLength, prev);
+            chars[charIndex - 1] = '';
+            return { ...prev, [wordId]: chars.join('') };
+          });
+          focusInput(wordId, charIndex - 1, 'end');
+        } else {
+          // At first char of blank - go to previous blank's last char and clear it
+          const idx = blankOrder.current.indexOf(wordId);
+          if (idx > 0) {
+            const prevWordId = blankOrder.current[idx - 1];
+            const prevLength = getBlankLength(prevWordId);
+            if (prevLength > 0) {
+              setUserAnswers(prev => {
+                const prevChars = getCharsArray(prevWordId, prevLength, prev);
+                prevChars[prevLength - 1] = '';
+                return { ...prev, [prevWordId]: prevChars.join('') };
+              });
+              focusInput(prevWordId, prevLength - 1, 'end');
+            }
+          }
+        }
+        break;
       }
-    } else if (e.key === 'Delete') {
-      e.preventDefault();
-      if (chars[charIndex]) {
-        chars[charIndex] = '';
-        setUserAnswers(prev => ({ ...prev, [wordId]: chars.join('') }));
-      } else if (charIndex === expectedLength - 1 && isBlankEmpty(wordId)) {
-        // At last char and word is empty, move to next blank
-        getAdjacentBlankInput(wordId, 'next')?.focus();
+
+      case 'Delete': {
+        e.preventDefault();
+        
+        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
+        
+        if (currentChar) {
+          // Clear current char
+          setUserAnswers(prev => {
+            const chars = getCharsArray(wordId, expectedLength, prev);
+            chars[charIndex] = '';
+            return { ...prev, [wordId]: chars.join('') };
+          });
+        } else {
+          // Current is empty - move to next position
+          if (charIndex < expectedLength - 1) {
+            focusInput(wordId, charIndex + 1, 'start');
+          } else {
+            navigateToBlank(wordId, 'next');
+          }
+        }
+        break;
       }
-    } else if (e.key === 'ArrowLeft') {
-      e.preventDefault();
-      if (charIndex > 0) {
-        inputRefs.current[`${wordId}-${charIndex - 1}`]?.focus();
-      } else {
-        // At first char, move to previous blank's last char
-        getAdjacentBlankInput(wordId, 'prev')?.focus();
+
+      case 'ArrowLeft': {
+        e.preventDefault();
+        
+        // If cursor is at start or no content, move to previous input
+        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
+        const shouldMove = cursorPos === 0 || !currentChar || hasSelection;
+        
+        if (shouldMove) {
+          if (charIndex > 0) {
+            focusInput(wordId, charIndex - 1, 'end');
+          } else {
+            navigateToBlank(wordId, 'prev');
+          }
+        } else {
+          // Move cursor within input
+          input.setSelectionRange(0, 0);
+        }
+        break;
       }
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      if (charIndex < expectedLength - 1) {
-        inputRefs.current[`${wordId}-${charIndex + 1}`]?.focus();
-      } else {
-        // At last char, move to next blank's first char
-        getAdjacentBlankInput(wordId, 'next')?.focus();
+
+      case 'ArrowRight': {
+        e.preventDefault();
+        
+        // If cursor is at end or no content, move to next input
+        const currentChar = (userAnswers[wordId] || "")[charIndex] || "";
+        const shouldMove = cursorPos === currentChar.length || !currentChar || hasSelection;
+        
+        if (shouldMove) {
+          if (charIndex < expectedLength - 1) {
+            focusInput(wordId, charIndex + 1, 'start');
+          } else {
+            navigateToBlank(wordId, 'next');
+          }
+        } else {
+          // Move cursor within input
+          input.setSelectionRange(currentChar.length, currentChar.length);
+        }
+        break;
       }
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      const target = e.shiftKey 
-        ? getAdjacentBlankInput(wordId, 'prev') 
-        : getAdjacentBlankInput(wordId, 'next');
-      target?.focus();
+
+      case 'ArrowUp': {
+        e.preventDefault();
+        // Jump to previous blank's same position or last char
+        const idx = blankOrder.current.indexOf(wordId);
+        if (idx > 0) {
+          const prevWordId = blankOrder.current[idx - 1];
+          const prevLength = getBlankLength(prevWordId);
+          const targetIdx = Math.min(charIndex, prevLength - 1);
+          focusInput(prevWordId, targetIdx, 'end');
+        }
+        break;
+      }
+
+      case 'ArrowDown': {
+        e.preventDefault();
+        // Jump to next blank's same position or last char
+        const idx = blankOrder.current.indexOf(wordId);
+        if (idx < blankOrder.current.length - 1) {
+          const nextWordId = blankOrder.current[idx + 1];
+          const nextLength = getBlankLength(nextWordId);
+          const targetIdx = Math.min(charIndex, nextLength - 1);
+          focusInput(nextWordId, targetIdx, 'start');
+        }
+        break;
+      }
+
+      case 'Tab': {
+        e.preventDefault();
+        navigateToBlank(wordId, e.shiftKey ? 'prev' : 'next');
+        break;
+      }
+
+      case 'Home': {
+        e.preventDefault();
+        // Go to first char of current blank
+        if (e.ctrlKey || e.metaKey) {
+          // Go to very first blank
+          const firstWordId = blankOrder.current[0];
+          if (firstWordId !== undefined) {
+            focusInput(firstWordId, 0, 'start');
+          }
+        } else {
+          focusInput(wordId, 0, 'start');
+        }
+        break;
+      }
+
+      case 'End': {
+        e.preventDefault();
+        // Go to last char of current blank
+        if (e.ctrlKey || e.metaKey) {
+          // Go to very last blank
+          const lastWordId = blankOrder.current[blankOrder.current.length - 1];
+          if (lastWordId !== undefined) {
+            const lastLength = getBlankLength(lastWordId);
+            focusInput(lastWordId, lastLength - 1, 'end');
+          }
+        } else {
+          focusInput(wordId, expectedLength - 1, 'end');
+        }
+        break;
+      }
+
+      default:
+        // Allow normal character input to flow through
+        break;
     }
-  }, [showResults, userAnswers, getAdjacentBlankInput, isBlankEmpty, clearPrevBlankLastChar]);
+  }, [showResults, userAnswers, getCharsArray, getBlankLength, focusInput, navigateToBlank]);
 
   const WordCompletion = ({ blank }: { blank: ContentPart }) => {
     const { id, full_word, prefix } = blank;
@@ -247,16 +383,22 @@ const ToeflCBTApp = () => {
               value={char}
               onChange={(e) => handleCharChange(id, idx, e.target.value, suffixLen)}
               onKeyDown={(e) => handleKeyDown(e, id, idx, suffixLen)}
-              onFocus={(e) => e.target.select()}
+              onFocus={(e) => {
+                // Position cursor at end on focus
+                const len = e.target.value.length;
+                e.target.setSelectionRange(len, len);
+              }}
               disabled={showResults}
               className={`
                 w-[10px] h-[18px] mx-[0.5px]
                 text-center text-[15px] font-medium
-                border-b ${borderColor} ${textColor}
+                border-b-2 ${borderColor} ${textColor}
                 bg-transparent outline-none
-                focus:border-blue-600 focus:bg-blue-50/50
+                focus:border-blue-600 focus:bg-blue-50/80
+                focus:caret-blue-600
                 disabled:cursor-default
                 p-0 leading-tight
+                transition-colors duration-100
               `}
               style={{ fontFamily: 'inherit' }}
             />
