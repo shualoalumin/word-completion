@@ -1,7 +1,51 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TextCompletionPassage, TextCompletionBlank, UserAnswers, isBlankPart } from '../types';
+import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
 import { generatePassage } from '../api';
 import { UI_CONFIG } from '@/core/constants';
+
+/**
+ * 공백 정규화 함수
+ * AI가 생성한 content_parts에서 누락된 공백을 자동으로 추가
+ * 예: "systemswh___" → "systems wh___"
+ */
+function normalizeSpacing(passage: TextCompletionPassage): TextCompletionPassage {
+  const parts = passage.content_parts;
+  const normalizedParts: TextCompletionPart[] = [];
+
+  for (let i = 0; i < parts.length; i++) {
+    const current = parts[i];
+    const next = parts[i + 1];
+
+    if (current.type === 'text') {
+      let value = current.value;
+
+      // 다음이 blank인데, 현재 text가 공백으로 끝나지 않으면 공백 추가
+      if (next && isBlankPart(next)) {
+        if (value.length > 0 && !/\s$/.test(value)) {
+          value = value + ' ';
+        }
+      }
+
+      normalizedParts.push({ ...current, value });
+    } else if (isBlankPart(current)) {
+      normalizedParts.push(current);
+
+      // 다음이 text인데, 공백/구두점으로 시작하지 않으면 공백 삽입
+      if (next && next.type === 'text') {
+        const nextValue = next.value;
+        // 구두점(.,!?;:)이나 공백으로 시작하지 않으면
+        if (nextValue.length > 0 && !/^[\s.,!?;:']/.test(nextValue)) {
+          // 다음 text 앞에 공백 추가 (다음 루프에서 처리하기 위해 원본 수정)
+          parts[i + 1] = { ...next, value: ' ' + nextValue };
+        }
+      }
+    } else {
+      normalizedParts.push(current);
+    }
+  }
+
+  return { ...passage, content_parts: normalizedParts };
+}
 
 export interface UseTextCompletionReturn {
   // State
@@ -76,9 +120,11 @@ export function useTextCompletion(): UseTextCompletionReturn {
     if (result.error) {
       setError('Failed to generate passage. Please try again.');
     } else if (result.data) {
-      const newBlanks = result.data.content_parts.filter(isBlankPart) as TextCompletionBlank[];
+      // 공백 정규화 적용 (AI 생성 데이터의 공백 누락 수정)
+      const normalizedPassage = normalizeSpacing(result.data);
+      const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
       blankOrderRef.current = newBlanks.map((b) => b.id);
-      setPassage(result.data);
+      setPassage(normalizedPassage);
     }
 
     setLoading(false);
@@ -233,6 +279,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     getNextBlank,
   };
 }
+
 
 
 
