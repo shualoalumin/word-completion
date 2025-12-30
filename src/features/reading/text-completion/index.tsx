@@ -244,6 +244,8 @@ export const TextCompletion: React.FC = () => {
           blanks={blanks}
           userAnswers={userAnswers}
           darkMode={darkMode}
+          topic={passage?.topic}
+          elapsedTime={timer.elapsed}
         />
       )}
     >
