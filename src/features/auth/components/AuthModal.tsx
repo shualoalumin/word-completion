@@ -123,7 +123,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
         <div className="space-y-3 mb-6">
           <Button
             variant="outline"
-            className={`w-full h-12 font-medium ${borderColor}`}
+            className={`w-full h-12 font-medium ${borderColor} ${textColor}`}
             onClick={handleGoogleSignIn}
             disabled={loading}
           >
@@ -138,7 +138,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
 
           <Button
             variant="outline"
-            className={`w-full h-12 font-medium ${borderColor}`}
+            className={`w-full h-12 font-medium ${borderColor} ${textColor}`}
             onClick={handleAppleSignIn}
             disabled={loading}
           >
