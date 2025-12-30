@@ -4,9 +4,11 @@ import { generatePassage } from '../api';
 import { UI_CONFIG } from '@/core/constants';
 
 /**
- * 공백 정규화 함수
- * AI가 생성한 content_parts에서 누락된 공백을 자동으로 추가
- * 예: "systemswh___" → "systems wh___"
+ * 공백 정규화 함수 (Fallback)
+ * 
+ * NOTE: 현재는 Edge Function(BE)에서 정규화된 데이터를 반환하므로
+ * 이 로직은 네트워크 오류나 예상치 못한 케이스를 대비한 '안전장치'로만 동작합니다.
+ * BE 로직과 동일한 규칙을 따릅니다.
  */
 function normalizeSpacing(passage: TextCompletionPassage): TextCompletionPassage {
   const parts = passage.content_parts;
