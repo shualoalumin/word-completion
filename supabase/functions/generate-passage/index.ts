@@ -82,6 +82,33 @@ const TOEFL_TOPICS = {
   ],
 };
 
+// Difficulty distribution for cache diversity
+// Module 1: Easy 50%, Medium 50%, Hard 0%
+// Module 2: Easy 20%, Medium 40%, Hard 40%
+// For cache building, we use a balanced distribution
+type Difficulty = "easy" | "intermediate" | "hard";
+type Module = "module1" | "module2";
+
+function getRandomDifficulty(module?: Module): Difficulty {
+  const rand = Math.random();
+  
+  if (module === "module1") {
+    // Module 1: Easy 50%, Medium 50%
+    return rand < 0.5 ? "easy" : "intermediate";
+  } else if (module === "module2") {
+    // Module 2: Easy 20%, Medium 40%, Hard 40%
+    if (rand < 0.2) return "easy";
+    if (rand < 0.6) return "intermediate";
+    return "hard";
+  }
+  
+  // Default (cache building): balanced distribution
+  // Easy 25%, Intermediate 50%, Hard 25%
+  if (rand < 0.25) return "easy";
+  if (rand < 0.75) return "intermediate";
+  return "hard";
+}
+
 // Get random topic from the pool
 function getRandomTopic(): { topic: string; category: string } {
   const categories = Object.keys(TOEFL_TOPICS) as (keyof typeof TOEFL_TOPICS)[];
@@ -102,6 +129,35 @@ function getRandomTopic(): { topic: string; category: string } {
     topic: randomTopic,
     category: categoryNames[randomCategory],
   };
+}
+
+// Difficulty-specific vocabulary guidelines for AI prompt
+function getDifficultyGuidelines(difficulty: Difficulty): string {
+  switch (difficulty) {
+    case "easy":
+      return `
+VOCABULARY FOR EASY DIFFICULTY:
+- Use 6-7 EASY words: in, to, and, is, are, the, that, this, these, each, how, with, from, for, only
+- Use 3-4 MEDIUM words: common academic verbs and nouns
+- Use 0 HARD words (no specialized terminology)
+- Focus on basic grammar patterns and common collocations`;
+    
+    case "intermediate":
+      return `
+VOCABULARY FOR INTERMEDIATE DIFFICULTY:
+- Use 2-3 EASY words: in, to, and, is, that, with
+- Use 5-6 MEDIUM words: examining, evolved, organisms, influenced, regions, activities
+- Use 1-2 HARDER words appropriate to the academic topic
+- Balance between grammar and context clues`;
+    
+    case "hard":
+      return `
+VOCABULARY FOR HARD DIFFICULTY:
+- Use 1-2 EASY words only: essential connectors (and, in)
+- Use 4-5 MEDIUM words: standard academic vocabulary
+- Use 3-4 HARD words: latitude, proximity, substantial, cognitive, deforestation, hypothesis, metabolism
+- Emphasize context and reference clues over simple grammar`;
+  }
 }
 
 serve(async (req) => {
@@ -176,7 +232,13 @@ serve(async (req) => {
     
     // Select random topic from our curated pool
     const { topic: selectedTopic, category: topicCategory } = getRandomTopic();
-    console.log(`Selected topic: ${selectedTopic} (${topicCategory})`);
+    
+    // Determine difficulty (can be passed as parameter or random for cache building)
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    const requestedModule = body.module as Module | undefined;
+    const selectedDifficulty = getRandomDifficulty(requestedModule);
+    
+    console.log(`Selected topic: ${selectedTopic} (${topicCategory}), Difficulty: ${selectedDifficulty}`);
 
     const systemPrompt = `
 You are an ETS TOEFL iBT test content generator for the "Text Completion" question type.
@@ -218,11 +280,9 @@ PREFIX LENGTH ALGORITHM
 - 10+ letters → 5 char prefix: information→"infor", deforestation→"defor"
 
 ═══════════════════════════════════════════════════════════════
-VOCABULARY GUIDELINES
+VOCABULARY GUIDELINES (DIFFICULTY-SPECIFIC)
 ═══════════════════════════════════════════════════════════════
-Include 2-3 EASY words (in, to, and, is, that, these, with, from)
-Include 5-6 MEDIUM words (examining, evolved, organisms, important)
-Include 1-2 HARDER words appropriate to the academic topic
+${getDifficultyGuidelines(selectedDifficulty)}
 NEVER use numbers as blanks. Words only.
 
 ═══════════════════════════════════════════════════════════════
@@ -253,13 +313,14 @@ OUTPUT FORMAT (strict JSON)
     const userPrompt = `Generate a TOEFL Text Completion passage about: "${selectedTopic}"
 
 Category: ${topicCategory}
+Difficulty: ${selectedDifficulty.toUpperCase()}
 
 Requirements:
 - Follow the ETS algorithm EXACTLY
 - Introduction sentence introduces "${selectedTopic}" without blanks
 - Body section contains ALL 10 blanks (2-4 per sentence)
 - Conclusion provides context clues with no blanks
-- Mix easy words (in, to, and) with topic-specific vocabulary
+- STRICTLY follow the ${selectedDifficulty.toUpperCase()} difficulty vocabulary guidelines
 - Each blank needs a specific clue (Grammar/Context/Collocation/Reference)`;
 
     console.log("Requesting AI generation...");
@@ -278,7 +339,7 @@ Requirements:
         exercise_type: "text-completion",
         topic: passageData.topic || selectedTopic,
         topic_category: topicCategory,
-        difficulty: "intermediate",
+        difficulty: selectedDifficulty,
         content: passageData,
         is_active: true,
       });
