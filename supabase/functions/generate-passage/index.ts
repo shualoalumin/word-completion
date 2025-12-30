@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { AIClient } from "../_shared/ai/client.ts";
+import { normalizeSpacing, needsNormalization } from "../_shared/normalize-spacing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -143,7 +144,26 @@ serve(async (req) => {
       const cached = cachedExercises[randomIndex];
       console.log(`Returning cached exercise (${cacheCount} in pool): ${cached.topic}`);
       
-      return new Response(JSON.stringify(cached.content), {
+      let content = cached.content;
+      
+      // Self-Healing: Check if normalization is needed
+      if (needsNormalization(content)) {
+        console.log(`Detected spacing issues in cached exercise ${cached.id}. Fixing...`);
+        content = normalizeSpacing(content);
+        
+        // Asynchronously update the DB with fixed content (Fire and forget)
+        // We don't await this to avoid delaying the response
+        supabase
+          .from("exercises")
+          .update({ content: content })
+          .eq("id", cached.id)
+          .then(({ error }) => {
+            if (error) console.error(`Failed to auto-heal exercise ${cached.id}:`, error);
+            else console.log(`Auto-healed exercise ${cached.id} in DB`);
+          });
+      }
+
+      return new Response(JSON.stringify(content), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -168,6 +188,16 @@ PASSAGE STRUCTURE (70-100 words total)
 1. INTRODUCTION (1 sentence, ~15%): Define/introduce the topic. NO blanks here.
 2. BODY (2-3 sentences, ~45%): ALL 10 blanks concentrated here. 2-4 blanks per sentence.
 3. CONCLUSION (2-3 sentences, ~40%): Expand on topic with complete text. NO blanks. Provides context clues.
+
+═══════════════════════════════════════════════════════════════
+CRITICAL FORMATTING RULE (SPACING)
+═══════════════════════════════════════════════════════════════
+- When a "text" part is followed by a "blank" part, the text value MUST end with a space.
+  Example: {"type": "text", "value": "Natural systems "} (CORRECT - note the trailing space)
+  Example: {"type": "text", "value": "Natural systems"} (WRONG - missing space)
+- When a "blank" part is followed by a "text" part, the text value MUST start with a space (unless punctuation).
+  Example: {"type": "text", "value": " are vital."} (CORRECT - note the leading space)
+  Example: {"type": "text", "value": "are vital."} (WRONG - missing space)
 
 ═══════════════════════════════════════════════════════════════
 PART OF SPEECH DISTRIBUTION (10 blanks)
@@ -233,7 +263,11 @@ Requirements:
 - Each blank needs a specific clue (Grammar/Context/Collocation/Reference)`;
 
     console.log("Requesting AI generation...");
-    const passageData = await aiClient.generate(systemPrompt, userPrompt);
+    const rawPassageData = await aiClient.generate(systemPrompt, userPrompt);
+    
+    // Normalize spacing before saving to DB
+    const passageData = normalizeSpacing(rawPassageData);
+    
     console.log("AI generation successful");
 
     // Step 3: Save to DB for future caching
