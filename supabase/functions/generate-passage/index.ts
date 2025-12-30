@@ -7,6 +7,102 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ETS TOEFL Topic Pool (50+ topics across academic categories)
+const TOEFL_TOPICS = {
+  naturalSciences: [
+    "Photosynthesis in plants",
+    "Volcanic activity and plate tectonics",
+    "Black holes and stellar evolution",
+    "Chemical bonding and molecular structures",
+    "The water cycle and precipitation",
+    "Earthquake formation and seismic waves",
+    "Nuclear fusion in stars",
+    "Genetic inheritance patterns",
+  ],
+  lifeSciences: [
+    "Migration patterns of birds",
+    "Coral reef ecosystems",
+    "Evolution of mammals",
+    "Elephant social behavior",
+    "Whale communication methods",
+    "Photosynthesis in marine plants",
+    "Insect colony organization",
+    "Human brain functions",
+    "Animal camouflage techniques",
+    "Symbiotic relationships in nature",
+  ],
+  socialSciences: [
+    "Child cognitive development",
+    "Economic recession causes",
+    "Ancient trade routes",
+    "Cultural rituals and ceremonies",
+    "Language acquisition in children",
+    "Social group dynamics",
+    "Archaeological excavation methods",
+    "Urban planning principles",
+    "Consumer behavior patterns",
+    "Political system structures",
+  ],
+  earthEnvironment: [
+    "Climate change effects",
+    "Map making and cartography",
+    "Ocean current patterns",
+    "Weather prediction methods",
+    "Deforestation impacts",
+    "Renewable energy sources",
+    "Glacier formation processes",
+    "Air pollution sources",
+    "Soil composition and fertility",
+    "Water conservation methods",
+  ],
+  history: [
+    "Ancient Egyptian pyramids",
+    "Roman Empire governance",
+    "Medieval castle construction",
+    "Industrial Revolution impacts",
+    "Ancient Greek democracy",
+    "Silk Road trade networks",
+    "Renaissance art movement",
+    "Colonial expansion effects",
+    "Prehistoric cave paintings",
+    "Agricultural revolution",
+  ],
+  artsHumanities: [
+    "Classical music composition",
+    "Impressionist painting techniques",
+    "Theater history and development",
+    "Architecture design principles",
+    "Literary genres and styles",
+    "Film production methods",
+    "Photography evolution",
+    "Sculpture materials and methods",
+    "Poetry forms and structures",
+    "Dance as cultural expression",
+  ],
+};
+
+// Get random topic from the pool
+function getRandomTopic(): { topic: string; category: string } {
+  const categories = Object.keys(TOEFL_TOPICS) as (keyof typeof TOEFL_TOPICS)[];
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+  const topics = TOEFL_TOPICS[randomCategory];
+  const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+  
+  const categoryNames: Record<string, string> = {
+    naturalSciences: "Natural Sciences",
+    lifeSciences: "Life Sciences",
+    socialSciences: "Social Sciences",
+    earthEnvironment: "Earth & Environment",
+    history: "History",
+    artsHumanities: "Arts & Humanities",
+  };
+  
+  return {
+    topic: randomTopic,
+    category: categoryNames[randomCategory],
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -57,49 +153,84 @@ serve(async (req) => {
     // Step 2: No cache available, generate new with AI
     console.log("No cached exercises found, generating new one...");
     const aiClient = new AIClient();
+    
+    // Select random topic from our curated pool
+    const { topic: selectedTopic, category: topicCategory } = getRandomTopic();
+    console.log(`Selected topic: ${selectedTopic} (${topicCategory})`);
 
     const systemPrompt = `
 You are an ETS TOEFL iBT test content generator for the "Text Completion" question type.
+Based on analysis of official ETS samples, follow this EXACT algorithm:
 
-TASK: Generate a short academic passage (70-90 words TOTAL, fitting in 5-6 lines) with exactly 10 blanks.
+═══════════════════════════════════════════════════════════════
+PASSAGE STRUCTURE (70-100 words total)
+═══════════════════════════════════════════════════════════════
+1. INTRODUCTION (1 sentence, ~15%): Define/introduce the topic. NO blanks here.
+2. BODY (2-3 sentences, ~45%): ALL 10 blanks concentrated here. 2-4 blanks per sentence.
+3. CONCLUSION (2-3 sentences, ~40%): Expand on topic with complete text. NO blanks. Provides context clues.
 
-CRITICAL STRUCTURE (follow the ETS sample exactly):
-1. FIRST HALF (~35-45 words): Contains ALL 10 blanks. Multiple blanks per sentence is normal and expected.
-2. SECOND HALF (~35-45 words): Complete text with NO blanks. This provides context clues for solving.
-3. Total passage must be SHORT: 70-90 words maximum, 5-6 lines when displayed.
+═══════════════════════════════════════════════════════════════
+PART OF SPEECH DISTRIBUTION (10 blanks)
+═══════════════════════════════════════════════════════════════
+- Nouns: 4 blanks (40%) - field, regions, organisms, activities
+- Verbs: 2-3 blanks (25%) - examining, evolved, influenced (any tense)
+- Prepositions: 1-2 blanks (12%) - in, to, from, with
+- Conjunctions/Determiners: 1-2 blanks (13%) - and, that, these, each
+- Adjectives/Adverbs: 1 blank (10%) - cognitive, substantial, only
 
-BLANK RULES:
-- All 10 blanks MUST appear in the first 50% of the passage
-- Multiple blanks in one sentence is REQUIRED (like the ETS sample)
-- Use common academic words: nouns, verbs, adjectives, prepositions, conjunctions
-- Simple to intermediate vocabulary only
-- NEVER use numbers (e.g., "70,000") as blanks. Blanks must be WORDS only.
-- Each blank MUST include a "clue" field explaining WHY this answer is correct
+═══════════════════════════════════════════════════════════════
+PREFIX LENGTH ALGORITHM
+═══════════════════════════════════════════════════════════════
+- 2-3 letters → 1 char prefix: is→"i", to→"t", and→"a"
+- 4-5 letters → 2 char prefix: that→"th", with→"wi", such→"su"
+- 6-7 letters → 3 char prefix: field→"fie", regions→"reg"
+- 8-9 letters → 4 char prefix: examining→"exam", latitude→"lati"
+- 10+ letters → 5 char prefix: information→"infor", deforestation→"defor"
 
-CLUE TYPES (use the most relevant one for each blank):
-1. Grammar: "Verb form required after 'can'" / "Plural noun needed" / "Past tense for completed action"
-2. Context: "Describes the result of..." / "Indicates contrast with previous idea"
-3. Collocation: "Common phrase: 'in ___'" / "Fixed expression with 'make'"
-4. Reference: "Refers back to 'maps' mentioned earlier" / "Connects to the main topic"
+═══════════════════════════════════════════════════════════════
+VOCABULARY GUIDELINES
+═══════════════════════════════════════════════════════════════
+Include 2-3 EASY words (in, to, and, is, that, these, with, from)
+Include 5-6 MEDIUM words (examining, evolved, organisms, important)
+Include 1-2 HARDER words appropriate to the academic topic
+NEVER use numbers as blanks. Words only.
 
-PREFIX RULES:
-- 3-4 letter words: show 1-2 letters (e.g., "and" -> "a", "show" → "sh")
-- 5-6 letter words: show 2 letters (e.g., "cities" → "ci", "places" → "pla")  
-- 7+ letter words: show 3-5 letters (e.g., "location" → "loca", "information" → "infor")
+═══════════════════════════════════════════════════════════════
+CLUE TYPES (assign one to each blank)
+═══════════════════════════════════════════════════════════════
+1. Grammar (35%): "Plural noun needed" / "Past tense verb" / "Infinitive after 'to'"
+2. Context (30%): "Describes the characteristic of..." / "Result of the process"
+3. Collocation (20%): "Common phrase: 'in ___'" / "Academic expression"
+4. Reference (15%): "Refers back to [noun] mentioned earlier"
 
-OUTPUT FORMAT:
-Return strictly a JSON object matching this schema:
+═══════════════════════════════════════════════════════════════
+OUTPUT FORMAT (strict JSON)
+═══════════════════════════════════════════════════════════════
 {
   "topic": "Topic Title",
   "content_parts": [
-    { "type": "text", "value": "..." },
-    { "type": "blank", "id": 1, "full_word": "word", "prefix": "wo", "clue": "Hint..." },
-    ...
+    { "type": "text", "value": "Introduction sentence without blanks. " },
+    { "type": "text", "value": "Body starts here with " },
+    { "type": "blank", "id": 1, "full_word": "word", "prefix": "wo", "clue": "Grammar: noun needed" },
+    { "type": "text", "value": " and more " },
+    { "type": "blank", "id": 2, "full_word": "text", "prefix": "te", "clue": "Context: describes..." },
+    ... (continue until 10 blanks, all in body section)
+    { "type": "text", "value": "Conclusion sentences with no blanks providing context." }
   ]
 }
 `;
 
-    const userPrompt = "Generate a TOEFL Text Completion passage on a random academic topic (e.g., Biology, Astronomy, Psychology, or History). Ensure high quality and strict adherence to the 10-blank structure.";
+    const userPrompt = `Generate a TOEFL Text Completion passage about: "${selectedTopic}"
+
+Category: ${topicCategory}
+
+Requirements:
+- Follow the ETS algorithm EXACTLY
+- Introduction sentence introduces "${selectedTopic}" without blanks
+- Body section contains ALL 10 blanks (2-4 per sentence)
+- Conclusion provides context clues with no blanks
+- Mix easy words (in, to, and) with topic-specific vocabulary
+- Each blank needs a specific clue (Grammar/Context/Collocation/Reference)`;
 
     console.log("Requesting AI generation...");
     const passageData = await aiClient.generate(systemPrompt, userPrompt);
@@ -111,8 +242,8 @@ Return strictly a JSON object matching this schema:
       .insert({
         section: "reading",
         exercise_type: "text-completion",
-        topic: passageData.topic || "Unknown Topic",
-        topic_category: "General",
+        topic: passageData.topic || selectedTopic,
+        topic_category: topicCategory,
         difficulty: "intermediate",
         content: passageData,
         is_active: true,
