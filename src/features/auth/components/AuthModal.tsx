@@ -55,10 +55,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
       if (error) throw error;
+      // OAuth는 리디렉션이므로 여기서는 loading을 false로 하지 않음
+      // (페이지가 리디렉션되므로)
     } catch (error: any) {
       toast.error(error.message || 'Google sign-in failed');
       setLoading(false);
@@ -71,10 +73,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: `${window.location.origin}/dashboard`,
         },
       });
       if (error) throw error;
+      // OAuth는 리디렉션이므로 여기서는 loading을 false로 하지 않음
+      // (페이지가 리디렉션되므로)
     } catch (error: any) {
       toast.error(error.message || 'Apple sign-in failed');
       setLoading(false);
