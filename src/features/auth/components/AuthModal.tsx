@@ -21,14 +21,20 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
   const [googleLoading, setGoogleLoading] = useState(false);
   const popupRef = useRef<Window | null>(null);
   const popupCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const onSuccessRef = useRef(onSuccess); // ref로 최신 콜백 유지
-
-  // onSuccess가 변경될 때마다 ref 업데이트
+  
+  // ref로 최신 콜백 유지 (의존성 없이 최신 값 유지)
+  const onSuccessRef = useRef(onSuccess);
+  
+  // onSuccess가 변경될 때마다 ref 업데이트 (안정적인 참조 유지)
+  // 하지만 이 useEffect 자체는 리렌더링을 유발하지 않음
   useEffect(() => {
     onSuccessRef.current = onSuccess;
   }, [onSuccess]);
 
-  if (!isOpen) return null;
+  // isOpen이 false일 때는 아무것도 렌더링하지 않음 (hooks는 항상 호출됨)
+  if (!isOpen) {
+    return null;
+  }
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +55,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
         });
         if (error) throw error;
         toast.success('Signed in successfully!');
-        onSuccess();
+        // ref를 통해 콜백 호출 (무한 루프 방지)
+        setTimeout(() => {
+          onSuccessRef.current();
+        }, 0);
       }
     } catch (error: any) {
       toast.error(error.message || 'Authentication failed');
