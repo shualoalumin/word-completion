@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
-import { generatePassage } from '../api';
+import { generatePassage, saveExerciseHistory } from '../api';
 import { UI_CONFIG } from '@/core/constants';
 
 /**
@@ -65,7 +65,7 @@ export interface UseTextCompletionReturn {
   // Actions
   loadNewPassage: () => Promise<void>;
   updateAnswer: (wordId: number, answer: string) => void;
-  checkAnswers: () => void;
+  checkAnswers: () => Promise<void>;
   
   // Focus management
   inputRefs: React.MutableRefObject<Map<string, HTMLInputElement>>;
@@ -92,6 +92,9 @@ export function useTextCompletion(): UseTextCompletionReturn {
   const focusTarget = useRef<string | null>(null);
   const lastFocusedKey = useRef<string | null>(null);
   const focusLocked = useRef(false);
+  
+  // Track start time for calculating time spent
+  const startTimeRef = useRef<number | null>(null);
 
   // Computed values
   const blanks: TextCompletionBlank[] = passage
@@ -116,6 +119,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setError(null);
     inputRefs.current.clear();
     blankOrderRef.current = [];
+    startTimeRef.current = null; // Reset start time
 
     const result = await generatePassage();
 
@@ -127,6 +131,8 @@ export function useTextCompletion(): UseTextCompletionReturn {
       const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
       blankOrderRef.current = newBlanks.map((b) => b.id);
       setPassage(normalizedPassage);
+      // Record start time when passage loads
+      startTimeRef.current = Date.now();
     }
 
     setLoading(false);
@@ -137,10 +143,60 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setUserAnswers((prev) => ({ ...prev, [wordId]: answer }));
   }, []);
 
-  // Check answers
-  const checkAnswers = useCallback(() => {
+  // Check answers and save history
+  const checkAnswers = useCallback(async () => {
+    if (!passage || showResults) return;
+    
     setShowResults(true);
-  }, []);
+    
+    // Calculate time spent
+    const timeSpentSeconds = startTimeRef.current 
+      ? Math.floor((Date.now() - startTimeRef.current) / 1000)
+      : 0;
+    
+    // Collect mistakes (wrong answers)
+    const mistakes = blanks
+      .map((blank) => {
+        const suffix = blank.full_word.slice(blank.prefix.length);
+        const userAnswer = userAnswers[blank.id] || '';
+        const isCorrect = userAnswer.toLowerCase() === suffix.toLowerCase();
+        
+        if (!isCorrect) {
+          return {
+            blank_id: blank.id,
+            user_answer: userAnswer,
+            correct_answer: suffix,
+          };
+        }
+        return null;
+      })
+      .filter((mistake) => mistake !== null) as Array<{
+        blank_id: number;
+        user_answer: string;
+        correct_answer: string;
+      }>;
+    
+    // Save history (only if authenticated)
+    try {
+      const result = await saveExerciseHistory(passage, {
+        score,
+        maxScore: blanks.length,
+        timeSpentSeconds,
+        answers: userAnswers,
+        mistakes,
+      });
+      
+      if (result.error) {
+        // Silently log error - don't disrupt user experience
+        console.error('Failed to save exercise history:', result.error);
+      } else if (result.success) {
+        console.log('Exercise history saved successfully:', result.historyId);
+      }
+    } catch (err) {
+      // Silently handle errors - optional auth pattern
+      console.error('Unexpected error saving exercise history:', err);
+    }
+  }, [passage, showResults, blanks, userAnswers, score]);
 
   // Focus management
   const setInputRef = useCallback((key: string, el: HTMLInputElement | null) => {
