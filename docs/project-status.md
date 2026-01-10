@@ -324,8 +324,10 @@ exercises
 ### 2026-01-10
 - ✅ Google OAuth 완료 및 배포
 - ✅ Edge Function 인증 헤더 처리 완료
+- ✅ Optional Authentication Pattern 채택 (아키텍처 결정)
 - ✅ 인증 후 문제 생성 가능 확인
 - ✅ 프로젝트 상태 점검 문서 작성
+- 📝 아키텍처 결정사항: `docs/dev-logs/2026-01-10-optional-auth-pattern.md`
 - 🎯 **다음**: flow-5 (user_exercise_history) 시작
 
 ### 2026-01-10 (오전)
@@ -360,7 +362,9 @@ exercises
 
 - **전체 요약**: `docs/development-summary.md`
 - **DB 스키마**: `docs/architecture/database-schema.md`
-- **아키텍처 결정**: `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md`
+- **아키텍처 결정**:
+  - `docs/dev-logs/2026-01-10-optional-auth-pattern.md` (Optional Authentication Pattern)
+  - `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md` (Clean In Philosophy)
 - **문제 해결**: `docs/troubleshooting/spacing-issues.md`
 
 ---
