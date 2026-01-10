@@ -1,7 +1,7 @@
 # 📊 프로젝트 상태 모니터링
 
-> **Last Updated**: 2026-01-10 22:30 KST  
-> **Current Phase**: Phase 1 ✅ → Phase 2 🚧 (flow-5, 6)  
+> **Last Updated**: 2026-01-11 15:00 KST  
+> **Current Phase**: Phase 1 ✅ → Phase 2 🚧 (flow-5, 6) → Phase 2+ 📋 (전략 설계 완료)  
 > **목적**: 프로젝트의 현재 위치와 다음 단계를 시각적으로 파악
 
 ---
@@ -10,7 +10,7 @@
 
 | 항목 | 상태 | 비고 |
 |------|------|------|
-| **DB 구현률** | 3/41 테이블 (7.3%) | exercises, user_profiles, auth.users ✅ |
+| **DB 구현률** | 3/46 테이블 (6.5%) | exercises, user_profiles, auth.users ✅ (전략 설계: +16 테이블) |
 | **Text Completion** | 60% 완성 | 기능 완료, 데이터 연결 필요 |
 | **Dashboard** | 40% 완성 | UI 완료, 통계 데이터 연결 필요 (flow-6) |
 | **Exercises 캐시** | 50개 ✅ | 목표 20개 초과 달성 |
@@ -350,7 +350,47 @@ exercises
 
 ## 📝 Change Log (최근 변경사항)
 
-### 2026-01-11
+### 2026-01-11 (오후) - 전략 설계 완료
+- 📊 **통계 관리 스키마 전략 검토 및 문서화 완료**
+  - ✅ 어휘력 향상 능동적 학습 시스템 설계 문서 생성
+    - `docs/architecture/vocabulary-learning-system.md`
+    - 능동적 학습 플로우: 문제 풀이 → 해석/어휘 자동 추출 → 클릭 한 번 추가 → 복습 시스템
+    - Spaced Repetition (SM-2) 알고리즘 연동
+    - 어휘력 향상 지표 시각화 계획
+  - ✅ TOEFL 점수 스케일 가이드 문서 생성
+    - `docs/guides/toefl-score-scale.md`
+    - CEFR 레벨 환산표 정리
+    - 현재 상태 (Reading만 구현) 기준 예측 점수 제공 시점 명확화
+    - 4개 섹션 모두 구현 후 총점 예측 가능
+  - ✅ 친구/소셜 기능 전략 문서 생성
+    - `docs/architecture/social-features-strategy.md`
+    - 현재 학습 중 표시 (인스타/페이스북 스타일)
+    - 스터디 그룹 연계 계획
+    - 실시간 상태 업데이트 (Supabase Realtime)
+  - ✅ 비교 통계 전략 문서 생성 (지속 업데이트용)
+    - `docs/architecture/comparative-analytics-strategy.md`
+    - 익명화된 집계 통계 → 코호트 비교 → 소셜 비교 → AI 학습 방향성
+    - 사용자 증가에 따른 비교 우위 전략 (초기 → 성장기 → 성숙기 → 확장기)
+    - AI 기반 약점 분석 및 맞춤형 학습 경로 추천
+- 🗄️ **스키마 확장 계획 수립**
+  - ✅ `database-schema.md` 메인 문서 업데이트 (새로운 테이블 추가)
+    - 어휘력 향상 관련: `user_vocabulary` 확장, `user_vocabulary_reviews`, `user_vocabulary_metrics`, `user_vocabulary_growth`
+    - 학습 패턴: `user_learning_patterns`, `user_topic_performance`, `user_growth_metrics`
+    - 소셜 기능: `user_active_sessions`, `study_group_activities`, `study_group_weekly_stats`
+    - 비교 통계: `cohort_statistics`, `user_cohorts`, `cohort_aggregates`
+    - AI 추천: `user_learning_recommendations`
+    - 총 테이블 수: 41개 → 46개 (+5)
+  - ✅ 마이그레이션 파일 생성
+    - `docs/migrations/vocabulary-learning-schema.sql` (어휘력 향상 관련)
+    - `docs/migrations/learning-patterns-and-social-schema.sql` (학습 패턴 및 소셜 기능)
+- 📊 **핵심 논의 결과 정리**
+  - 어휘력 향상: 수동적 학습 → 능동적 학습 전환 (문제 풀이 후 자동 어휘 추출)
+  - 학습 과정 우상향 관리: 성장 곡선, 주제별 성과, 예측 점수 시각화
+  - 구독 가치 강화: 프리미엄 기능으로 고급 분석 및 AI 추천 제공
+  - Retention 극대화: 친구 기능, 스터디 그룹, 비교 통계를 통한 동기부여
+- 🎯 **다음 단계**: flow-6 (Dashboard 통계 연결) 구현
+
+### 2026-01-11 (오전)
 - ✅ Flow-5 구현 완료 (`user_exercise_history` 저장)
   - ✅ API 함수: `saveExerciseHistory()`, `findExerciseId()`
   - ✅ `checkAnswers()` 함수에 저장 로직 추가
@@ -358,7 +398,6 @@ exercises
   - ✅ Optional Auth Pattern 적용
   - ✅ Supabase Database 타입 생성 및 업데이트
 - 📝 문제 해결 문서: `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md`
-- 🎯 **다음**: flow-6 (Dashboard 통계 연결)
 
 ### 2026-01-10
 - ✅ Google OAuth 완료 및 배포
@@ -389,21 +428,40 @@ exercises
 ## 💡 핵심 아키텍처 원칙 (재확인)
 
 1. **Clean In, Clean Out**: AI 생성 데이터는 Edge Function에서 정규화
-2. **Global First**: 41개 테이블 스키마 유지 (미리 설계됨)
+2. **Global First**: 46개 테이블 스키마 확장 (41개 → 46개, 전략 설계 완료)
 3. **Self-Healing**: 캐시 데이터 조회 시 자동 수정
 4. **DRY**: 모든 로직은 한 곳에만 (Feature-based 구조)
 5. **Long-term Scalability > Short-term Convenience**
+6. **능동적 학습**: 사용자가 별도로 노력하지 않아도 자연스럽게 학습 효과 (어휘력 향상)
+7. **우상향 관리**: 학습 과정이 체계적으로 관리되어 성장 체감 및 Retention 극대화
 
 ---
 
 ## 📚 관련 문서
 
+### 핵심 문서
 - **전체 요약**: `docs/development-summary.md`
-- **DB 스키마**: `docs/architecture/database-schema.md`
-- **아키텍처 결정**:
-  - `docs/dev-logs/2026-01-10-optional-auth-pattern.md` (Optional Authentication Pattern)
-  - `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md` (Clean In Philosophy)
-- **문제 해결**: `docs/troubleshooting/spacing-issues.md`
+- **DB 스키마**: `docs/architecture/database-schema.md` (41개 → 46개 테이블)
+- **프로젝트 상태**: `docs/project-status.md` (현재 문서)
+
+### 아키텍처 결정 (dev-logs)
+- `docs/dev-logs/2026-01-10-optional-auth-pattern.md` (Optional Authentication Pattern)
+- `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md` (Clean In Philosophy)
+
+### 전략 설계 문서 (architecture)
+- `docs/architecture/vocabulary-learning-system.md` - 어휘력 향상 능동적 학습 시스템
+- `docs/architecture/social-features-strategy.md` - 친구/소셜 기능 전략
+- `docs/architecture/comparative-analytics-strategy.md` - 비교 통계 전략 (지속 업데이트)
+
+### 가이드 문서 (guides)
+- `docs/guides/toefl-score-scale.md` - TOEFL 점수 스케일 가이드
+
+### 마이그레이션 파일 (migrations)
+- `docs/migrations/vocabulary-learning-schema.sql` - 어휘력 향상 스키마
+- `docs/migrations/learning-patterns-and-social-schema.sql` - 학습 패턴 및 소셜 기능 스키마
+
+### 문제 해결 (troubleshooting)
+- `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` - OAuth 팝업 인증 이슈
 
 ---
 
