@@ -12,20 +12,15 @@ export default function Landing() {
   // onSuccess 콜백을 useCallback으로 안정화 (무한 루프 방지)
   const handleAuthSuccess = useCallback(() => {
     setShowAuth(false);
-    // 인증 성공 후 바로 리디렉션 (useEffect와 중복 방지)
+    // 인증 성공 후 바로 리디렉션 (명시적 로그인 시에만)
     // 약간의 지연을 두어 인증 상태 업데이트 보장
     setTimeout(() => {
       navigate('/dashboard', { replace: true });
     }, 100);
   }, [navigate]);
 
-  // 인증 상태가 변경되어 이미 로그인된 경우에만 리디렉션
-  // (모달을 통한 로그인은 handleAuthSuccess에서 처리)
-  useEffect(() => {
-    if (isAuthenticated && !loading && !showAuth) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [isAuthenticated, loading, navigate, showAuth]);
+  // 자동 리디렉션 제거: 사용자가 명시적으로 로그인할 때만 Dashboard로 이동
+  // 이미 로그인된 사용자도 랜딩 페이지를 볼 수 있도록 함
 
   if (loading) {
     return (
@@ -66,13 +61,23 @@ export default function Landing() {
             <span className="text-xl font-semibold tracking-tight">GlobalPrep</span>
           </div>
           
-          <Button 
-            variant="outline" 
-            className="border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800 text-white"
-            onClick={() => setShowAuth(true)}
-          >
-            Sign In
-          </Button>
+          {isAuthenticated ? (
+            <Button 
+              variant="outline" 
+              className="border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800 text-white"
+              onClick={() => navigate('/dashboard')}
+            >
+              Go to Dashboard
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              className="border-zinc-700 bg-zinc-900/50 hover:bg-zinc-800 text-white"
+              onClick={() => setShowAuth(true)}
+            >
+              Sign In
+            </Button>
+          )}
         </header>
 
         {/* Hero Section */}
