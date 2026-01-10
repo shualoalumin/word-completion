@@ -207,22 +207,23 @@ Total: 3/41 (7.3%)
 
 ## 🎯 다음 단계: flow-5 & flow-6
 
-### flow-5: user_exercise_history 저장
+### flow-5: user_exercise_history 저장 ✅
 
 **목표**: 사용자가 문제를 완료하면 기록 저장
 
 **작업 리스트**:
-1. [ ] `user_exercise_history` 테이블 생성 (SQL Migration)
-2. [ ] RLS (Row Level Security) 정책 설정
-3. [ ] `TextCompletion` 컴포넌트에 저장 로직 추가
+1. [x] `user_exercise_history` 테이블 존재 확인 (이미 생성됨)
+2. [x] RLS (Row Level Security) 정책 확인 (이미 설정됨)
+3. [x] `TextCompletion` 컴포넌트에 저장 로직 추가
    - `checkAnswers()` 함수에서 점수 계산 후 저장
-4. [ ] API 함수 생성: `saveExerciseHistory()`
-5. [ ] 에러 처리 및 로딩 상태 관리
+4. [x] API 함수 생성: `saveExerciseHistory()`
+5. [x] 에러 처리 및 로딩 상태 관리
+6. [x] Supabase Database 타입 생성 및 업데이트
 
-**의존 파일**:
-- `src/features/reading/text-completion/hooks/useTextCompletion.ts`
-- `src/features/reading/text-completion/api.ts` (신규 함수)
-- `supabase/migrations/` (신규 마이그레이션)
+**구현 파일**:
+- `src/features/reading/text-completion/hooks/useTextCompletion.ts` ✅
+- `src/features/reading/text-completion/api.ts` ✅ (saveExerciseHistory, findExerciseId)
+- `src/integrations/supabase/types.ts` ✅ (타입 업데이트)
 
 **예상 소요 시간**: 2-3시간
 
@@ -281,7 +282,7 @@ Phase 5 (Payments):   ░░░░░░░░░░░░   0% ⏳
 
 ✅ Sign In         → ✅ Auth Modal → ✅ Supabase Auth → ✅ user_profiles → ✅ Dashboard
 ✅ Generate        → ✅ API Call   → ✅ generate-passage → ✅ exercises → ✅ Exercise UI
-❌ Complete        → ❌ Check Answers → ❌ (no save) → ❌ (no data) → ❌ Dashboard Stats
+✅ Complete        → ✅ Check Answers → ✅ Save History → ✅ user_exercise_history → ❌ Dashboard Stats (flow-6)
 ```
 
 ### 테이블 관계도
@@ -289,13 +290,13 @@ Phase 5 (Payments):   ░░░░░░░░░░░░   0% ⏳
 ```
 auth.users
   ├── ✅ user_profiles (1:1, 자동 생성)
-  ├── ❌ user_exercise_history (1:N, flow-5)
+  ├── ✅ user_exercise_history (1:N, flow-5 완료)
   ├── ❌ user_streaks (1:1, flow-6)
   └── ❌ user_skills (1:N, future)
 
 exercises
-  ├── ✅ (캐시로 사용 중, 50개)
-  └── ❌ user_exercise_history.exercise_id (flow-5)
+  ├── ✅ (캐시로 사용 중, 55개)
+  └── ✅ user_exercise_history.exercise_id (flow-5 완료)
 ```
 
 ---
@@ -307,8 +308,36 @@ exercises
 1. ✅ `exercises` 테이블 존재 확인
 2. ✅ `user_profiles` 테이블 존재 확인
 3. ✅ Auth 테스트 완료 확인
-4. ❌ `user_exercise_history` 테이블 생성 필요
-5. ❌ `TextCompletion` 컴포넌트에서 점수 계산 로직 확인
+4. ✅ `user_exercise_history` 테이블 존재 확인 (이미 생성됨)
+5. ✅ `TextCompletion` 컴포넌트에서 점수 계산 로직 확인
+
+### flow-5 구현 완료 ✅
+
+**구현 내용**:
+- ✅ `saveExerciseHistory()` API 함수 생성
+- ✅ `findExerciseId()` 헬퍼 함수 (topic + blank count 매칭)
+- ✅ `checkAnswers()` 함수에 저장 로직 추가
+- ✅ 시작 시간 추적 (`startTimeRef`)
+- ✅ 오답 정보 수집 (mistakes 배열)
+- ✅ Optional Auth Pattern 적용 (비인증 사용자는 조용히 스킵)
+- ✅ 중복 완료 처리 (UNIQUE constraint → UPDATE)
+- ✅ Supabase Database 타입 생성 및 업데이트
+
+**핵심 로직**:
+1. 사용자가 "Check Answers" 클릭
+2. `checkAnswers()` 실행:
+   - 소요 시간 계산 (시작 시간 기준)
+   - 점수 계산 (이미 완료)
+   - 오답 정보 수집 (mistakes 배열)
+   - 인증 확인 → 비인증 시 조용히 스킵
+   - `exercise_id` 찾기 (topic + blank count 매칭)
+   - `user_exercise_history`에 저장 (INSERT 또는 UPDATE)
+3. 결과 표시
+
+**주의사항**:
+- Edge Function이 `exercise_id`를 반환하지 않아 `findExerciseId()`로 조회
+- Topic + Blank Count 매칭 사용 (향후 Edge Function 수정 고려)
+- 비인증 사용자는 에러 없이 조용히 스킵 (Optional Auth Pattern)
 
 ### flow-6 시작 전 확인사항
 
@@ -321,6 +350,16 @@ exercises
 
 ## 📝 Change Log (최근 변경사항)
 
+### 2026-01-11
+- ✅ Flow-5 구현 완료 (`user_exercise_history` 저장)
+  - ✅ API 함수: `saveExerciseHistory()`, `findExerciseId()`
+  - ✅ `checkAnswers()` 함수에 저장 로직 추가
+  - ✅ 시작 시간 추적 및 오답 정보 수집
+  - ✅ Optional Auth Pattern 적용
+  - ✅ Supabase Database 타입 생성 및 업데이트
+- 📝 문제 해결 문서: `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md`
+- 🎯 **다음**: flow-6 (Dashboard 통계 연결)
+
 ### 2026-01-10
 - ✅ Google OAuth 완료 및 배포
 - ✅ Edge Function 인증 헤더 처리 완료
@@ -328,7 +367,6 @@ exercises
 - ✅ 인증 후 문제 생성 가능 확인
 - ✅ 프로젝트 상태 점검 문서 작성
 - 📝 아키텍처 결정사항: `docs/dev-logs/2026-01-10-optional-auth-pattern.md`
-- 🎯 **다음**: flow-5 (user_exercise_history) 시작
 
 ### 2026-01-10 (오전)
 - ✅ Supabase CLI 설정 완료 (npx 사용)

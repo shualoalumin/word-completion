@@ -207,8 +207,8 @@ export const TextCompletion: React.FC = () => {
   );
 
   // Handle check answers
-  const handleCheckAnswers = useCallback(() => {
-    checkAnswers();
+  const handleCheckAnswers = useCallback(async () => {
+    await checkAnswers();
     timer.stop();
   }, [checkAnswers, timer]);
 

@@ -14,7 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      exercises: {
+        Row: {
+          content: Json
+          created_at: string | null
+          difficulty: string | null
+          exercise_type: string
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          section: string
+          topic: string
+          topic_category: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          difficulty?: string | null
+          exercise_type?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          section?: string
+          topic: string
+          topic_category?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          difficulty?: string | null
+          exercise_type?: string
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          section?: string
+          topic?: string
+          topic_category?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_exercise_history: {
+        Row: {
+          answers: Json | null
+          completed_at: string | null
+          exercise_id: string
+          id: string
+          max_score: number | null
+          mistakes: Json | null
+          score: number | null
+          score_percent: number | null
+          time_spent_seconds: number | null
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          completed_at?: string | null
+          exercise_id: string
+          id?: string
+          max_score?: number | null
+          mistakes?: Json | null
+          score?: number | null
+          score_percent?: number | null
+          time_spent_seconds?: number | null
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          completed_at?: string | null
+          exercise_id?: string
+          id?: string
+          max_score?: number | null
+          mistakes?: Json | null
+          score?: number | null
+          score_percent?: number | null
+          time_spent_seconds?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_exercise_history_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          daily_goal: number | null
+          display_name: string | null
+          id: string
+          locale: string | null
+          onboarding_completed: boolean | null
+          preferred_difficulty: string | null
+          preferred_topics: string[] | null
+          subscription_expires_at: string | null
+          subscription_tier: string | null
+          timezone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          daily_goal?: number | null
+          display_name?: string | null
+          id: string
+          locale?: string | null
+          onboarding_completed?: boolean | null
+          preferred_difficulty?: string | null
+          preferred_topics?: string[] | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          daily_goal?: number | null
+          display_name?: string | null
+          id?: string
+          locale?: string | null
+          onboarding_completed?: boolean | null
+          preferred_difficulty?: string | null
+          preferred_topics?: string[] | null
+          subscription_expires_at?: string | null
+          subscription_tier?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
