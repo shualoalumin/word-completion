@@ -3,10 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
+import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
 
 export default function Dashboard() {
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
+  
+  // Dashboard 통계 데이터 fetching
+  const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
+  const { data: recentActivity, isLoading: activityLoading } = useRecentActivity(5);
 
   // Redirect to landing if not authenticated
   useEffect(() => {
@@ -61,21 +66,72 @@ export default function Dashboard() {
 
         {/* Stats Overview */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+          {/* Exercises Today */}
           <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
-            <div className="text-2xl font-bold text-blue-400">0</div>
-            <div className="text-sm text-zinc-400">Exercises Today</div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                <div className="h-4 bg-zinc-700 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-blue-400">
+                  {stats?.exercisesToday ?? 0}
+                </div>
+                <div className="text-sm text-zinc-400">Exercises Today</div>
+              </>
+            )}
           </div>
+
+          {/* Day Streak */}
           <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
-            <div className="text-2xl font-bold text-emerald-400">0</div>
-            <div className="text-sm text-zinc-400">Day Streak 🔥</div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                <div className="h-4 bg-zinc-700 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-emerald-400">
+                  {stats?.dayStreak ?? 0}
+                </div>
+                <div className="text-sm text-zinc-400">Day Streak 🔥</div>
+              </>
+            )}
           </div>
+
+          {/* Average Score */}
           <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
-            <div className="text-2xl font-bold text-purple-400">-</div>
-            <div className="text-sm text-zinc-400">Avg. Score</div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                <div className="h-4 bg-zinc-700 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-purple-400">
+                  {stats?.averageScore !== null ? `${Math.round(stats.averageScore)}%` : '-'}
+                </div>
+                <div className="text-sm text-zinc-400">Avg. Score</div>
+              </>
+            )}
           </div>
+
+          {/* Total Exercises */}
           <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
-            <div className="text-2xl font-bold text-amber-400">0</div>
-            <div className="text-sm text-zinc-400">Total Exercises</div>
+            {statsLoading ? (
+              <div className="animate-pulse">
+                <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                <div className="h-4 bg-zinc-700 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-amber-400">
+                  {stats?.totalExercises ?? 0}
+                </div>
+                <div className="text-sm text-zinc-400">Total Exercises</div>
+              </>
+            )}
           </div>
         </section>
 
@@ -191,21 +247,101 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Recent Activity Placeholder */}
+        {/* Recent Activity */}
         <section>
           <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
-          <div className="p-8 bg-zinc-900/40 border border-zinc-800 rounded-2xl text-center">
-            <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+          {activityLoading ? (
+            <div className="p-8 bg-zinc-900/40 border border-zinc-800 rounded-2xl">
+              <div className="space-y-3">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-16 bg-zinc-800 rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-zinc-500 mb-2">No activity yet</p>
-            <p className="text-zinc-600 text-sm">Complete your first exercise to see your progress here!</p>
-          </div>
+          ) : recentActivity && recentActivity.length > 0 ? (
+            <div className="space-y-3">
+              {recentActivity.map((activity) => {
+                const completedDate = new Date(activity.completedAt);
+                const timeAgo = getTimeAgo(completedDate);
+                
+                return (
+                  <div
+                    key={activity.id}
+                    className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            activity.scorePercent >= 90 ? 'bg-emerald-500' :
+                            activity.scorePercent >= 70 ? 'bg-blue-500' :
+                            activity.scorePercent >= 50 ? 'bg-amber-500' :
+                            'bg-red-500'
+                          }`} />
+                          <h3 className="font-semibold text-white">
+                            {activity.topic || 'Text Completion'}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-zinc-400">
+                          <span>
+                            Score: {activity.score}/{activity.maxScore} ({Math.round(activity.scorePercent)}%)
+                          </span>
+                          <span>•</span>
+                          <span>{timeAgo}</span>
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        activity.scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
+                        activity.scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
+                        activity.scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {Math.round(activity.scorePercent)}%
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 bg-zinc-900/40 border border-zinc-800 rounded-2xl text-center">
+              <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <p className="text-zinc-500 mb-2">No activity yet</p>
+              <p className="text-zinc-600 text-sm">Complete your first exercise to see your progress here!</p>
+            </div>
+          )}
         </section>
       </div>
     </div>
   );
+}
+
+/**
+ * Helper function to calculate time ago
+ */
+function getTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) {
+    return 'Just now';
+  } else if (diffMins < 60) {
+    return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`;
+  } else if (diffHours < 24) {
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  } else if (diffDays < 7) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  } else {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
 }
 
