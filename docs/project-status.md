@@ -1,7 +1,7 @@
 # 📊 프로젝트 상태 모니터링
 
-> **Last Updated**: 2026-01-11 15:00 KST  
-> **Current Phase**: Phase 1 ✅ → Phase 2 🚧 (flow-5, 6) → Phase 2+ 📋 (전략 설계 완료)  
+> **Last Updated**: 2026-01-11 03:23 KST  
+> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ (flow-5, 6 완료) → Phase 2+ 📋 (전략 설계 완료)  
 > **목적**: 프로젝트의 현재 위치와 다음 단계를 시각적으로 파악
 
 ---
@@ -10,10 +10,10 @@
 
 | 항목 | 상태 | 비고 |
 |------|------|------|
-| **DB 구현률** | 3/46 테이블 (6.5%) | exercises, user_profiles, auth.users ✅ (전략 설계: +16 테이블) |
-| **Text Completion** | 60% 완성 | 기능 완료, 데이터 연결 필요 |
+| **DB 구현률** | 4/46 테이블 (8.7%) | exercises, user_profiles, user_exercise_history, user_streaks ✅ (+ auth.users 기본) |
+| **Text Completion** | 100% 완성 ✅ | 기능 완료, 기록 저장 완료 (flow-5), 통계 연결 완료 (flow-6) |
 | **Dashboard** | 100% 완성 ✅ | UI 완료, 통계 데이터 연결 완료 (flow-6) ✅ |
-| **Exercises 캐시** | 50개 ✅ | 목표 20개 초과 달성 |
+| **Exercises 캐시** | 55개 ✅ | 목표 20개 초과 달성 |
 | **Auth** | ✅ 완료 | Google OAuth 구현 완료 |
 | **Edge Function** | ✅ 배포 완료 | generate-passage 정상 작동 |
 
@@ -45,18 +45,19 @@
     └── ✅ OAuth 콜백 처리 완료
 ```
 
-### ❌ 미완성 기능 (Phase 2 - flow-5, 6)
+### ✅ 완료된 기능 (Phase 2 - flow-5, 6)
 
 ```
-❌ Phase 2: 학습 기록 및 개인화
-├── ❌ user_exercise_history 테이블 (생성 안됨)
-├── ❌ 풀이 기록 저장 로직 (flow-5)
-├── ✅ Dashboard 통계 연결 완료 (flow-6) ✅
-│   ├── ❌ Exercises Today (현재: 0 하드코딩)
-│   ├── ❌ Day Streak (현재: 0 하드코딩)
-│   ├── ❌ Avg. Score (현재: "-" 하드코딩)
-│   └── ❌ Total Exercises (현재: 0 하드코딩)
-└── ❌ user_streaks 테이블 (스트릭 계산용)
+✅ Phase 2: 학습 기록 및 개인화
+├── ✅ user_exercise_history 테이블 (생성 완료)
+├── ✅ 풀이 기록 저장 로직 (flow-5 완료)
+├── ✅ Dashboard 통계 연결 완료 (flow-6 완료)
+│   ├── ✅ Exercises Today (실제 데이터 표시)
+│   ├── ✅ Day Streak (실제 데이터 표시)
+│   ├── ✅ Avg. Score (실제 데이터 표시)
+│   └── ✅ Total Exercises (실제 데이터 표시)
+├── ✅ user_streaks 테이블 (스트릭 계산용, flow-6 완료)
+└── ✅ Recent Activity 섹션 (최근 5개 기록 표시)
 ```
 
 ---
@@ -87,7 +88,7 @@
 │  generate-passage       │
 │  - Check Auth Token     │
 │  - Log User Info        │
-│  - Check Cache (50개)   │
+│  - Check Cache (55개)   │
 │  - Return Exercise      │
 └──────┬──────────────────┘
        │
@@ -99,44 +100,67 @@
 │  - Check Answers        │
 └──────┬──────────────────┘
        │
-       │ ❌ 4. Save History (NOT IMPLEMENTED)
-       │    └──> user_exercise_history 테이블 없음
+       │ ✅ 4. Save History (flow-5 완료)
+       │    └──> user_exercise_history 테이블에 저장
        │
-       └─> [DATA LOST] ❌
-```
-
-### 목표 플로우 (flow-5, 6 후)
-
-```
-┌─────────────┐
-│   User      │
-│ (Frontend)  │
-└──────┬──────┘
-       │
-       │ 1-3. (Same as above)
        ▼
 ┌─────────────────────────┐
-│  Text Completion UI     │
-│  - User completes       │
-│  - Calculate score      │
+│ user_exercise_history   │
+│ - score, time           │
+│ - answers, mistakes     │
 └──────┬──────────────────┘
        │
-       │ 4. Save History ✅ (flow-5)
+       │ ✅ 5. Auto Update Streak (트리거, flow-6 완료)
+       │    └──> user_streaks 자동 업데이트 (PostgreSQL 트리거)
+       │
        ▼
 ┌─────────────────────────┐
-│  user_exercise_history  │
-│  - score, time          │
-│  - answers, mistakes    │
+│ user_streaks            │
+│ - current_streak        │
+│ - longest_streak        │
+│ - last_activity_date    │
 └──────┬──────────────────┘
        │
-       │ 5. Update Stats ✅ (flow-6)
+       │ ✅ 6. Display Stats (flow-6 완료)
+       │    └──> Dashboard에서 React Query로 실시간 표시
+       │
        ▼
 ┌─────────────────────────┐
-│  Dashboard Stats        │
-│  - Exercises Today      │
-│  - Streak (user_streaks)│
-│  - Avg Score            │
-│  - Total Exercises      │
+│ Dashboard Stats         │
+│ - Exercises Today       │
+│ - Day Streak 🔥         │
+│ - Avg. Score            │
+│ - Total Exercises       │
+│ - Recent Activity (5)   │
+└─────────────────────────┘
+```
+
+### 향후 확장 플로우 (Phase 2+)
+
+```
+[현재 플로우] → [향후 확장]
+    ↓
+┌─────────────────────────┐
+│ 어휘력 향상 시스템      │
+│ - 해석 자동 제공        │
+│ - 주요 어휘 자동 추출   │
+│ - 클릭 한 번 단어장 추가│
+└──────┬──────────────────┘
+       │
+       ▼
+┌─────────────────────────┐
+│ 복습 시스템             │
+│ - Spaced Repetition     │
+│ - 복습 테스트           │
+│ - 장기기억 강화         │
+└──────┬──────────────────┘
+       │
+       ▼
+┌─────────────────────────┐
+│ 학습 패턴 분석          │
+│ - 시간대별 패턴         │
+│ - 주제별 성과           │
+│ - AI 학습 추천          │
 └─────────────────────────┘
 ```
 
@@ -144,34 +168,38 @@
 
 ## 📊 데이터베이스 상태
 
-### ✅ 구현된 테이블 (3/41)
+### ✅ 구현된 테이블 (4/46)
 
 | 테이블 | 상태 | 용도 | 데이터 |
 |--------|------|------|--------|
-| `exercises` | ✅ | 문제 캐시 | **50개** (목표 초과) |
+| `exercises` | ✅ | 문제 캐시 | **55개** (목표 초과) |
 | `user_profiles` | ✅ | 사용자 프로필 | 자동 생성 (Auth 트리거) |
+| `user_exercise_history` | ✅ | 풀이 기록 저장 | flow-5 완료 |
+| `user_streaks` | ✅ | 스트릭 계산 | flow-6 완료 |
 | `auth.users` | ✅ | 인증 사용자 | Google OAuth 사용자 |
 
-### ❌ 필요한 테이블 (flow-5, 6용)
+### 📋 다음 단계 테이블 (Phase 2+)
 
 | 테이블 | 우선순위 | 용도 | 의존성 |
 |--------|---------|------|--------|
-| `user_exercise_history` | **P0** | 풀이 기록 저장 | `auth.users`, `exercises` |
-| `user_streaks` | **P0** | 스트릭 계산 | `user_exercise_history` |
 | `user_skills` | P1 | 스킬별 통계 | `user_exercise_history` |
 | `user_usage_limits` | P1 | 사용량 제한 | `auth.users` |
+| `user_vocabulary` | P1 | 개인 단어장 | `exercises`, `user_exercise_history` |
+| `user_review_queue` | P2 | 복습 스케줄 | `user_vocabulary` |
 
-### 📋 전체 스키마 진행률 (41개 테이블)
+### 📋 전체 스키마 진행률 (46개 테이블)
 
 ```
-Phase 1 (MVP):          3/3  ✅ 100%
-Phase 2 (Learning):     0/5  ❌   0%  ← flow-5, 6 여기
-Phase 3 (Gamification): 0/4  ❌   0%
-Phase 4 (Social):       0/4  ❌   0%
-Phase 5 (Payments):     0/3  ❌   0%
+Phase 1 (MVP):          3/3  ✅ 100%  (exercises, user_profiles, auth.users)
+Phase 2 (Learning):     2/5  ✅  40%  (user_exercise_history, user_streaks)
+Phase 3 (Gamification): 0/4  ⏳   0%
+Phase 4 (Social):       0/4  ⏳   0%
+Phase 5 (Payments):     0/3  ⏳   0%
+Phase 6 (Analytics):    0/8  ⏳   0%  (전략 설계 완료)
+Phase 7 (Compliance):   0/4  ⏳   0%
 ... (나머지 Phase들)
 
-Total: 3/41 (7.3%)
+Total: 4/46 (8.7%)  [+ auth.users 기본 테이블]
 ```
 
 **참고**: 전체 스키마는 `docs/architecture/database-schema.md` 참조
@@ -183,13 +211,13 @@ Total: 3/41 (7.3%)
 ### Text Completion (Reading Section)
 
 ```
-✅ 문제 생성:      100% (AI + 캐싱 완료)
+✅ 문제 생성:      100% (AI + 캐싱 완료, 55개 캐시)
 ✅ UI/UX:          100% (타이머, 다크모드 포함)
 ✅ 인증 연동:      100% (OAuth 완료)
-❌ 기록 저장:        0% (flow-5 필요)
-✅ 통계 표시:        100% ✅ (flow-6 완료)
+✅ 기록 저장:      100% (flow-5 완료, user_exercise_history)
+✅ 통계 표시:      100% (flow-6 완료, Dashboard 연동)
 ─────────────────────────
-완성도: 60% (기능은 완료, 데이터 연결 필요)
+완성도: 100% ✅ (모든 기능 완료)
 ```
 
 ### Dashboard
@@ -197,17 +225,21 @@ Total: 3/41 (7.3%)
 ```
 ✅ UI 레이아웃:    100% (카드, 네비게이션)
 ✅ 인증 연동:      100% (로그인/로그아웃)
-❌ 통계 데이터:      0% (모두 하드코딩된 0)
-❌ 최근 활동:        0% (Placeholder만)
+✅ 통계 데이터:    100% (실제 데이터 표시, flow-6 완료)
+  ├── ✅ Exercises Today (오늘 완료한 문제 수)
+  ├── ✅ Day Streak (현재 연속 학습 일수)
+  ├── ✅ Avg. Score (평균 점수 %)
+  └── ✅ Total Exercises (전체 완료 문제 수)
+✅ 최근 활동:      100% (최근 5개 기록, 점수별 색상 구분)
 ─────────────────────────
-완성도: 40% (UI만 완료)
+완성도: 100% ✅ (모든 기능 완료)
 ```
 
 ---
 
-## 🎯 다음 단계: flow-5 & flow-6
+## 🎯 완료된 작업: flow-5 & flow-6 ✅
 
-### flow-5: user_exercise_history 저장 ✅
+### flow-5: user_exercise_history 저장 ✅ (완료)
 
 **목표**: 사용자가 문제를 완료하면 기록 저장
 
@@ -229,30 +261,32 @@ Total: 3/41 (7.3%)
 
 ---
 
-### flow-6: Dashboard 통계 연결
+### flow-6: Dashboard 통계 연결 ✅ (완료)
 
 **목표**: 실제 데이터로 Dashboard 통계 표시
 
-**작업 리스트**:
-1. [ ] `user_streaks` 테이블 생성 (SQL Migration)
-2. [ ] 스트릭 계산 로직 (Edge Function 또는 DB Function)
-   - 매일 첫 문제 완료 시 스트릭 업데이트
-3. [ ] Dashboard API 함수들 생성:
+**완료된 작업**:
+1. [x] ✅ `user_streaks` 테이블 생성 및 마이그레이션 적용
+2. [x] ✅ 스트릭 계산 함수 및 트리거 함수 생성 (자동 업데이트)
+3. [x] ✅ Dashboard API 함수들 생성:
    - `getExercisesToday()` - 오늘 완료한 문제 수
    - `getDayStreak()` - 현재 스트릭
    - `getAverageScore()` - 평균 점수
    - `getTotalExercises()` - 전체 문제 수
-4. [ ] `Dashboard.tsx`에 데이터 연결
+   - `getDashboardStats()` - 통합 통계 (최적화)
+   - `getRecentActivity()` - 최근 활동
+4. [x] ✅ `Dashboard.tsx`에 React Query 연결
    - `useQuery`로 데이터 fetching
-   - 로딩 상태 표시
-5. [ ] Recent Activity 섹션 구현 (최근 5개 기록)
+   - 로딩 상태 표시 (스켈레톤 UI)
+5. [x] ✅ Recent Activity 섹션 구현 (최근 5개 기록, 점수별 색상 구분)
 
-**의존 파일**:
-- `src/pages/Dashboard.tsx`
-- `src/features/dashboard/` (신규 폴더, API 함수들)
-- `supabase/migrations/` (신규 마이그레이션)
+**생성된 파일**:
+- `src/pages/Dashboard.tsx` (업데이트)
+- `src/features/dashboard/api.ts` (신규)
+- `src/features/dashboard/hooks/useDashboardStats.ts` (신규)
+- `docs/migrations/user-streaks-schema.sql` (신규)
 
-**예상 소요 시간**: 3-4시간
+**완료 시각**: 2026-01-11 03:24 KST
 
 ---
 
@@ -260,15 +294,29 @@ Total: 3/41 (7.3%)
 
 ```
 Phase 1 (MVP):        ████████████ 100% ✅
-Phase 2 (Learning):   ████░░░░░░░░  20% 🚧
+Phase 2 (Learning):   ████████░░░░  60% ✅
   ├── Auth:           ████████████ 100% ✅
-  ├── History:        ░░░░░░░░░░░░   0% ❌ (flow-5)
-  └── Stats:          ░░░░░░░░░░░░   0% ❌ (flow-6)
+  ├── History:        ████████████ 100% ✅ (flow-5 완료)
+  └── Stats:          ████████████ 100% ✅ (flow-6 완료)
 Phase 3 (Gamification): ░░░░░░░░░░░░   0% ⏳
 Phase 4 (Social):     ░░░░░░░░░░░░   0% ⏳
 Phase 5 (Payments):   ░░░░░░░░░░░░   0% ⏳
 
-전체 진행률: ████░░░░░░░░ 33% (기능 기준, 데이터 연결 제외)
+전체 진행률: ██████░░░░░░ 50% (기능 기준, 데이터 연결 포함)
+```
+
+### 세부 진행률
+
+```
+Text Completion:      ████████████ 100% ✅
+Dashboard:            ████████████ 100% ✅
+Database Schema:      ███░░░░░░░░░   8.7% (4/46 테이블)
+  ├── MVP:            ████████████ 100% (3/3) ✅
+  ├── Learning:       ████████░░░░  40% (2/5) ✅
+  ├── Gamification:   ░░░░░░░░░░░░   0% (0/4)
+  ├── Social:         ░░░░░░░░░░░░   0% (0/4)
+  ├── Payments:       ░░░░░░░░░░░░   0% (0/3)
+  └── Analytics:      ░░░░░░░░░░░░   0% (0/8, 전략 설계 완료)
 ```
 
 ---
@@ -373,7 +421,7 @@ exercises
 
 ## 📝 Change Log (최근 변경사항)
 
-### 2026-01-11 (저녁) - flow-6 구현 완료 ✅
+### 2026-01-11 03:24 KST - flow-6 구현 완료 ✅
 - ✅ **Dashboard 통계 연결 완료** (`flow-6`)
   - ✅ `user_streaks` 테이블 생성 및 마이그레이션 적용
   - ✅ 스트릭 계산 함수 및 트리거 함수 생성 (자동 업데이트)
@@ -383,7 +431,7 @@ exercises
   - ✅ Dashboard.tsx UI 업데이트 (실제 데이터 표시, 로딩 상태, Recent Activity 섹션)
 - 🎯 **다음**: 어휘력 향상 시스템 구현 (Phase 2, flow-6 후)
 
-### 2026-01-11 (오후) - 전략 설계 완료
+### 2026-01-11 03:11 KST - 전략 설계 완료
 - 📊 **통계 관리 스키마 전략 검토 및 문서화 완료**
   - ✅ 어휘력 향상 능동적 학습 시스템 설계 문서 생성
     - `docs/architecture/vocabulary-learning-system.md`
@@ -423,27 +471,82 @@ exercises
   - Retention 극대화: 친구 기능, 스터디 그룹, 비교 통계를 통한 동기부여
 - 🎯 **다음 단계**: 어휘력 향상 시스템 구현 (Phase 2, vocabulary-learning-system.md 참고)
 
-### 2026-01-11 (오전)
-- ✅ Flow-5 구현 완료 (`user_exercise_history` 저장)
+### 2026-01-11 02:01 KST - flow-5 구현 완료 ✅
+- ✅ **Flow-5 구현 완료** (`user_exercise_history` 저장)
   - ✅ API 함수: `saveExerciseHistory()`, `findExerciseId()`
   - ✅ `checkAnswers()` 함수에 저장 로직 추가
   - ✅ 시작 시간 추적 및 오답 정보 수집
   - ✅ Optional Auth Pattern 적용
   - ✅ Supabase Database 타입 생성 및 업데이트
-- 📝 문제 해결 문서: `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md`
+- 📝 문제 해결 문서: `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` (OAuth 팝업 인증 이슈 해결)
 
-### 2026-01-10
-- ✅ Google OAuth 완료 및 배포
-- ✅ Edge Function 인증 헤더 처리 완료
-- ✅ Optional Authentication Pattern 채택 (아키텍처 결정)
-- ✅ 인증 후 문제 생성 가능 확인
-- ✅ 프로젝트 상태 점검 문서 작성
+### 2026-01-11 01:48 KST - OAuth 콜백 및 세션 관리 개선
+- ✅ **AuthCallback 세션 관리 개선**
+  - ✅ `onAuthStateChange` 이벤트 리스너 최적화
+  - ✅ 중복 처리 방지 플래그 (`processed`) 추가
+  - ✅ cleanup 함수로 리소스 정리
+
+### 2026-01-11 00:57 KST - OAuth 콜백 처리 개선
+- ✅ **AuthCallback 개선**
+  - ✅ `onAuthStateChange` 비동기 처리 강화
+  - ✅ 사용자 취소 시나리오 처리 개선 (조용히 팝업 닫기)
+  - ✅ 타임아웃 및 fallback 로직 추가
+
+### 2026-01-11 00:25 KST - AuthModal 및 Landing 개선
+- ✅ **인증 플로우 개선**
+  - ✅ AuthModal과 Landing 페이지 간 리디렉션 로직 최적화
+  - ✅ 모달 상태 관리 개선
+  - ✅ 사용자 경험 향상
+
+### 2026-01-11 00:12 KST - AuthModal 콜백 처리 최적화
+- ✅ **AuthModal 최적화**
+  - ✅ 메시지 리스너 로직 개선
+  - ✅ 콜백 안정화 (`useRef`, `useCallback` 사용)
+  - ✅ 무한 루프 방지 (의존성 배열 최적화)
+
+### 2026-01-11 00:01 KST - OAuth 팝업 처리 구현
+- ✅ **Google OAuth 팝업 구현**
+  - ✅ 팝업 창 방식으로 OAuth 플로우 전환 (전체 페이지 리디렉션 대신)
+  - ✅ 팝업 상태 관리 (`googleLoading`, `popupRef`)
+  - ✅ 팝업 닫힘 감지 및 상태 복구
+  - ✅ `window.postMessage` 통신 구현
+  - ✅ 구독 기능 관련 UI 준비
+
+### 2026-01-10 23:34 KST - Optional Auth Pattern 완료 및 문서화
+- ✅ **Optional Authentication Pattern 완료**
+  - ✅ Edge Function 인증 헤더 처리 완료
+  - ✅ Optional Authentication Pattern 채택 (아키텍처 결정)
+  - ✅ 인증 후 문제 생성 가능 확인
+  - ✅ 비즈니스 차별화 전략 문서화 (인증/비인증 사용자 경험 차별화)
 - 📝 아키텍처 결정사항: `docs/dev-logs/2026-01-10-optional-auth-pattern.md`
 
-### 2026-01-10 (오전)
-- ✅ Supabase CLI 설정 완료 (npx 사용)
-- ✅ Edge Function 배포 완료 (generate-passage)
-- ✅ _shared 폴더 포함 배포 성공
+### 2026-01-10 23:22 KST - AuthModal UI 개선
+- ✅ **AuthModal UI 개선**
+  - ✅ 모달 크기 축소 (`max-w-[360px]`)
+  - ✅ Google 버튼 hover 효과 개선
+  - ✅ Apple 인증 버튼 제거
+  - ✅ 레이블 및 접근성 개선
+
+### 2026-01-10 23:15 KST - 사용자 세션 데이터 처리 개선
+- ✅ **passage generation 세션 처리 개선**
+  - ✅ 사용자 세션 데이터 처리 최적화
+  - ✅ 에러 처리 강화
+
+### 2026-01-10 23:14 KST - 사용자 세션 처리 개선
+- ✅ **passage generation 세션 처리 개선**
+  - ✅ 인증된 사용자 세션 정보 로깅
+  - ✅ Edge Function 인증 헤더 전달 확인
+
+### 2026-01-10 21:48 KST - Edge Function 인증 지원 시작
+- ✅ **passage generation 인증 지원 구현** (오늘 작업 시작)
+  - ✅ Edge Function에 인증 헤더 전달 로직 추가
+  - ✅ 프론트엔드에서 `Authorization` 헤더 포함하여 Edge Function 호출
+  - ✅ 인증된 사용자 정보 로깅 준비
+
+### 2026-01-10 00:15 KST - OAuth 콜백 처리 구현
+- ✅ **OAuth 콜백 및 리디렉션 로직 구현**
+  - ✅ `AuthCallback` 페이지 생성
+  - ✅ OAuth 콜백 처리 및 Dashboard 리디렉션
 
 ### 2025-12-31
 - ✅ Clean In 아키텍처 전환 (self-healing)
@@ -498,19 +601,39 @@ exercises
 
 ---
 
-## 🎯 즉시 실행 가능한 작업
+## 🎯 다음 단계 (Phase 2+)
 
-### 지금 바로 할 수 있는 것
+### 즉시 실행 가능한 작업
 
-1. **flow-5 시작**: `user_exercise_history` 테이블 생성 및 저장 로직 구현
-2. **문서 업데이트**: `docs/development-summary.md` 최신화 (Auth 완료 반영)
-3. **테스트 코드**: History 저장 로직 테스트 작성
+1. **어휘력 향상 시스템 구현** (Phase 2, vocabulary-learning-system.md 참고)
+   - ResultsPanel에 해석 섹션 추가
+   - 주요 어휘 자동 추출 및 표시
+   - 클릭 한 번 단어장 추가 기능
+   - 기본 복습 시스템 (Spaced Repetition)
 
-### flow-5, 6 완료 후 할 것
+2. **학습 패턴 분석 구현**
+   - `user_learning_patterns` 테이블 생성
+   - 시간대별 학습 패턴 분석
+   - 주제별 성과 추적
 
-1. Dashboard 통계 실제 데이터 표시 확인
-2. 스트릭 시스템 테스트
-3. Phase 3 (게이미피케이션) 준비
+3. **사용자 테스트 및 피드백 수집**
+   - flow-5, 6 완료 기능 테스트
+   - Dashboard 통계 정확도 확인
+   - 스트릭 시스템 검증
+
+### 중기 목표 (1-2주)
+
+1. **어휘력 향상 시스템 완성** (Phase 2)
+   - 복습 시스템 구현 (SM-2 알고리즘)
+   - 어휘력 향상 지표 시각화
+
+2. **게이미피케이션 강화** (Phase 3)
+   - Achievements 시스템
+   - Leaderboard 구현
+
+3. **프리미엄 기능 준비**
+   - 고급 분석 기능 설계
+   - AI 학습 방향성 추천 시스템
 
 ---
 
