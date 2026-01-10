@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { AuthModal } from '@/features/auth/components/AuthModal';
@@ -9,12 +9,23 @@ export default function Landing() {
   const navigate = useNavigate();
   const [showAuth, setShowAuth] = useState(false);
 
-  // Redirect to dashboard if authenticated
+  // onSuccess 콜백을 useCallback으로 안정화 (무한 루프 방지)
+  const handleAuthSuccess = useCallback(() => {
+    setShowAuth(false);
+    // 인증 성공 후 바로 리디렉션 (useEffect와 중복 방지)
+    // 약간의 지연을 두어 인증 상태 업데이트 보장
+    setTimeout(() => {
+      navigate('/dashboard', { replace: true });
+    }, 100);
+  }, [navigate]);
+
+  // 인증 상태가 변경되어 이미 로그인된 경우에만 리디렉션
+  // (모달을 통한 로그인은 handleAuthSuccess에서 처리)
   useEffect(() => {
-    if (isAuthenticated && !loading) {
-      navigate('/dashboard');
+    if (isAuthenticated && !loading && !showAuth) {
+      navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading, navigate, showAuth]);
 
   if (loading) {
     return (
@@ -161,12 +172,14 @@ export default function Landing() {
       </div>
 
       {/* Auth Modal */}
-      <AuthModal 
-        isOpen={showAuth} 
-        onClose={() => setShowAuth(false)} 
-        onSuccess={() => navigate('/dashboard')}
-        darkMode={true}
-      />
+      {showAuth && (
+        <AuthModal 
+          isOpen={showAuth} 
+          onClose={() => setShowAuth(false)} 
+          onSuccess={handleAuthSuccess}
+          darkMode={true}
+        />
+      )}
     </div>
   );
 }
