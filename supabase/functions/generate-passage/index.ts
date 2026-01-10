@@ -166,10 +166,43 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize Supabase client with service role for DB access
+    // Get auth header if present (optional - allows both authenticated and anonymous users)
+    const authHeader = req.headers.get('Authorization');
+    
+    // Initialize Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Use service role for DB operations (bypasses RLS)
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+    
+    // Optional: Log user info if authenticated (for analytics)
+    if (authHeader) {
+      try {
+        const userSupabase = createClient(
+          supabaseUrl,
+          authHeader.replace('Bearer ', ''),
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false,
+            },
+          }
+        );
+        const { data: { user } } = await userSupabase.auth.getUser();
+        if (user) {
+          console.log(`Request from authenticated user: ${user.email || user.id}`);
+        }
+      } catch (authError) {
+        // Ignore auth errors - function works for both authenticated and anonymous users
+        console.log('Anonymous or invalid auth token - proceeding anyway');
+      }
+    }
 
     // Step 1: Try to get a cached exercise from DB
     console.log("Checking for cached exercises...");

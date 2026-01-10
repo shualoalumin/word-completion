@@ -14,7 +14,15 @@ export async function generatePassage(
   retryCount = 0
 ): Promise<GeneratePassageResult> {
   try {
-    const { data, error } = await supabase.functions.invoke('generate-passage');
+    // Get current session to include auth token
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Invoke Edge Function with explicit headers
+    const { data, error } = await supabase.functions.invoke('generate-passage', {
+      headers: session ? {
+        Authorization: `Bearer ${session.access_token}`,
+      } : undefined,
+    });
 
     if (error) {
       throw error;
