@@ -29,17 +29,16 @@ const AppContent = () => {
           return;
         }
 
-        if (event === 'SIGNED_IN' && session) {
-          // 일반 OAuth 로그인 성공 시 Dashboard로 리디렉션
-          if (location.pathname === '/' || location.pathname === '/auth/callback') {
-            navigate('/dashboard', { replace: true });
-          }
-        } else if (event === 'SIGNED_OUT') {
-          // 로그아웃 시 Landing으로 리디렉션
+        // 자동 리디렉션 제거: 사용자가 명시적으로 로그인할 때만 Dashboard로 이동
+        // 이미 로그인된 사용자가 랜딩 페이지에 접속해도 자동 리디렉션하지 않음
+        
+        if (event === 'SIGNED_OUT') {
+          // 로그아웃 시 Dashboard에서 Landing으로 리디렉션
           if (location.pathname.startsWith('/dashboard')) {
             navigate('/', { replace: true });
           }
         }
+        // SIGNED_IN 이벤트는 각 페이지에서 처리 (Landing의 handleAuthSuccess 등)
       }
     );
 
