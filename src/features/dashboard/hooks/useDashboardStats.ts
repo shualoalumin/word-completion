@@ -15,15 +15,27 @@ export function useDashboardStats() {
 
   return useQuery<DashboardStats>({
     queryKey: ['dashboard-stats', user?.id],
-    queryFn: () => {
+    queryFn: async () => {
       if (!user?.id) {
         throw new Error('User not authenticated');
       }
-      return getDashboardStats(user.id);
+      try {
+        return await getDashboardStats(user.id);
+      } catch (error) {
+        console.error('Error in getDashboardStats:', error);
+        // Return default stats on error to prevent undefined
+        return {
+          exercisesToday: 0,
+          dayStreak: 0,
+          averageScore: null,
+          totalExercises: 0,
+        };
+      }
     },
     enabled: isAuthenticated && !!user?.id,
     staleTime: 30000,  // 30 seconds - stats don't need to be super fresh
     refetchOnWindowFocus: true,  // Refetch when user comes back to tab
+    retry: 1,  // Only retry once on failure
   });
 }
 

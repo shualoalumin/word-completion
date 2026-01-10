@@ -11,7 +11,7 @@ export default function Dashboard() {
   
   // Dashboard 통계 데이터 fetching
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: recentActivity, isLoading: activityLoading } = useRecentActivity(5);
+  const { data: recentActivity, isLoading: activityLoading, error: activityError } = useRecentActivity(5);
 
   // Redirect to landing if not authenticated
   useEffect(() => {
@@ -73,6 +73,11 @@ export default function Dashboard() {
                 <div className="h-7 bg-zinc-700 rounded mb-2"></div>
                 <div className="h-4 bg-zinc-700 rounded w-24"></div>
               </div>
+            ) : statsError ? (
+              <>
+                <div className="text-2xl font-bold text-red-400">-</div>
+                <div className="text-sm text-zinc-400">Error loading</div>
+              </>
             ) : (
               <>
                 <div className="text-2xl font-bold text-blue-400">
@@ -90,6 +95,11 @@ export default function Dashboard() {
                 <div className="h-7 bg-zinc-700 rounded mb-2"></div>
                 <div className="h-4 bg-zinc-700 rounded w-24"></div>
               </div>
+            ) : statsError ? (
+              <>
+                <div className="text-2xl font-bold text-red-400">-</div>
+                <div className="text-sm text-zinc-400">Error loading</div>
+              </>
             ) : (
               <>
                 <div className="text-2xl font-bold text-emerald-400">
@@ -107,10 +117,17 @@ export default function Dashboard() {
                 <div className="h-7 bg-zinc-700 rounded mb-2"></div>
                 <div className="h-4 bg-zinc-700 rounded w-24"></div>
               </div>
+            ) : statsError ? (
+              <>
+                <div className="text-2xl font-bold text-red-400">-</div>
+                <div className="text-sm text-zinc-400">Error loading</div>
+              </>
             ) : (
               <>
                 <div className="text-2xl font-bold text-purple-400">
-                  {stats?.averageScore !== null ? `${Math.round(stats.averageScore)}%` : '-'}
+                  {stats && stats.averageScore !== null && stats.averageScore !== undefined 
+                    ? `${Math.round(stats.averageScore)}%` 
+                    : '-'}
                 </div>
                 <div className="text-sm text-zinc-400">Avg. Score</div>
               </>
@@ -124,6 +141,11 @@ export default function Dashboard() {
                 <div className="h-7 bg-zinc-700 rounded mb-2"></div>
                 <div className="h-4 bg-zinc-700 rounded w-24"></div>
               </div>
+            ) : statsError ? (
+              <>
+                <div className="text-2xl font-bold text-red-400">-</div>
+                <div className="text-sm text-zinc-400">Error loading</div>
+              </>
             ) : (
               <>
                 <div className="text-2xl font-bold text-amber-400">

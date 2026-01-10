@@ -129,11 +129,12 @@ export default function AuthCallback() {
               setTimeout(() => {
                 window.close();
               }, 200);
-            } else if (!isPopup) {
+            } else if (!isPopup && !sessionError) {
+              // 일반 페이지: Dashboard로 리디렉션
               navigate('/dashboard', { replace: true });
             }
             cleanup();
-          } else if (!processed) {
+          } else if (!processed && !session) {
             // 세션이 없고 URL hash도 없으면 (일반 페이지 접근 또는 타임아웃)
             if (isPopup) {
               // 팝업인데 세션이 없으면 (사용자가 취소했거나 타임아웃)
@@ -146,8 +147,8 @@ export default function AuthCallback() {
                 }
               }, 1000);
             } else {
-              // 일반 페이지 접근: Dashboard로 리디렉션 (이미 로그인된 경우)
-              navigate('/dashboard', { replace: true });
+              // 일반 페이지 접근: 세션 없으면 랜딩 페이지로 리디렉션
+              navigate('/', { replace: true });
               cleanup();
             }
           }
@@ -197,10 +198,10 @@ export default function AuthCallback() {
 
   // 로딩 화면 (팝업에서 빠르게 처리되므로 거의 보이지 않음)
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-900">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-white mx-auto mb-4"></div>
-        <p className="text-gray-600 dark:text-gray-400">Completing sign in...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mx-auto mb-4"></div>
+        <p className="text-zinc-400">Completing sign in...</p>
       </div>
     </div>
   );
