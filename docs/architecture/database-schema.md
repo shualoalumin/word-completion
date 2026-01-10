@@ -260,7 +260,7 @@ CREATE TABLE user_bookmarks (
 ```
 
 ### user_vocabulary
-> 개인 단어장
+> 개인 단어장 (능동적 학습 시스템)
 
 ```sql
 CREATE TABLE user_vocabulary (
@@ -270,12 +270,112 @@ CREATE TABLE user_vocabulary (
   definition TEXT,
   example_sentence TEXT,
   source_exercise_id UUID REFERENCES exercises(id),
+  source_context TEXT,                  -- 원문 문장 (맥락 보존)
+  source_passage_id UUID REFERENCES exercises(id),  -- 출처 지문 ID
+  added_from TEXT DEFAULT 'manual',     -- 'manual', 'auto_extract', 'mistake_priority'
   mastery_level INT DEFAULT 0,        -- 0~5 (복습할수록 증가)
-  next_review_at TIMESTAMPTZ,
+  review_count INT DEFAULT 0,           -- 복습 횟수
+  last_reviewed_at TIMESTAMPTZ,         -- 마지막 복습 시각
+  next_review_at TIMESTAMPTZ,           -- 다음 복습 시각
+  retention_score DECIMAL,              -- 기억 유지 점수 (0~1)
+  difficulty_score DECIMAL,             -- 난이도 점수 (0~1)
+  first_encountered_at TIMESTAMPTZ,     -- 최초 학습 시각
+  synonyms TEXT[],                      -- 동의어 배열
+  antonyms TEXT[],                      -- 반의어 배열 (프리미엄)
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_vocabulary_user ON user_vocabulary (user_id);
+CREATE INDEX idx_vocab_source ON user_vocabulary (source_passage_id);
+CREATE INDEX idx_vocab_review ON user_vocabulary (user_id, next_review_at) 
+  WHERE next_review_at IS NOT NULL;
+CREATE INDEX idx_vocab_mastery ON user_vocabulary (user_id, mastery_level);
+```
+
+### user_vocabulary_reviews
+> 단어 복습 테스트 기록
+
+```sql
+CREATE TABLE user_vocabulary_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  vocabulary_id UUID REFERENCES user_vocabulary(id) ON DELETE CASCADE,
+  review_type TEXT NOT NULL,            -- 'flashcard', 'fill_blank', 'multiple_choice', 'context_matching', 'sentence_completion'
+  is_correct BOOLEAN NOT NULL,
+  response_time_seconds INT,
+  confidence_level INT,                  -- 자신감 레벨 (1~5)
+  user_answer TEXT,
+  correct_answer TEXT,
+  ease_factor_before DECIMAL,
+  ease_factor_after DECIMAL,
+  interval_days_before INT,
+  interval_days_after INT,
+  mastery_level_before INT,
+  mastery_level_after INT,
+  review_context JSONB,
+  reviewed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_vocab_reviews_user ON user_vocabulary_reviews (user_id, reviewed_at DESC);
+CREATE INDEX idx_vocab_reviews_vocab ON user_vocabulary_reviews (vocabulary_id);
+CREATE INDEX idx_vocab_reviews_type ON user_vocabulary_reviews (review_type);
+```
+
+### user_vocabulary_metrics
+> 어휘력 향상 메트릭 (주간/월간 집계)
+
+```sql
+CREATE TABLE user_vocabulary_metrics (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  period_start DATE NOT NULL,
+  new_words_learned INT DEFAULT 0,
+  words_mastered INT DEFAULT 0,
+  total_vocabulary_size INT DEFAULT 0,
+  reviews_completed INT DEFAULT 0,
+  review_accuracy DECIMAL,
+  avg_retention_score DECIMAL,
+  avg_response_time_seconds DECIMAL,
+  context_based_words INT DEFAULT 0,
+  context_retention_rate DECIMAL,
+  context_vs_isolated_ratio DECIMAL,
+  vocabulary_growth_rate DECIMAL,
+  mastery_improvement_rate DECIMAL,
+  retention_improvement_rate DECIMAL,
+  avg_study_sessions_per_week DECIMAL,
+  most_productive_time_of_day INT,
+  PRIMARY KEY (user_id, period_start)
+);
+
+CREATE INDEX idx_vocab_metrics_user ON user_vocabulary_metrics (user_id, period_start DESC);
+```
+
+### user_vocabulary_growth
+> 어휘력 향상 비교 지표
+
+```sql
+CREATE TABLE user_vocabulary_growth (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  measurement_date DATE NOT NULL,
+  total_words INT NOT NULL,
+  mastered_words INT DEFAULT 0,
+  active_review_words INT DEFAULT 0,
+  forgotten_words INT DEFAULT 0,
+  words_learned_this_month INT DEFAULT 0,
+  words_mastered_this_month INT DEFAULT 0,
+  growth_rate DECIMAL,
+  percentile_rank DECIMAL,
+  cohort_avg_words DECIMAL,
+  growth_rate_vs_avg DECIMAL,
+  estimated_vocab_level TEXT,           -- 'A1' ~ 'C2'
+  estimated_toefl_vocab_score INT,      -- 0-30
+  estimated_toefl_total_score INT,      -- 0-120
+  avg_time_to_mastery_days DECIMAL,
+  retention_rate DECIMAL,
+  PRIMARY KEY (user_id, measurement_date)
+);
+
+CREATE INDEX idx_vocab_growth_user ON user_vocabulary_growth (user_id, measurement_date DESC);
+CREATE INDEX idx_vocab_growth_level ON user_vocabulary_growth (estimated_vocab_level);
 ```
 
 ### diagnostic_results
@@ -289,9 +389,221 @@ CREATE TABLE diagnostic_results (
   overall_score INT,
   section_scores JSONB,               -- {reading: 85, writing: 72, ...}
   skill_scores JSONB,                 -- {vocabulary: 80, grammar: 75, ...}
-  recommended_level TEXT,
+  recommended_level TEXT,             -- CEFR 레벨 ('A1' ~ 'C2')
+  estimated_toefl_score INT,          -- 예상 TOEFL 점수 (0-120)
   taken_at TIMESTAMPTZ DEFAULT NOW()
 );
+```
+
+---
+
+## 3.5. 학습 패턴 및 통계 (Learning Patterns & Analytics)
+
+### user_learning_patterns
+> 시간대별 학습 패턴 분석
+
+```sql
+CREATE TABLE user_learning_patterns (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  hour_of_day INT CHECK (hour_of_day >= 0 AND hour_of_day <= 23),
+  day_of_week INT CHECK (day_of_week >= 0 AND day_of_week <= 6),  -- 0=월요일
+  avg_score_percent DECIMAL,
+  avg_time_spent_seconds INT,
+  exercises_count INT DEFAULT 0,
+  last_updated_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (user_id, hour_of_day, day_of_week)
+);
+
+CREATE INDEX idx_patterns_user ON user_learning_patterns (user_id);
+```
+
+### user_topic_performance
+> 주제별 성과 추적
+
+```sql
+CREATE TABLE user_topic_performance (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  topic_category TEXT NOT NULL,
+  difficulty TEXT NOT NULL,
+  exercises_completed INT DEFAULT 0,
+  avg_score_percent DECIMAL,
+  total_time_spent_seconds INT DEFAULT 0,
+  last_practiced_at TIMESTAMPTZ,
+  PRIMARY KEY (user_id, topic_category, difficulty)
+);
+
+CREATE INDEX idx_topic_user ON user_topic_performance (user_id);
+```
+
+### user_growth_metrics
+> 성장 메트릭 (주간/월간 집계)
+
+```sql
+CREATE TABLE user_growth_metrics (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  period_type TEXT NOT NULL CHECK (period_type IN ('weekly', 'monthly')),
+  period_start DATE NOT NULL,
+  avg_score_percent DECIMAL,
+  exercises_completed INT DEFAULT 0,
+  vocabulary_words_learned INT DEFAULT 0,
+  streak_days INT DEFAULT 0,
+  improvement_rate DECIMAL,
+  PRIMARY KEY (user_id, period_type, period_start)
+);
+
+CREATE INDEX idx_growth_user ON user_growth_metrics (user_id, period_start DESC);
+```
+
+---
+
+## 3.6. 소셜 및 비교 통계 (Social & Comparative Analytics)
+
+### user_active_sessions
+> 현재 학습 상태 추적 (친구/소셜 기능)
+
+```sql
+CREATE TABLE user_active_sessions (
+  user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_active BOOLEAN DEFAULT false,
+  current_activity TEXT,                -- 'reading', 'vocabulary_review', 'idle'
+  current_exercise_id UUID REFERENCES exercises(id),
+  session_started_at TIMESTAMPTZ,
+  last_active_at TIMESTAMPTZ,
+  total_session_time_seconds INT DEFAULT 0,
+  status_message TEXT,
+  show_active_status BOOLEAN DEFAULT true,
+  visible_to_friends_only BOOLEAN DEFAULT true,
+  show_current_exercise BOOLEAN DEFAULT false,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_active_sessions_last_active ON user_active_sessions (last_active_at DESC);
+CREATE INDEX idx_active_sessions_active ON user_active_sessions (is_active, last_active_at DESC) 
+  WHERE is_active = true;
+```
+
+### study_group_activities
+> 스터디 그룹 활동 기록
+
+```sql
+CREATE TABLE study_group_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id UUID REFERENCES study_groups(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  activity_type TEXT NOT NULL,          -- 'completed_exercise', 'achieved_streak', 'mastered_words', 'joined_group'
+  activity_data JSONB,
+  is_public BOOLEAN DEFAULT true,
+  is_highlighted BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_group_activities_group ON study_group_activities (group_id, created_at DESC);
+CREATE INDEX idx_group_activities_user ON study_group_activities (user_id, created_at DESC);
+CREATE INDEX idx_group_activities_type ON study_group_activities (activity_type);
+```
+
+### study_group_weekly_stats
+> 그룹 주간 통계
+
+```sql
+CREATE TABLE study_group_weekly_stats (
+  group_id UUID REFERENCES study_groups(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  exercises_completed INT DEFAULT 0,
+  total_score INT DEFAULT 0,
+  streak_days INT DEFAULT 0,
+  words_mastered INT DEFAULT 0,
+  time_spent_seconds INT DEFAULT 0,
+  rank_in_group INT,
+  PRIMARY KEY (group_id, week_start, user_id)
+);
+
+CREATE INDEX idx_group_weekly_stats ON study_group_weekly_stats (group_id, week_start, rank_in_group);
+```
+
+### cohort_statistics
+> 익명화된 코호트 통계 (비교용)
+
+```sql
+CREATE TABLE cohort_statistics (
+  cohort_type TEXT NOT NULL,            -- 'similar_skill', 'same_target_score', 'same_level'
+  cohort_key TEXT,                      -- 'B2', 'target_100', 'vocabulary_200'
+  metric_name TEXT NOT NULL,            -- 'avg_score', 'avg_exercises', 'avg_words'
+  metric_value DECIMAL NOT NULL,
+  sample_size INT NOT NULL,
+  period_start DATE NOT NULL,
+  period_end DATE,
+  PRIMARY KEY (cohort_type, cohort_key, metric_name, period_start)
+);
+
+CREATE INDEX idx_cohort_stats ON cohort_statistics (cohort_type, cohort_key, period_start DESC);
+```
+
+### user_cohorts
+> 사용자 코호트 배정 (동의 기반 비교)
+
+```sql
+CREATE TABLE user_cohorts (
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  cohort_id TEXT NOT NULL,
+  cohort_type TEXT NOT NULL,            -- 'target_score', 'starting_level', 'similar_skill'
+  joined_at TIMESTAMPTZ DEFAULT NOW(),
+  consent_given BOOLEAN DEFAULT true,
+  PRIMARY KEY (user_id, cohort_id)
+);
+
+CREATE INDEX idx_user_cohorts ON user_cohorts (cohort_id, user_id);
+```
+
+### cohort_aggregates
+> 코호트별 집계 통계
+
+```sql
+CREATE TABLE cohort_aggregates (
+  cohort_id TEXT NOT NULL,
+  metric_date DATE NOT NULL,
+  avg_score_percent DECIMAL,
+  avg_exercises_completed INT,
+  avg_words_learned INT,
+  avg_streak_days INT,
+  median_score_percent DECIMAL,
+  avg_growth_rate DECIMAL,
+  top_quartile_score DECIMAL,
+  bottom_quartile_score DECIMAL,
+  active_users_count INT,
+  total_users_count INT,
+  PRIMARY KEY (cohort_id, metric_date)
+);
+
+CREATE INDEX idx_cohort_aggregates ON cohort_aggregates (cohort_id, metric_date DESC);
+```
+
+### user_learning_recommendations
+> AI 학습 방향성 추천 (프리미엄)
+
+```sql
+CREATE TABLE user_learning_recommendations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  recommendation_type TEXT NOT NULL,    -- 'weak_topic', 'vocabulary_gap', 'skill_improvement', 'time_optimization'
+  priority INT NOT NULL,                -- 1~5
+  target_skill TEXT,
+  target_topic TEXT,
+  recommended_difficulty TEXT,
+  recommended_exercises UUID[],
+  reasoning JSONB,
+  expected_improvement DECIMAL,
+  estimated_time_hours DECIMAL,
+  confidence_score DECIMAL,
+  status TEXT DEFAULT 'pending',        -- 'pending', 'in_progress', 'completed', 'dismissed'
+  user_feedback TEXT,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_recommendations_user ON user_learning_recommendations (user_id, priority DESC, status);
+CREATE INDEX idx_recommendations_type ON user_learning_recommendations (recommendation_type);
 ```
 
 ---
@@ -404,6 +716,10 @@ CREATE TABLE study_groups (
   is_public BOOLEAN DEFAULT true,
   max_members INT DEFAULT 50,
   invite_code TEXT UNIQUE,
+  show_member_status BOOLEAN DEFAULT true,  -- 멤버 상태 표시
+  group_goal TEXT,                          -- 그룹 목표 설명
+  weekly_target INT DEFAULT 10,             -- 주간 목표 문제 수
+  current_week_start DATE DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
@@ -784,6 +1100,11 @@ CREATE TABLE user_feedback (
 | **콘텐츠** | 6 | exercises, media_files, topic_taxonomy |
 | **유저** | 4 | user_profiles, user_sessions, user_skills, usage_limits |
 | **학습** | 5 | exercise_history, review_queue, bookmarks, vocabulary, diagnostic |
+| **학습 패턴** | 3 | learning_patterns, topic_performance, growth_metrics |
+| **어휘력 향상** | 4 | vocabulary_reviews, vocabulary_metrics, vocabulary_growth, vocabulary (확장) |
+| **소셜** | 4 | active_sessions, group_activities, group_weekly_stats, follows (확장) |
+| **비교 통계** | 3 | cohort_statistics, user_cohorts, cohort_aggregates |
+| **AI 추천** | 1 | learning_recommendations |
 | **게이미피케이션** | 4 | streaks, achievements, user_achievements, leaderboard |
 | **소셜** | 4 | follows, study_groups, members, challenges |
 | **결제** | 3 | subscriptions, payment_history, promo_codes |
@@ -792,7 +1113,7 @@ CREATE TABLE user_feedback (
 | **규정** | 3 | audit_logs, deletion_requests, export_requests |
 | **알림** | 2 | notifications, notification_preferences |
 | **지원** | 3 | tickets, ticket_messages, feedback |
-| **Total** | **41** | |
+| **Total** | **46** | (+5: 어휘력 향상, 학습 패턴, 소셜, 비교 통계, AI 추천) |
 
 ---
 
