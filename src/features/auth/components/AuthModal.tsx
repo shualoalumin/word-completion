@@ -21,6 +21,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
   const [googleLoading, setGoogleLoading] = useState(false);
   const popupRef = useRef<Window | null>(null);
   const popupCheckIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onSuccessRef = useRef(onSuccess); // ref로 최신 콜백 유지
+
+  // onSuccess가 변경될 때마다 ref 업데이트
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
 
   if (!isOpen) return null;
 
@@ -65,7 +71,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
     };
   }, []);
 
-  // 팝업에서 메시지 리스닝
+  // 팝업에서 메시지 리스닝 (무한 루프 방지: 빈 의존성 배열)
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       // 보안: 같은 origin에서만 메시지 수신
@@ -75,6 +81,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
         // 성공 메시지 수신
         if (popupCheckIntervalRef.current) {
           clearInterval(popupCheckIntervalRef.current);
+          popupCheckIntervalRef.current = null;
         }
         if (popupRef.current) {
           popupRef.current.close();
@@ -82,11 +89,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
         }
         setGoogleLoading(false);
         toast.success('Signed in successfully!');
-        onSuccess();
+        
+        // ref를 통해 최신 콜백 호출 (무한 루프 방지)
+        setTimeout(() => {
+          onSuccessRef.current();
+        }, 0);
       } else if (event.data.type === 'OAUTH_ERROR') {
         // 에러 메시지 수신
         if (popupCheckIntervalRef.current) {
           clearInterval(popupCheckIntervalRef.current);
+          popupCheckIntervalRef.current = null;
         }
         if (popupRef.current) {
           popupRef.current.close();
@@ -101,7 +113,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [onSuccess]);
+  }, []); // 빈 배열: 컴포넌트 마운트 시 한 번만 등록
 
   const handleGoogleSignIn = async () => {
     if (googleLoading) return; // 중복 클릭 방지
@@ -154,20 +166,15 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
           }
           popupRef.current = null;
           
-          // 세션 확인 (사용자가 로그인했는지)
+          // 세션 확인: 메시지 핸들러가 처리하지 않은 경우에만 (취소된 경우)
           supabase.auth.getSession().then(({ data: { session } }) => {
             if (!session) {
               // 세션이 없으면 취소된 것으로 간주
+              // (성공한 경우는 이미 메시지 핸들러에서 처리됨)
               setGoogleLoading(false);
-            } else {
-              // 세션이 있으면 성공 (메시지 핸들러에서 처리됨)
-              // 하지만 혹시 모를 경우를 위해 여기서도 처리
-              if (googleLoading) {
-                setGoogleLoading(false);
-                toast.success('Signed in successfully!');
-                onSuccess();
-              }
             }
+            // 세션이 있으면 메시지 핸들러가 이미 처리했을 것이므로
+            // 여기서는 아무것도 하지 않음
           });
         }
       }, 500);
