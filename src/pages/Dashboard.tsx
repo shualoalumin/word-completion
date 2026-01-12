@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
+import { useVocabularyStats } from '@/features/vocabulary';
 
 export default function Dashboard() {
   const { user, isAuthenticated, loading, signOut } = useAuth();
@@ -12,6 +13,7 @@ export default function Dashboard() {
   // Dashboard 통계 데이터 fetching
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: recentActivity, isLoading: activityLoading, error: activityError } = useRecentActivity(5);
+  const { data: vocabStatsData, isLoading: vocabStatsLoading } = useVocabularyStats();
 
   // Redirect to landing if not authenticated
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function Dashboard() {
         </section>
 
         {/* Stats Overview */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {/* Exercises Today */}
           <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
             {statsLoading ? (
@@ -154,6 +156,154 @@ export default function Dashboard() {
                 <div className="text-sm text-zinc-400">Total Exercises</div>
               </>
             )}
+          </div>
+        </section>
+
+        {/* Vocabulary Stats */}
+        <section className="mb-12">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            Vocabulary Progress
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {/* Total Words */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {vocabStatsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-purple-400">
+                    {vocabStatsData?.data?.totalWords ?? 0}
+                  </div>
+                  <div className="text-sm text-zinc-400">Total Words</div>
+                </>
+              )}
+            </div>
+
+            {/* Mastered */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {vocabStatsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-emerald-400">
+                    {vocabStatsData?.data?.masteredWords ?? 0}
+                  </div>
+                  <div className="text-sm text-zinc-400">Mastered</div>
+                </>
+              )}
+            </div>
+
+            {/* Learning */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {vocabStatsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-blue-400">
+                    {vocabStatsData?.data?.learningWords ?? 0}
+                  </div>
+                  <div className="text-sm text-zinc-400">Learning</div>
+                </>
+              )}
+            </div>
+
+            {/* New */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {vocabStatsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-amber-400">
+                    {vocabStatsData?.data?.newWords ?? 0}
+                  </div>
+                  <div className="text-sm text-zinc-400">New</div>
+                </>
+              )}
+            </div>
+
+            {/* Due for Review */}
+            <div 
+              className={cn(
+                "p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl transition-all",
+                vocabStatsData?.data && vocabStatsData.data.wordsDueForReview > 0 
+                  ? "border-red-600/50 hover:border-red-600 cursor-pointer" 
+                  : ""
+              )}
+              onClick={() => {
+                if (vocabStatsData?.data && vocabStatsData.data.wordsDueForReview > 0) {
+                  navigate('/vocabulary/review');
+                }
+              }}
+            >
+              {vocabStatsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold text-red-400">
+                    {vocabStatsData?.data?.wordsDueForReview ?? 0}
+                  </div>
+                  <div className="text-sm text-zinc-400">
+                    Due for Review
+                    {vocabStatsData?.data && vocabStatsData.data.wordsDueForReview > 0 && (
+                      <span className="block text-xs text-red-400 mt-1">Click to review</span>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="mb-12">
+          <h2 className="text-xl font-semibold mb-6">Quick Actions</h2>
+          
+          <div className="grid md:grid-cols-2 gap-4 mb-8">
+            {/* Vocabulary Link */}
+            <div 
+              className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-purple-600/50 transition-all cursor-pointer overflow-hidden"
+              onClick={() => navigate('/vocabulary')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="relative flex items-center gap-4">
+                <div className="w-14 h-14 bg-purple-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-1 group-hover:text-purple-400 transition-colors">
+                    My Vocabulary
+                  </h3>
+                  <p className="text-sm text-zinc-400">
+                    Review and manage your learned words
+                  </p>
+                </div>
+                <svg className="w-5 h-5 text-zinc-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </section>
 
