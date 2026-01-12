@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
-import { generatePassage, saveExerciseHistory } from '../api';
+import { generatePassage, saveExerciseHistory, findExerciseId } from '../api';
 import { UI_CONFIG } from '@/core/constants';
 
 /**
@@ -61,6 +61,7 @@ export interface UseTextCompletionReturn {
   blanks: TextCompletionBlank[];
   blankOrder: number[];
   score: number;
+  exerciseId: string | null;
   
   // Actions
   loadNewPassage: () => Promise<void>;
@@ -85,6 +86,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
   const [userAnswers, setUserAnswers] = useState<UserAnswers>({});
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exerciseId, setExerciseId] = useState<string | null>(null);
   
   // Focus management refs
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -133,6 +135,10 @@ export function useTextCompletion(): UseTextCompletionReturn {
       setPassage(normalizedPassage);
       // Record start time when passage loads
       startTimeRef.current = Date.now();
+      
+      // Find exercise ID for vocabulary features
+      const foundExerciseId = await findExerciseId(normalizedPassage);
+      setExerciseId(foundExerciseId);
     }
 
     setLoading(false);
@@ -323,6 +329,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     blanks,
     blankOrder,
     score,
+    exerciseId,
     loadNewPassage,
     updateAnswer,
     checkAnswers,
