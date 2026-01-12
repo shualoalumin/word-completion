@@ -23,6 +23,7 @@ export const TextCompletion: React.FC = () => {
     error,
     blanks,
     score,
+    exerciseId,
     loadNewPassage,
     updateAnswer,
     checkAnswers,
@@ -246,6 +247,8 @@ export const TextCompletion: React.FC = () => {
           darkMode={darkMode}
           topic={passage?.topic}
           elapsedTime={timer.elapsed}
+          passage={passage}
+          exerciseId={exerciseId || undefined}
         />
       )}
     >

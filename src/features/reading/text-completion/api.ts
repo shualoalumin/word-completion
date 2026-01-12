@@ -1,6 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { TextCompletionPassage } from './types';
-import { API_CONFIG } from '@/core/constants';
+import { TextCompletionPassage } from '../types';
 
 export interface GeneratePassageResult {
   data: TextCompletionPassage | null;
@@ -11,13 +10,10 @@ export interface SaveExerciseHistoryParams {
   exerciseId: string;
   score: number;
   maxScore: number;
+  scorePercent: number;
   timeSpentSeconds: number;
   answers: Record<number, string>;
-  mistakes: Array<{
-    blank_id: number;
-    user_answer: string;
-    correct_answer: string;
-  }>;
+  mistakes: Record<number, string>;
 }
 
 export interface SaveExerciseHistoryResult {
@@ -27,42 +23,46 @@ export interface SaveExerciseHistoryResult {
 }
 
 /**
- * Generate a new passage from the backend
+ * Generate a new passage via Edge Function
  */
 export async function generatePassage(
   retryCount = 0
 ): Promise<GeneratePassageResult> {
   try {
-    // Get current session to include auth token
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Invoke Edge Function with explicit headers
-    const { data, error } = await supabase.functions.invoke('generate-passage', {
-      headers: session ? {
-        Authorization: `Bearer ${session.access_token}`,
-      } : undefined,
-    });
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (error) {
-      throw error;
+    if (!session) {
+      return {
+        data: null,
+        error: new Error('Authentication required'),
+      };
     }
 
-    if (data.error) {
-      throw new Error(data.error);
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-passage`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({}),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to generate passage: ${errorText}`);
     }
 
-    return { data: data as TextCompletionPassage, error: null };
+    const result = await response.json();
+    return {
+      data: result as TextCompletionPassage,
+      error: null,
+    };
   } catch (err) {
-    console.error('Error generating passage:', err);
-
-    if (retryCount < API_CONFIG.RETRY_COUNT) {
-      // Retry with delay
-      await new Promise((resolve) =>
-        setTimeout(resolve, API_CONFIG.RETRY_DELAY)
-      );
-      return generatePassage(retryCount + 1);
-    }
-
     return {
       data: null,
       error: err instanceof Error ? err : new Error('Unknown error'),
@@ -139,37 +139,30 @@ async function findExerciseId(passage: TextCompletionPassage): Promise<string | 
  */
 export async function saveExerciseHistory(
   passage: TextCompletionPassage,
-  params: Omit<SaveExerciseHistoryParams, 'exerciseId'>
+  params: SaveExerciseHistoryParams
 ): Promise<SaveExerciseHistoryResult> {
   try {
-    // Check if user is authenticated
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-    if (sessionError || !session || !session.user) {
-      // Not authenticated - silently skip (optional auth pattern)
-      console.log('User not authenticated, skipping history save');
-      return { success: false, error: null };
+    if (!session) {
+      return {
+        success: false,
+        error: new Error('Authentication required'),
+      };
     }
 
     // Find exercise_id
     const exerciseId = await findExerciseId(passage);
-    
     if (!exerciseId) {
-      console.warn('Could not find exercise_id for passage:', passage.topic);
-      // Still try to save without exercise_id (might fail due to FK constraint)
-      // But let's try to create a placeholder or skip
+      console.warn('Could not find exercise_id, skipping history save');
       return {
         success: false,
-        error: new Error('Could not find exercise_id for this passage'),
+        error: new Error('Exercise not found'),
       };
     }
 
-    // Calculate score_percent
-    const scorePercent = params.maxScore > 0
-      ? (params.score / params.maxScore) * 100
-      : 0;
-
-    // Insert history record
     const { data, error } = await supabase
       .from('user_exercise_history')
       .insert({
@@ -177,69 +170,16 @@ export async function saveExerciseHistory(
         exercise_id: exerciseId,
         score: params.score,
         max_score: params.maxScore,
-        score_percent: parseFloat(scorePercent.toFixed(2)),
+        score_percent: params.scorePercent,
         time_spent_seconds: params.timeSpentSeconds,
         answers: params.answers,
-        mistakes: params.mistakes.length > 0 ? params.mistakes : null,
-        completed_at: new Date().toISOString(),
+        mistakes: params.mistakes,
       })
       .select('id')
       .single();
 
     if (error) {
-      console.error('Error saving exercise history:', error);
-      
-      // Handle unique constraint violation (user already completed this exercise)
-      if (error.code === '23505') {
-        // Update existing record instead
-        const { data: updateData, error: updateError } = await supabase
-          .from('user_exercise_history')
-          .update({
-            score: params.score,
-            max_score: params.maxScore,
-            score_percent: parseFloat(scorePercent.toFixed(2)),
-            time_spent_seconds: params.timeSpentSeconds,
-            answers: params.answers,
-            mistakes: params.mistakes.length > 0 ? params.mistakes : null,
-            completed_at: new Date().toISOString(),
-          })
-          .eq('user_id', session.user.id)
-          .eq('exercise_id', exerciseId)
-          .select('id')
-          .single();
-
-        if (updateError) {
-          return {
-            success: false,
-            error: updateError instanceof Error ? updateError : new Error(String(updateError)),
-          };
-        }
-
-        if (!updateData) {
-          return {
-            success: false,
-            error: new Error('Failed to update exercise history'),
-          };
-        }
-
-        return {
-          success: true,
-          error: null,
-          historyId: updateData.id,
-        };
-      }
-
-      return {
-        success: false,
-        error: error instanceof Error ? error : new Error(String(error)),
-      };
-    }
-
-    if (!data) {
-      return {
-        success: false,
-        error: new Error('Failed to save exercise history: no data returned'),
-      };
+      throw error;
     }
 
     return {
@@ -248,7 +188,6 @@ export async function saveExerciseHistory(
       historyId: data.id,
     };
   } catch (err) {
-    console.error('Unexpected error saving exercise history:', err);
     return {
       success: false,
       error: err instanceof Error ? err : new Error('Unknown error'),
@@ -256,9 +195,99 @@ export async function saveExerciseHistory(
   }
 }
 
+/**
+ * Add word to user vocabulary
+ */
+export interface AddWordToVocabularyParams {
+  word: string;
+  definition?: string;
+  exampleSentence?: string;
+  sourceContext: string; // 원문 문장 (맥락)
+  sourcePassageId: string; // exercise ID
+  addedFrom?: 'manual' | 'auto_extract' | 'mistake_priority';
+}
 
+export interface AddWordToVocabularyResult {
+  success: boolean;
+  error: Error | null;
+  vocabularyId?: string;
+}
 
+export async function addWordToVocabulary(
+  params: AddWordToVocabularyParams
+): Promise<AddWordToVocabularyResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
+    if (!session) {
+      return {
+        success: false,
+        error: new Error('Authentication required'),
+      };
+    }
 
+    // Check if word already exists for this user
+    const { data: existing } = await supabase
+      .from('user_vocabulary')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .eq('word', params.word.toLowerCase())
+      .single();
 
+    if (existing) {
+      // Word already exists, update it
+      const { data, error } = await supabase
+        .from('user_vocabulary')
+        .update({
+          source_context: params.sourceContext,
+          source_passage_id: params.sourcePassageId,
+          added_from: params.addedFrom || 'auto_extract',
+          first_encountered_at: existing.first_encountered_at || new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id)
+        .select('id')
+        .single();
 
+      if (error) throw error;
+
+      return {
+        success: true,
+        error: null,
+        vocabularyId: data.id,
+      };
+    }
+
+    // Insert new word
+    const { data, error } = await supabase
+      .from('user_vocabulary')
+      .insert({
+        user_id: session.user.id,
+        word: params.word.toLowerCase(),
+        definition: params.definition,
+        example_sentence: params.exampleSentence,
+        source_context: params.sourceContext,
+        source_passage_id: params.sourcePassageId,
+        source_exercise_id: params.sourcePassageId, // For backward compatibility
+        added_from: params.addedFrom || 'auto_extract',
+        first_encountered_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single();
+
+    if (error) throw error;
+
+    return {
+      success: true,
+      error: null,
+      vocabularyId: data.id,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
