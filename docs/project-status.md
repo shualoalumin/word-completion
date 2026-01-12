@@ -1,7 +1,8 @@
 # 📊 프로젝트 상태 모니터링
 
-> **Last Updated**: 2026-01-11 03:23 KST  
-> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ (flow-5, 6 완료) → Phase 2+ 📋 (전략 설계 완료)  
+> **Last Updated**: 2026-01-11 (오후, KST 기준)  
+> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ (완료) → Phase 3 📋 (다음 단계)  
+> **전체 진행률**: 약 40% (Phase 1, 2 완료)  
 > **목적**: 프로젝트의 현재 위치와 다음 단계를 시각적으로 파악
 
 ---
@@ -10,9 +11,10 @@
 
 | 항목 | 상태 | 비고 |
 |------|------|------|
-| **DB 구현률** | 4/46 테이블 (8.7%) | exercises, user_profiles, user_exercise_history, user_streaks ✅ (+ auth.users 기본) |
-| **Text Completion** | 100% 완성 ✅ | 기능 완료, 기록 저장 완료 (flow-5), 통계 연결 완료 (flow-6) |
-| **Dashboard** | 100% 완성 ✅ | UI 완료, 통계 데이터 연결 완료 (flow-6) ✅ |
+| **DB 구현률** | 8/46 테이블 (17.4%) | exercises, user_profiles, user_exercise_history, user_streaks, user_vocabulary (+ 3개 어휘 테이블) ✅ |
+| **Text Completion** | 100% 완성 ✅ | 기능 완료, 기록 저장 완료 (flow-5), 통계 연결 완료 (flow-6), 어휘 추가 기능 완료 |
+| **Dashboard** | 100% 완성 ✅ | UI 완료, 통계 데이터 연결 완료 (flow-6), 어휘력 통계 추가 ✅ |
+| **Vocabulary System** | 100% 완성 ✅ | 단어장 페이지, 복습 테스트 (3가지 모드), SM-2 알고리즘 ✅ |
 | **Exercises 캐시** | 55개 ✅ | 목표 20개 초과 달성 |
 | **Auth** | ✅ 완료 | Google OAuth 구현 완료 |
 | **Edge Function** | ✅ 배포 완료 | generate-passage 정상 작동 |
@@ -45,7 +47,7 @@
     └── ✅ OAuth 콜백 처리 완료
 ```
 
-### ✅ 완료된 기능 (Phase 2 - flow-5, 6)
+### ✅ 완료된 기능 (Phase 2 - flow-5, 6, 어휘력 향상 시스템)
 
 ```
 ✅ Phase 2: 학습 기록 및 개인화
@@ -57,7 +59,26 @@
 │   ├── ✅ Avg. Score (실제 데이터 표시)
 │   └── ✅ Total Exercises (실제 데이터 표시)
 ├── ✅ user_streaks 테이블 (스트릭 계산용, flow-6 완료)
-└── ✅ Recent Activity 섹션 (최근 5개 기록 표시)
+├── ✅ Recent Activity 섹션 (최근 5개 기록 표시)
+│
+└── ✅ 어휘력 향상 시스템 (2026-01-11 완료)
+    ├── ✅ user_vocabulary 테이블 (확장 완료)
+    ├── ✅ user_vocabulary_reviews 테이블 (생성 완료)
+    ├── ✅ user_vocabulary_metrics 테이블 (생성 완료)
+    ├── ✅ user_vocabulary_growth 테이블 (생성 완료)
+    ├── ✅ ResultsPanel 확장
+    │   ├── ✅ 해석 섹션 (전체 지문 표시)
+    │   └── ✅ 어휘 추출 섹션 (자동 추출 + 클릭 추가)
+    ├── ✅ 단어장 페이지 (/vocabulary)
+    │   ├── ✅ 통계 카드 (5개)
+    │   ├── ✅ 검색 및 필터링
+    │   └── ✅ 단어 목록 및 관리
+    ├── ✅ 복습 테스트 시스템 (/vocabulary/review)
+    │   ├── ✅ Flashcard 모드
+    │   ├── ✅ Fill in Blank 모드
+    │   └── ✅ Multiple Choice 모드
+    ├── ✅ SM-2 알고리즘 (기본 구현)
+    └── ✅ Dashboard 어휘력 통계 통합
 ```
 
 ---
@@ -199,7 +220,13 @@ Phase 6 (Analytics):    0/8  ⏳   0%  (전략 설계 완료)
 Phase 7 (Compliance):   0/4  ⏳   0%
 ... (나머지 Phase들)
 
-Total: 4/46 (8.7%)  [+ auth.users 기본 테이블]
+Total: 8/46 (17.4%)  [+ auth.users 기본 테이블]
+
+**어휘력 향상 시스템 테이블 (신규)**:
+- ✅ `user_vocabulary` (확장 완료)
+- ✅ `user_vocabulary_reviews`
+- ✅ `user_vocabulary_metrics`
+- ✅ `user_vocabulary_growth`
 ```
 
 **참고**: 전체 스키마는 `docs/architecture/database-schema.md` 참조
@@ -231,8 +258,24 @@ Total: 4/46 (8.7%)  [+ auth.users 기본 테이블]
   ├── ✅ Avg. Score (평균 점수 %)
   └── ✅ Total Exercises (전체 완료 문제 수)
 ✅ 최근 활동:      100% (최근 5개 기록, 점수별 색상 구분)
+✅ 어휘력 통계:    100% (Total, Mastered, Learning, New, Due for Review)
+✅ Quick Actions:  100% (단어장 링크 추가)
 ─────────────────────────
 완성도: 100% ✅ (모든 기능 완료)
+```
+
+### Vocabulary Learning System
+
+```
+✅ 스키마 마이그레이션:    100% (4개 테이블 생성)
+✅ ResultsPanel 확장:     100% (해석 + 어휘 섹션)
+✅ 단어장 추가 기능:       100% (클릭 한 번 추가)
+✅ 단어장 페이지:          100% (목록, 검색, 필터, 통계)
+✅ 복습 테스트 UI:         100% (3가지 모드)
+✅ SM-2 알고리즘:         100% (기본 구현)
+✅ Dashboard 통합:        100% (어휘력 통계)
+─────────────────────────
+완성도: 100% ✅ (핵심 기능 완료)
 ```
 
 ---
@@ -294,15 +337,16 @@ Total: 4/46 (8.7%)  [+ auth.users 기본 테이블]
 
 ```
 Phase 1 (MVP):        ████████████ 100% ✅
-Phase 2 (Learning):   ████████░░░░  60% ✅
+Phase 2 (Learning):   ████████████ 100% ✅
   ├── Auth:           ████████████ 100% ✅
   ├── History:        ████████████ 100% ✅ (flow-5 완료)
-  └── Stats:          ████████████ 100% ✅ (flow-6 완료)
+  ├── Statistics:     ████████████ 100% ✅ (flow-6 완료)
+  └── Vocabulary:     ████████████ 100% ✅ (어휘력 향상 시스템 완료)
 Phase 3 (Gamification): ░░░░░░░░░░░░   0% ⏳
 Phase 4 (Social):     ░░░░░░░░░░░░   0% ⏳
 Phase 5 (Payments):   ░░░░░░░░░░░░   0% ⏳
 
-전체 진행률: ██████░░░░░░ 50% (기능 기준, 데이터 연결 포함)
+전체 진행률: ████████░░░░ 40% (Phase 1, 2 완료 기준)
 ```
 
 ### 세부 진행률
@@ -420,6 +464,52 @@ exercises
 ---
 
 ## 📝 Change Log (최근 변경사항)
+
+### 2026-01-11 (오후) - 어휘력 향상 시스템 구현 완료 ✅
+- ✅ **어휘력 향상 시스템 전체 구현 완료** (Phase 2+ 완료)
+  - ✅ 데이터베이스 스키마 마이그레이션 적용
+    - `user_vocabulary` 테이블 생성 및 확장 (source_context, source_passage_id, added_from 등)
+    - `user_vocabulary_reviews` 테이블 생성 (복습 테스트 기록)
+    - `user_vocabulary_metrics` 테이블 생성 (주간/월간 집계)
+    - `user_vocabulary_growth` 테이블 생성 (성장 지표)
+    - RLS 정책 설정 완료
+  - ✅ ResultsPanel 확장
+    - 해석 섹션 추가 (전체 지문 텍스트 표시)
+    - 어휘 추출 섹션 추가 (blanks에서 주요 단어 자동 추출)
+    - 클릭 한 번으로 단어장 추가 기능 (중복 체크, Toast 알림)
+  - ✅ 단어장 페이지 구현 (`/vocabulary`)
+    - 통계 카드 5개 (Total, Mastered, Learning, New, Due for Review)
+    - 검색, 필터링, 정렬 기능
+    - 단어 목록 표시 (정의, 예문, 원문 문맥, 마스터리 레벨)
+    - 단어 삭제 기능
+    - 복습 시작 버튼
+  - ✅ 복습 테스트 시스템 구현 (`/vocabulary/review`)
+    - Flashcard 모드 (단어 → 정의 맞추기)
+    - Fill in Blank 모드 (정의 → 단어 입력)
+    - Multiple Choice 모드 (4지선다)
+    - SM-2 알고리즘 기본 구현 (mastery_level, retention_score, next_review_at 업데이트)
+  - ✅ Dashboard 확장
+    - 어휘력 통계 섹션 추가 (5개 통계 카드)
+    - Quick Actions에 단어장 링크 추가
+  - ✅ API 및 Hooks 구현
+    - `src/features/vocabulary/api.ts` (getVocabularyList, getVocabularyStats, deleteVocabularyWord)
+    - `src/features/vocabulary/hooks/useVocabulary.ts` (React Query hooks)
+    - `src/features/vocabulary/review/api.ts` (getWordsForReview, submitReviewResult)
+  - ✅ 라우트 추가 (`/vocabulary`, `/vocabulary/review`)
+- 📊 **DB 구현률 업데이트**: 4/46 (8.7%) → 8/46 (17.4%) (+4 테이블)
+- 📝 **dev-log 생성**: `docs/dev-logs/2026-01-11-vocabulary-learning-system.md`
+- 🎯 **다음**: 학습 패턴 분석, 소셜 기능, 비교 통계 (Phase 3)
+
+### 2026-01-11 03:57 KST - 인증 플로우 개선
+- ✅ **자동 리디렉션 제거**
+  - Landing 페이지에서 로그인된 사용자 자동 리디렉션 제거
+  - 명시적 로그인 시에만 Dashboard로 이동
+  - 로그인된 사용자는 "Go to Dashboard" 버튼 표시
+
+### 2026-01-11 03:49 KST - Dashboard 통계 및 에러 처리 개선
+- ✅ **Dashboard 에러 처리 강화**
+  - `averageScore` undefined/null 체크 추가
+  - 로딩 상태 및 에러 상태 UI 개선
 
 ### 2026-01-11 03:24 KST - flow-6 구현 완료 ✅
 - ✅ **Dashboard 통계 연결 완료** (`flow-6`)
@@ -581,6 +671,7 @@ exercises
 - **프로젝트 상태**: `docs/project-status.md` (현재 문서)
 
 ### 아키텍처 결정 (dev-logs)
+- `docs/dev-logs/2026-01-11-vocabulary-learning-system.md` (어휘력 향상 시스템 구현) ⭐ 최신
 - `docs/dev-logs/2026-01-10-optional-auth-pattern.md` (Optional Authentication Pattern)
 - `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md` (Clean In Philosophy)
 
@@ -593,47 +684,51 @@ exercises
 - `docs/guides/toefl-score-scale.md` - TOEFL 점수 스케일 가이드
 
 ### 마이그레이션 파일 (migrations)
-- `docs/migrations/vocabulary-learning-schema.sql` - 어휘력 향상 스키마
-- `docs/migrations/learning-patterns-and-social-schema.sql` - 학습 패턴 및 소셜 기능 스키마
+- `docs/migrations/vocabulary-learning-schema.sql` - 어휘력 향상 스키마 ✅ 적용 완료
+- `docs/migrations/user-streaks-schema.sql` - 스트릭 시스템 스키마 ✅ 적용 완료
+- `docs/migrations/learning-patterns-and-social-schema.sql` - 학습 패턴 및 소셜 기능 스키마 (미적용)
 
 ### 문제 해결 (troubleshooting)
 - `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` - OAuth 팝업 인증 이슈
 
 ---
 
-## 🎯 다음 단계 (Phase 2+)
+## 🎯 다음 단계 (Phase 3+)
 
 ### 즉시 실행 가능한 작업
 
-1. **어휘력 향상 시스템 구현** (Phase 2, vocabulary-learning-system.md 참고)
-   - ResultsPanel에 해석 섹션 추가
-   - 주요 어휘 자동 추출 및 표시
-   - 클릭 한 번 단어장 추가 기능
-   - 기본 복습 시스템 (Spaced Repetition)
-
-2. **학습 패턴 분석 구현**
-   - `user_learning_patterns` 테이블 생성
+1. **학습 패턴 분석 구현** (Phase 3)
+   - `user_learning_patterns` 테이블 생성 및 마이그레이션 적용
    - 시간대별 학습 패턴 분석
-   - 주제별 성과 추적
+   - 주제별 성과 추적 (`user_topic_performance`)
+   - 성장 메트릭 (`user_growth_metrics`)
+   - Dashboard에 학습 패턴 차트 추가
+
+2. **게이미피케이션 강화** (Phase 3)
+   - Achievements 시스템 구현
+   - Leaderboard 구현
+   - Badge 시스템
 
 3. **사용자 테스트 및 피드백 수집**
-   - flow-5, 6 완료 기능 테스트
+   - 어휘력 향상 시스템 테스트
+   - 복습 테스트 UI/UX 검증
    - Dashboard 통계 정확도 확인
-   - 스트릭 시스템 검증
 
 ### 중기 목표 (1-2주)
 
-1. **어휘력 향상 시스템 완성** (Phase 2)
-   - 복습 시스템 구현 (SM-2 알고리즘)
-   - 어휘력 향상 지표 시각화
+1. **소셜 기능 구현** (Phase 4)
+   - 친구 목록 및 현재 학습 중 표시
+   - 스터디 그룹 기능
+   - 실시간 상태 업데이트 (Supabase Realtime)
 
-2. **게이미피케이션 강화** (Phase 3)
-   - Achievements 시스템
-   - Leaderboard 구현
+2. **비교 통계 및 AI 추천** (Phase 4)
+   - 익명화된 집계 통계
+   - 코호트 비교 기능
+   - AI 학습 방향성 추천 시스템
 
 3. **프리미엄 기능 준비**
    - 고급 분석 기능 설계
-   - AI 학습 방향성 추천 시스템
+   - 구독 모델 구현
 
 ---
 

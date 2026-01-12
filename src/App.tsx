@@ -9,6 +9,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
+import Vocabulary from "./pages/Vocabulary";
+import VocabularyReview from "./pages/VocabularyReview";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +54,8 @@ const AppContent = () => {
       <Route path="/" element={<Landing />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/practice/text-completion" element={<Practice />} />
+      <Route path="/vocabulary" element={<Vocabulary />} />
+      <Route path="/vocabulary/review" element={<VocabularyReview />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
