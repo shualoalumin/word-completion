@@ -79,7 +79,7 @@ export async function generatePassage(
  * 2. Match by content_parts structure (same number of blanks and similar structure)
  * 3. Return the most recent matching exercise (likely the one just generated/cached)
  */
-async function findExerciseId(passage: TextCompletionPassage): Promise<string | null> {
+export async function findExerciseId(passage: TextCompletionPassage): Promise<string | null> {
   try {
     // Try to find exercise by topic
     const { data, error } = await supabase
@@ -202,7 +202,7 @@ export interface AddWordToVocabularyParams {
   word: string;
   definition?: string;
   exampleSentence?: string;
-  sourceContext: string; // 원문 문장 (맥락)
+  sourceContext: string; // ?�문 문장 (맥락)
   sourcePassageId: string; // exercise ID
   addedFrom?: 'manual' | 'auto_extract' | 'mistake_priority';
 }
@@ -277,9 +277,7 @@ export async function addWordToVocabulary(
       .select('id')
       .single();
 
-    if (error) throw error;
-
-    return {
+    if (error) throw error;    return {
       success: true,
       error: null,
       vocabularyId: data.id,
