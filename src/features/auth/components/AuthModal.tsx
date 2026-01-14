@@ -71,8 +71,21 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
   useEffect(() => {
     return () => {
       // 컴포넌트 언마운트 시 팝업 닫기 및 인터벌 정리
-      if (popupRef.current && !popupRef.current.closed) {
-        popupRef.current.close();
+      if (popupRef.current) {
+        // COOP 정책으로 인한 경고 방지를 위해 try-catch 사용
+        try {
+          if (!popupRef.current.closed) {
+            popupRef.current.close();
+          }
+        } catch (e) {
+          // COOP 정책으로 window.closed 접근이 차단될 수 있음
+          // 이 경우 그냥 닫기 시도
+          try {
+            popupRef.current.close();
+          } catch (closeError) {
+            // 무시: 이미 닫혔거나 차단됨
+          }
+        }
       }
       if (popupCheckIntervalRef.current) {
         clearInterval(popupCheckIntervalRef.current);

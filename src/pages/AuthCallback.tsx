@@ -158,8 +158,21 @@ export default function AuthCallback() {
         timeoutId = setTimeout(() => {
           if (!processed) {
             processed = true;
-            if (isPopup && !window.closed) {
-              window.close();
+            if (isPopup) {
+              // COOP 정책으로 인한 경고 방지를 위해 try-catch 사용
+              try {
+                if (!window.closed) {
+                  window.close();
+                }
+              } catch (e) {
+                // COOP 정책으로 window.closed 접근이 차단될 수 있음
+                // 이 경우 그냥 닫기 시도
+                try {
+                  window.close();
+                } catch (closeError) {
+                  // 무시: 이미 닫혔거나 차단됨
+                }
+              }
             }
           }
           cleanup();
