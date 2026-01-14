@@ -202,7 +202,7 @@ export interface AddWordToVocabularyParams {
   word: string;
   definition?: string;
   exampleSentence?: string;
-  sourceContext: string; // ?�문 문장 (맥락)
+  sourceContext: string; // ?�문 문장 (맥락)
   sourcePassageId: string; // exercise ID
   addedFrom?: 'manual' | 'auto_extract' | 'mistake_priority';
 }
@@ -275,9 +275,7 @@ export async function addWordToVocabulary(
         first_encountered_at: new Date().toISOString(),
       })
       .select('id')
-      .single();
-
-    if (error) throw error;    return {
+      .single();    if (error) throw error;    return {
       success: true,
       error: null,
       vocabularyId: data.id,
