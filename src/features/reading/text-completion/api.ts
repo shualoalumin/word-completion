@@ -258,9 +258,7 @@ export async function addWordToVocabulary(
         error: null,
         vocabularyId: data.id,
       };
-    }
-
-    // Insert new word
+    }    // Insert new word
     const { data, error } = await supabase
       .from('user_vocabulary')
       .insert({
