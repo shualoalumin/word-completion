@@ -252,7 +252,15 @@ serve(async (req) => {
           });
       }
 
-      return new Response(JSON.stringify(content), {
+      // Include metadata in response (difficulty, topic_category, exercise_id)
+      const responseData = {
+        ...content,
+        difficulty: cached.difficulty || 'intermediate',
+        topic_category: cached.topic_category || 'General',
+        exercise_id: cached.id,
+      };
+
+      return new Response(JSON.stringify(responseData), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -377,14 +385,36 @@ Requirements:
         is_active: true,
       });
 
+    // Get the inserted exercise ID for the response
+    let exerciseId: string | null = null;
+    
     if (insertError) {
       console.error("Error saving exercise to cache:", insertError);
       // Continue anyway, just log the error
     } else {
       console.log("Exercise saved to cache successfully");
+      
+      // Try to get the inserted exercise ID
+      const { data: insertedExercise } = await supabase
+        .from("exercises")
+        .select("id")
+        .eq("topic", passageData.topic || selectedTopic)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      
+      exerciseId = insertedExercise?.id || null;
     }
 
-    return new Response(JSON.stringify(passageData), {
+    // Include metadata in response (difficulty, topic_category, exercise_id)
+    const responseData = {
+      ...passageData,
+      difficulty: selectedDifficulty,
+      topic_category: topicCategory,
+      exercise_id: exerciseId,
+    };
+
+    return new Response(JSON.stringify(responseData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

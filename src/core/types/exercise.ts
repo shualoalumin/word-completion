@@ -67,9 +67,15 @@ export interface TextCompletionText {
 
 export type TextCompletionPart = TextCompletionText | TextCompletionBlank;
 
+export type Difficulty = 'easy' | 'intermediate' | 'hard';
+
 export interface TextCompletionPassage {
   topic: string;
   content_parts: TextCompletionPart[];
+  // Metadata from Edge Function
+  difficulty?: Difficulty;
+  topic_category?: string;
+  exercise_id?: string;
 }
 
 // Type guard for blank parts

@@ -1,7 +1,9 @@
 import React from 'react';
-import { Check, RotateCcw, User } from 'lucide-react';
+import { Check, RotateCcw, User, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Timer, DarkModeToggle, ScoreCard } from '@/components/common';
 import { UseTimerReturn } from '@/core/hooks';
+import { Difficulty } from '@/core/types/exercise';
 import { cn } from '@/lib/utils';
 import { useAuth, AuthModal, UserMenu } from '@/features/auth';
 
@@ -15,6 +17,10 @@ export interface ExerciseLayoutProps {
   // Header
   title: string;
   subtitle?: string;
+  
+  // Metadata (new)
+  difficulty?: Difficulty;
+  topicCategory?: string;
   
   // Actions
   showResults: boolean;
@@ -31,6 +37,13 @@ export interface ExerciseLayoutProps {
   className?: string;
 }
 
+// Difficulty badge colors and labels
+const DIFFICULTY_CONFIG = {
+  easy: { label: 'Easy', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  intermediate: { label: 'Medium', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  hard: { label: 'Hard', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+};
+
 export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   children,
   timer,
@@ -38,6 +51,8 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   onDarkModeToggle,
   title,
   subtitle,
+  difficulty,
+  topicCategory,
   showResults,
   onCheckAnswers,
   onNextExercise,
@@ -48,6 +63,9 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
 }) => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = React.useState(false);
+  const navigate = useNavigate();
+
+  const difficultyConfig = difficulty ? DIFFICULTY_CONFIG[difficulty] : null;
 
   return (
     <div
@@ -57,16 +75,47 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
         className
       )}
     >
-      <div className="max-w-4xl mx-auto px-6 py-10">
-        {/* Top bar */}
-        <div className="flex justify-between items-center mb-6">
-          <Timer
-            remaining={timer.remaining}
-            overtime={timer.overtime}
-            isOvertime={timer.isOvertime}
-            darkMode={darkMode}
-          />
-          <div className="flex items-center gap-3">
+      {/* Consistent max-w-6xl like Dashboard */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Top bar - consistent with Dashboard header */}
+        <div className="flex justify-between items-center mb-8">
+          {/* Left side: Back button + Logo */}
+          <div className="flex items-center gap-4">
+            {isAuthenticated && (
+              <button
+                onClick={() => navigate('/dashboard')}
+                className={cn(
+                  'flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm',
+                  darkMode 
+                    ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' 
+                    : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
+                )}
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Dashboard</span>
+              </button>
+            )}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center font-bold text-lg text-white">
+                GP
+              </div>
+              <span className={cn(
+                "text-xl font-semibold tracking-tight",
+                darkMode ? "text-white" : "text-gray-900"
+              )}>
+                GlobalPrep
+              </span>
+            </div>
+          </div>
+          
+          {/* Right side: Timer + Dark Mode + Auth */}
+          <div className="flex items-center gap-4">
+            <Timer
+              remaining={timer.remaining}
+              overtime={timer.overtime}
+              isOvertime={timer.isOvertime}
+              darkMode={darkMode}
+            />
             <DarkModeToggle darkMode={darkMode} onToggle={onDarkModeToggle} />
             
             {/* Auth Section */}
@@ -102,6 +151,30 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
           onSuccess={() => setShowAuthModal(false)}
           darkMode={darkMode}
         />
+
+        {/* Metadata badges (Difficulty + Topic Category) */}
+        {(difficultyConfig || topicCategory) && (
+          <div className="flex items-center gap-3 mb-4">
+            {difficultyConfig && (
+              <span className={cn(
+                'px-3 py-1 text-xs font-medium rounded-full border',
+                difficultyConfig.color
+              )}>
+                {difficultyConfig.label}
+              </span>
+            )}
+            {topicCategory && (
+              <span className={cn(
+                'px-3 py-1 text-xs font-medium rounded-full border',
+                darkMode 
+                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                  : 'bg-blue-50 text-blue-600 border-blue-200'
+              )}>
+                {topicCategory}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Header */}
         <div className="mb-6">
