@@ -5,6 +5,7 @@ import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
 import { useVocabularyStats } from '@/features/vocabulary';
+import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
   const { user, isAuthenticated, loading, signOut } = useAuth();
