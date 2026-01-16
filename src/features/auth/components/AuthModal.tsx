@@ -26,48 +26,11 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
   const onSuccessRef = useRef(onSuccess);
   
   // onSuccess가 변경될 때마다 ref 업데이트 (안정적인 참조 유지)
-  // 하지만 이 useEffect 자체는 리렌더링을 유발하지 않음
   useEffect(() => {
     onSuccessRef.current = onSuccess;
   }, [onSuccess]);
 
-  // isOpen이 false일 때는 아무것도 렌더링하지 않음 (hooks는 항상 호출됨)
-  if (!isOpen) {
-    return null;
-  }
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success('Check your email for verification link!');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-        toast.success('Signed in successfully!');
-        // ref를 통해 콜백 호출 (무한 루프 방지)
-        setTimeout(() => {
-          onSuccessRef.current();
-        }, 0);
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 팝업 감시 및 정리
+  // 팝업 감시 및 정리 - 모든 hooks는 조건문 전에 호출되어야 함
   useEffect(() => {
     return () => {
       // 컴포넌트 언마운트 시 팝업 닫기 및 인터벌 정리
@@ -77,12 +40,11 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
           if (!popupRef.current.closed) {
             popupRef.current.close();
           }
-        } catch (e) {
+        } catch (_e) {
           // COOP 정책으로 window.closed 접근이 차단될 수 있음
-          // 이 경우 그냥 닫기 시도
           try {
             popupRef.current.close();
-          } catch (closeError) {
+          } catch (_closeError) {
             // 무시: 이미 닫혔거나 차단됨
           }
         }
@@ -136,6 +98,43 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
       window.removeEventListener('message', handleMessage);
     };
   }, []); // 빈 배열: 컴포넌트 마운트 시 한 번만 등록
+
+  // isOpen이 false일 때는 아무것도 렌더링하지 않음 (모든 hooks 이후에 배치)
+  if (!isOpen) {
+    return null;
+  }
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (mode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success('Check your email for verification link!');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        toast.success('Signed in successfully!');
+        // ref를 통해 콜백 호출 (무한 루프 방지)
+        setTimeout(() => {
+          onSuccessRef.current();
+        }, 0);
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     if (googleLoading) return; // 중복 클릭 방지
@@ -214,9 +213,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, darkMode = false }: Auth
           toast.error('Sign-in timeout. Please try again.');
         }
       }, 5 * 60 * 1000); // 5분
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google sign-in error:', error);
-      toast.error(error.message || 'Google sign-in failed');
+      const errorMessage = error instanceof Error ? error.message : 'Google sign-in failed';
+      toast.error(errorMessage);
       setGoogleLoading(false);
       if (popupRef.current && !popupRef.current.closed) {
         popupRef.current.close();
