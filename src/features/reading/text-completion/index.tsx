@@ -235,6 +235,8 @@ export const TextCompletion: React.FC = () => {
       onDarkModeToggle={toggleDarkMode}
       title="Fill in the missing letters in the paragraph."
       subtitle="(Questions 1-10)"
+      difficulty={passage?.difficulty}
+      topicCategory={passage?.topic_category}
       showResults={showResults}
       onCheckAnswers={handleCheckAnswers}
       onNextExercise={handleNextExercise}

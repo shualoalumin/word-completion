@@ -136,9 +136,15 @@ export function useTextCompletion(): UseTextCompletionReturn {
       // Record start time when passage loads
       startTimeRef.current = Date.now();
       
-      // Find exercise ID for vocabulary features
-      const foundExerciseId = await findExerciseId(normalizedPassage);
-      setExerciseId(foundExerciseId);
+      // Use exercise_id from Edge Function response (if available)
+      // Otherwise fallback to findExerciseId
+      if (result.data.exercise_id) {
+        setExerciseId(result.data.exercise_id);
+      } else {
+        // Fallback for cached exercises without exercise_id
+        const foundExerciseId = await findExerciseId(normalizedPassage);
+        setExerciseId(foundExerciseId);
+      }
     }
 
     setLoading(false);
