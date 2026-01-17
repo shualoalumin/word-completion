@@ -221,7 +221,11 @@ export default function Vocabulary() {
               variant={masteryFilter === undefined ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMasteryFilter(undefined)}
-              className={masteryFilter === undefined ? 'bg-purple-600 hover:bg-purple-700' : ''}
+              className={cn(
+                masteryFilter === undefined 
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+              )}
             >
               All
             </Button>
@@ -229,7 +233,11 @@ export default function Vocabulary() {
               variant={masteryFilter === 0 ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMasteryFilter(0)}
-              className={masteryFilter === 0 ? 'bg-amber-600 hover:bg-amber-700' : ''}
+              className={cn(
+                masteryFilter === 0 
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+              )}
             >
               New
             </Button>
@@ -237,7 +245,11 @@ export default function Vocabulary() {
               variant={masteryFilter === 2 ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMasteryFilter(2)}
-              className={masteryFilter === 2 ? 'bg-blue-600 hover:bg-blue-700' : ''}
+              className={cn(
+                masteryFilter === 2 
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+              )}
             >
               Learning
             </Button>
@@ -245,7 +257,11 @@ export default function Vocabulary() {
               variant={masteryFilter === 4 ? 'default' : 'outline'}
               size="sm"
               onClick={() => setMasteryFilter(4)}
-              className={masteryFilter === 4 ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+              className={cn(
+                masteryFilter === 4 
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+              )}
             >
               Mastered
             </Button>
