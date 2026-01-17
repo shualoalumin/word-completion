@@ -14,6 +14,9 @@ export interface SaveExerciseHistoryParams {
   timeSpentSeconds: number;
   answers: Record<number, string>;
   mistakes: Record<number, string>;
+  // New fields for complete tracking
+  difficulty?: 'easy' | 'intermediate' | 'hard';
+  topicCategory?: string;
 }
 
 export interface SaveExerciseHistoryResult {
@@ -33,21 +36,21 @@ export async function generatePassage(
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (!session) {
-      return {
-        data: null,
-        error: new Error('Authentication required'),
-      };
+    // Optional Auth Pattern: Allow demo mode without session
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization if session exists
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
     }
 
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-passage`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers,
         body: JSON.stringify({}),
       }
     );
@@ -72,16 +75,9 @@ export async function generatePassage(
 
 /**
  * Find exercise_id by matching passage topic and content structure
- * This is necessary because the Edge Function doesn't return exercise_id
- * 
- * Strategy:
- * 1. Match by topic (exact)
- * 2. Match by content_parts structure (same number of blanks and similar structure)
- * 3. Return the most recent matching exercise (likely the one just generated/cached)
  */
 export async function findExerciseId(passage: TextCompletionPassage): Promise<string | null> {
   try {
-    // Try to find exercise by topic
     const { data, error } = await supabase
       .from('exercises')
       .select('id, topic, content')
@@ -90,7 +86,7 @@ export async function findExerciseId(passage: TextCompletionPassage): Promise<st
       .eq('topic', passage.topic)
       .eq('is_active', true)
       .order('created_at', { ascending: false })
-      .limit(20); // Check more exercises for better matching
+      .limit(20);
 
     if (error) {
       console.error('Error finding exercise:', error);
@@ -101,13 +97,10 @@ export async function findExerciseId(passage: TextCompletionPassage): Promise<st
       return null;
     }
 
-    // Count blanks in the current passage
     const currentBlankCount = passage.content_parts.filter(
       (part) => part.type === 'blank'
     ).length;
 
-    // Try to find exact match by content structure
-    // Match by: same topic + same number of blanks + similar content_parts structure
     for (const exercise of data) {
       if (exercise.content && typeof exercise.content === 'object') {
         const exerciseContent = exercise.content as { content_parts?: Array<{ type: string }> };
@@ -115,17 +108,12 @@ export async function findExerciseId(passage: TextCompletionPassage): Promise<st
           (part) => part.type === 'blank'
         ).length || 0;
 
-        // Exact match: same number of blanks
         if (exerciseBlankCount === currentBlankCount) {
-          // For now, return the first match with same blank count
-          // In production, you might want more sophisticated content comparison
           return exercise.id;
         }
       }
     }
 
-    // Fallback: return the most recent exercise with matching topic
-    // (This is likely the one just generated/cached)
     return data[0]?.id || null;
   } catch (err) {
     console.error('Error in findExerciseId:', err);
@@ -153,8 +141,8 @@ export async function saveExerciseHistory(
       };
     }
 
-    // Find exercise_id
-    const exerciseId = await findExerciseId(passage);
+    // Use exercise_id from passage if available, otherwise find it
+    const exerciseId = passage.exercise_id || await findExerciseId(passage);
     if (!exerciseId) {
       console.warn('Could not find exercise_id, skipping history save');
       return {
@@ -174,6 +162,9 @@ export async function saveExerciseHistory(
         time_spent_seconds: params.timeSpentSeconds,
         answers: params.answers,
         mistakes: params.mistakes,
+        // New fields for complete tracking
+        difficulty: params.difficulty || passage.difficulty || 'intermediate',
+        topic_category: params.topicCategory || passage.topic_category,
       })
       .select('id')
       .single();
@@ -202,8 +193,8 @@ export interface AddWordToVocabularyParams {
   word: string;
   definition?: string;
   exampleSentence?: string;
-  sourceContext: string; // ?�문 문장 (맥락)
-  sourcePassageId: string; // exercise ID
+  sourceContext: string;
+  sourcePassageId: string;
   addedFrom?: 'manual' | 'auto_extract' | 'mistake_priority';
 }
 
@@ -237,15 +228,13 @@ export async function addWordToVocabulary(
       .single();
 
     if (existing) {
-      // Word already exists, update it
       const { data, error } = await supabase
         .from('user_vocabulary')
         .update({
           source_context: params.sourceContext,
           source_passage_id: params.sourcePassageId,
           added_from: params.addedFrom || 'auto_extract',
-          first_encountered_at: existing.first_encountered_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
+          first_encountered_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
         .select('id')
@@ -258,7 +247,8 @@ export async function addWordToVocabulary(
         error: null,
         vocabularyId: data.id,
       };
-    }    // Insert new word
+    }
+
     const { data, error } = await supabase
       .from('user_vocabulary')
       .insert({
@@ -268,12 +258,16 @@ export async function addWordToVocabulary(
         example_sentence: params.exampleSentence,
         source_context: params.sourceContext,
         source_passage_id: params.sourcePassageId,
-        source_exercise_id: params.sourcePassageId, // For backward compatibility
+        source_exercise_id: params.sourcePassageId,
         added_from: params.addedFrom || 'auto_extract',
         first_encountered_at: new Date().toISOString(),
       })
       .select('id')
-      .single();    if (error) throw error;    return {
+      .single();
+
+    if (error) throw error;
+
+    return {
       success: true,
       error: null,
       vocabularyId: data.id,

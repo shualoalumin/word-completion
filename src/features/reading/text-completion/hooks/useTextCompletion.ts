@@ -196,6 +196,9 @@ export function useTextCompletion(): UseTextCompletionReturn {
         timeSpentSeconds,
         answers: userAnswers,
         mistakes,
+        // Include difficulty and topicCategory for tracking
+        difficulty: passage.difficulty,
+        topicCategory: passage.topic_category,
       });
       
       if (result.error) {

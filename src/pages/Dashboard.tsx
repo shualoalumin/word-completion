@@ -160,6 +160,99 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* Difficulty Stats */}
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Performance by Difficulty
+          </h2>
+          
+          <div className="grid grid-cols-3 gap-4">
+            {/* Easy */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {statsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                      Easy
+                    </span>
+                    <span className="text-zinc-500 text-xs">
+                      {stats?.difficultyStats?.easy?.count ?? 0} exercises
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-400">
+                    {stats?.difficultyStats?.easy?.avgScore !== null && stats?.difficultyStats?.easy?.avgScore !== undefined
+                      ? `${Math.round(stats.difficultyStats.easy.avgScore)}%`
+                      : '-'}
+                  </div>
+                  <div className="text-sm text-zinc-400">Avg. Score</div>
+                </>
+              )}
+            </div>
+
+            {/* Intermediate */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {statsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                      Medium
+                    </span>
+                    <span className="text-zinc-500 text-xs">
+                      {stats?.difficultyStats?.intermediate?.count ?? 0} exercises
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-yellow-400">
+                    {stats?.difficultyStats?.intermediate?.avgScore !== null && stats?.difficultyStats?.intermediate?.avgScore !== undefined
+                      ? `${Math.round(stats.difficultyStats.intermediate.avgScore)}%`
+                      : '-'}
+                  </div>
+                  <div className="text-sm text-zinc-400">Avg. Score</div>
+                </>
+              )}
+            </div>
+
+            {/* Hard */}
+            <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
+              {statsLoading ? (
+                <div className="animate-pulse">
+                  <div className="h-7 bg-zinc-700 rounded mb-2"></div>
+                  <div className="h-4 bg-zinc-700 rounded w-20"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                      Hard
+                    </span>
+                    <span className="text-zinc-500 text-xs">
+                      {stats?.difficultyStats?.hard?.count ?? 0} exercises
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-red-400">
+                    {stats?.difficultyStats?.hard?.avgScore !== null && stats?.difficultyStats?.hard?.avgScore !== undefined
+                      ? `${Math.round(stats.difficultyStats.hard.avgScore)}%`
+                      : '-'}
+                  </div>
+                  <div className="text-sm text-zinc-400">Avg. Score</div>
+                </>
+              )}
+            </div>
+          </div>
+        </section>
+
         {/* Vocabulary Stats */}
         <section className="mb-12">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
