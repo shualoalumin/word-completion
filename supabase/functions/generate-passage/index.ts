@@ -372,8 +372,10 @@ Requirements:
     
     console.log("AI generation successful");
 
-    // Step 3: Save to DB for future caching
-    const { error: insertError } = await supabase
+    // Step 3: Save to DB for future caching and get the inserted ID in one query
+    let exerciseId: string | null = null;
+    
+    const { data: insertedExercise, error: insertError } = await supabase
       .from("exercises")
       .insert({
         section: "reading",
@@ -383,27 +385,16 @@ Requirements:
         difficulty: selectedDifficulty,
         content: passageData,
         is_active: true,
-      });
+      })
+      .select("id")
+      .single();
 
-    // Get the inserted exercise ID for the response
-    let exerciseId: string | null = null;
-    
     if (insertError) {
       console.error("Error saving exercise to cache:", insertError);
-      // Continue anyway, just log the error
-    } else {
-      console.log("Exercise saved to cache successfully");
-      
-      // Try to get the inserted exercise ID
-      const { data: insertedExercise } = await supabase
-        .from("exercises")
-        .select("id")
-        .eq("topic", passageData.topic || selectedTopic)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-      
-      exerciseId = insertedExercise?.id || null;
+      // Continue anyway, just log the error - exerciseId will be null
+    } else if (insertedExercise) {
+      console.log(`Exercise saved to cache successfully with ID: ${insertedExercise.id}`);
+      exerciseId = insertedExercise.id;
     }
 
     // Include metadata in response (difficulty, topic_category, exercise_id)
