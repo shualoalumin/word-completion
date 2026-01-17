@@ -28,6 +28,8 @@ export interface RecentActivity {
   scorePercent: number;
   completedAt: string;
   topic?: string;
+  difficulty?: string;
+  topicCategory?: string;
 }
 
 /**
@@ -245,7 +247,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
  */
 export async function getRecentActivity(userId: string, limit: number = 5): Promise<RecentActivity[]> {
   try {
-    // First, get exercise history
+    // Get exercise history with new fields
     const { data: historyData, error: historyError } = await supabase
       .from('user_exercise_history')
       .select(`
@@ -254,7 +256,9 @@ export async function getRecentActivity(userId: string, limit: number = 5): Prom
         score,
         max_score,
         score_percent,
-        completed_at
+        completed_at,
+        difficulty,
+        topic_category
       `)
       .eq('user_id', userId)
       .order('completed_at', { ascending: false })
@@ -292,12 +296,14 @@ export async function getRecentActivity(userId: string, limit: number = 5): Prom
       id: record.id,
       exerciseId: record.exercise_id,
       score: record.score || 0,
-      maxScore: record.max_score || 0,
+      maxScore: record.max_score || 10,
       scorePercent: typeof record.score_percent === 'number' 
         ? record.score_percent 
         : parseFloat(String(record.score_percent || 0)),
       completedAt: record.completed_at || '',
       topic: topicsMap[record.exercise_id] || undefined,
+      difficulty: record.difficulty || undefined,
+      topicCategory: record.topic_category || undefined,
     }));
   } catch (error) {
     console.error('Unexpected error fetching recent activity:', error);

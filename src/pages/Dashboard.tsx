@@ -531,40 +531,64 @@ export default function Dashboard() {
               {recentActivity.map((activity) => {
                 const completedDate = new Date(activity.completedAt);
                 const timeAgo = getTimeAgo(completedDate);
+                const scorePercent = activity.scorePercent || 0;
                 
                 return (
                   <div
                     key={activity.id}
-                    className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
+                    onClick={() => {
+                      // Navigate to review the exercise
+                      if (activity.exerciseId) {
+                        navigate(`/practice/text-completion?review=${activity.exerciseId}`);
+                      }
+                    }}
+                    className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-blue-600/50 hover:bg-zinc-900/60 transition-all cursor-pointer group"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <div className={`w-2 h-2 rounded-full ${
-                            activity.scorePercent >= 90 ? 'bg-emerald-500' :
-                            activity.scorePercent >= 70 ? 'bg-blue-500' :
-                            activity.scorePercent >= 50 ? 'bg-amber-500' :
+                            scorePercent >= 90 ? 'bg-emerald-500' :
+                            scorePercent >= 70 ? 'bg-blue-500' :
+                            scorePercent >= 50 ? 'bg-amber-500' :
                             'bg-red-500'
                           }`} />
-                          <h3 className="font-semibold text-white">
+                          <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
                             {activity.topic || 'Text Completion'}
                           </h3>
+                          {activity.difficulty && (
+                            <span className={cn(
+                              'text-xs px-2 py-0.5 rounded-full',
+                              activity.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
+                              activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
+                              'bg-yellow-500/20 text-yellow-400'
+                            )}>
+                              {activity.difficulty === 'easy' ? 'Easy' : 
+                               activity.difficulty === 'hard' ? 'Hard' : 'Medium'}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-4 text-sm text-zinc-400">
                           <span>
-                            Score: {activity.score}/{activity.maxScore} ({Math.round(activity.scorePercent)}%)
+                            Score: {activity.score}/{activity.maxScore} ({Math.round(scorePercent)}%)
                           </span>
                           <span>•</span>
                           <span>{timeAgo}</span>
+                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Review
+                          </span>
                         </div>
                       </div>
                       <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        activity.scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
-                        activity.scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
-                        activity.scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                        scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
+                        scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
+                        scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
                         'bg-red-500/20 text-red-400'
                       }`}>
-                        {Math.round(activity.scorePercent)}%
+                        {Math.round(scorePercent)}%
                       </div>
                     </div>
                   </div>
