@@ -45,30 +45,41 @@ export default function Dashboard() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-12">
+      {/* Content - Wider layout */}
+      <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header - Sticky */}
+        <header className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-xl flex items-center justify-center font-bold text-lg">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center font-bold text-sm">
               GP
             </div>
-            <span className="text-xl font-semibold tracking-tight">GlobalPrep</span>
+            <span className="text-lg font-semibold tracking-tight">GlobalPrep</span>
           </div>
           
           {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
         </header>
 
-        {/* Welcome Section */}
-        <section className="mb-12">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, <span className="text-emerald-400">{userName}</span> 👋
-          </h1>
-          <p className="text-zinc-400">Ready to continue your TOEFL preparation?</p>
+        {/* Welcome + Start Practice - Row layout */}
+        <section className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold">
+              Welcome back, <span className="text-emerald-400">{userName}</span> 👋
+            </h1>
+            <p className="text-zinc-400 text-sm">Ready to continue your TOEFL preparation?</p>
+          </div>
+          <Button 
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => navigate('/practice/text-completion')}
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            Start Practice
+          </Button>
         </section>
 
-        {/* Stats Overview */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {/* Stats Overview - Compact */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {/* Exercises Today */}
           <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
             {statsLoading ? (
