@@ -5,11 +5,19 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+export interface DifficultyStats {
+  easy: { count: number; avgScore: number | null };
+  intermediate: { count: number; avgScore: number | null };
+  hard: { count: number; avgScore: number | null };
+}
+
 export interface DashboardStats {
   exercisesToday: number;
   dayStreak: number;
   averageScore: number | null;  // null if no exercises completed
   totalExercises: number;
+  // New: difficulty breakdown
+  difficultyStats?: DifficultyStats;
 }
 
 export interface RecentActivity {
@@ -141,16 +149,77 @@ export async function getTotalExercises(userId: string): Promise<number> {
 }
 
 /**
+ * Get difficulty-based statistics
+ */
+export async function getDifficultyStats(userId: string): Promise<DifficultyStats> {
+  try {
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('difficulty, score_percent')
+      .eq('user_id', userId)
+      .not('difficulty', 'is', null);
+
+    if (error) {
+      console.error('Error fetching difficulty stats:', error);
+      return {
+        easy: { count: 0, avgScore: null },
+        intermediate: { count: 0, avgScore: null },
+        hard: { count: 0, avgScore: null },
+      };
+    }
+
+    // Group by difficulty and calculate averages
+    const grouped: Record<string, { scores: number[] }> = {
+      easy: { scores: [] },
+      intermediate: { scores: [] },
+      hard: { scores: [] },
+    };
+
+    data?.forEach((record: any) => {
+      const difficulty = record.difficulty || 'intermediate';
+      if (grouped[difficulty]) {
+        const score = typeof record.score_percent === 'number'
+          ? record.score_percent
+          : parseFloat(String(record.score_percent || 0));
+        if (!isNaN(score)) {
+          grouped[difficulty].scores.push(score);
+        }
+      }
+    });
+
+    const calcAvg = (scores: number[]): number | null => {
+      if (scores.length === 0) return null;
+      const sum = scores.reduce((a, b) => a + b, 0);
+      return Math.round((sum / scores.length) * 100) / 100;
+    };
+
+    return {
+      easy: { count: grouped.easy.scores.length, avgScore: calcAvg(grouped.easy.scores) },
+      intermediate: { count: grouped.intermediate.scores.length, avgScore: calcAvg(grouped.intermediate.scores) },
+      hard: { count: grouped.hard.scores.length, avgScore: calcAvg(grouped.hard.scores) },
+    };
+  } catch (error) {
+    console.error('Unexpected error fetching difficulty stats:', error);
+    return {
+      easy: { count: 0, avgScore: null },
+      intermediate: { count: 0, avgScore: null },
+      hard: { count: 0, avgScore: null },
+    };
+  }
+}
+
+/**
  * Get all dashboard stats in one call (optimized)
  */
 export async function getDashboardStats(userId: string): Promise<DashboardStats> {
   try {
     // Parallel queries for better performance
-    const [exercisesToday, dayStreak, averageScore, totalExercises] = await Promise.all([
+    const [exercisesToday, dayStreak, averageScore, totalExercises, difficultyStats] = await Promise.all([
       getExercisesToday(userId),
       getDayStreak(userId),
       getAverageScore(userId),
       getTotalExercises(userId),
+      getDifficultyStats(userId),
     ]);
 
     return {
@@ -158,6 +227,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       dayStreak,
       averageScore,
       totalExercises,
+      difficultyStats,
     };
   } catch (error) {
     console.error('Unexpected error fetching dashboard stats:', error);
