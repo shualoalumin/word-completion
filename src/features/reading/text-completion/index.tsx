@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ExerciseLayout } from '@/components/layout';
 import { LoadingSpinner } from '@/components/common';
 import { useTimer, useDarkMode } from '@/core/hooks';
@@ -9,6 +10,9 @@ import { PassageDisplay, ResultsPanel } from './components';
 
 export const TextCompletion: React.FC = () => {
   const { darkMode, toggle: toggleDarkMode } = useDarkMode();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reviewExerciseId = searchParams.get('review');
+  const initialLoadDone = useRef(false);
   
   const timer = useTimer({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
@@ -24,7 +28,9 @@ export const TextCompletion: React.FC = () => {
     blanks,
     score,
     exerciseId,
+    isReviewMode,
     loadNewPassage,
+    loadSpecificExercise,
     updateAnswer,
     checkAnswers,
     setInputRef,
@@ -34,10 +40,19 @@ export const TextCompletion: React.FC = () => {
     getNextBlank,
   } = useTextCompletion();
 
-  // Load initial passage
+  // Load initial passage or specific exercise for review
   useEffect(() => {
-    loadNewPassage();
-  }, [loadNewPassage]);
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    
+    if (reviewExerciseId) {
+      // Review mode - load specific exercise
+      loadSpecificExercise(reviewExerciseId);
+    } else {
+      // Normal mode - generate new passage
+      loadNewPassage();
+    }
+  }, [reviewExerciseId, loadSpecificExercise, loadNewPassage]);
 
   // Start timer when passage loads
   useEffect(() => {
@@ -215,8 +230,13 @@ export const TextCompletion: React.FC = () => {
 
   // Handle next exercise
   const handleNextExercise = useCallback(() => {
+    // Clear review param if in review mode, then load new passage
+    if (reviewExerciseId) {
+      setSearchParams({});
+    }
+    initialLoadDone.current = false;
     loadNewPassage();
-  }, [loadNewPassage]);
+  }, [loadNewPassage, reviewExerciseId, setSearchParams]);
 
   // Loading state
   if (loading) {

@@ -526,7 +526,20 @@ export default function Dashboard() {
 
         {/* Recent Activity */}
         <section>
-          <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold">Recent Activity</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/history')}
+              className="text-zinc-400 hover:text-white"
+            >
+              View All History
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Button>
+          </div>
           {activityLoading ? (
             <div className="p-8 bg-zinc-900/40 border border-zinc-800 rounded-2xl">
               <div className="space-y-3">
