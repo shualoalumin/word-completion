@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
-import { generatePassage, saveExerciseHistory, findExerciseId } from '../api';
+import { generatePassage, saveExerciseHistory, findExerciseId, loadExerciseById } from '../api';
 import { UI_CONFIG } from '@/core/constants';
 
 /**
@@ -56,6 +56,7 @@ export interface UseTextCompletionReturn {
   userAnswers: UserAnswers;
   showResults: boolean;
   error: string | null;
+  isReviewMode: boolean;
   
   // Computed
   blanks: TextCompletionBlank[];
@@ -65,6 +66,7 @@ export interface UseTextCompletionReturn {
   
   // Actions
   loadNewPassage: () => Promise<void>;
+  loadSpecificExercise: (exerciseId: string) => Promise<void>;
   updateAnswer: (wordId: number, answer: string) => void;
   checkAnswers: () => Promise<void>;
   
@@ -87,6 +89,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
   const [showResults, setShowResults] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exerciseId, setExerciseId] = useState<string | null>(null);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   
   // Focus management refs
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -112,13 +115,14 @@ export function useTextCompletion(): UseTextCompletionReturn {
     return acc + (userSuffix.toLowerCase() === suffix.toLowerCase() ? 1 : 0);
   }, 0);
 
-  // Load new passage
+  // Load new passage (generate new)
   const loadNewPassage = useCallback(async () => {
     setLoading(true);
     setPassage(null);
     setUserAnswers({});
     setShowResults(false);
     setError(null);
+    setIsReviewMode(false);
     inputRefs.current.clear();
     blankOrderRef.current = [];
     startTimeRef.current = null; // Reset start time
@@ -150,6 +154,35 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setLoading(false);
   }, []);
 
+  // Load specific exercise by ID (for review mode)
+  const loadSpecificExercise = useCallback(async (targetExerciseId: string) => {
+    setLoading(true);
+    setPassage(null);
+    setUserAnswers({});
+    setShowResults(false);
+    setError(null);
+    setIsReviewMode(true);
+    inputRefs.current.clear();
+    blankOrderRef.current = [];
+    startTimeRef.current = null;
+
+    const result = await loadExerciseById(targetExerciseId);
+
+    if (result.error) {
+      setError('Failed to load exercise. It may have been deleted.');
+      setIsReviewMode(false);
+    } else if (result.data) {
+      const normalizedPassage = normalizeSpacing(result.data);
+      const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
+      blankOrderRef.current = newBlanks.map((b) => b.id);
+      setPassage(normalizedPassage);
+      startTimeRef.current = Date.now();
+      setExerciseId(targetExerciseId);
+    }
+
+    setLoading(false);
+  }, []);
+
   // Update answer
   const updateAnswer = useCallback((wordId: number, answer: string) => {
     setUserAnswers((prev) => ({ ...prev, [wordId]: answer }));
@@ -166,37 +199,44 @@ export function useTextCompletion(): UseTextCompletionReturn {
       ? Math.floor((Date.now() - startTimeRef.current) / 1000)
       : 0;
     
-    // Collect mistakes (wrong answers)
-    const mistakes = blanks
-      .map((blank) => {
-        const suffix = blank.full_word.slice(blank.prefix.length);
-        const userAnswer = userAnswers[blank.id] || '';
-        const isCorrect = userAnswer.toLowerCase() === suffix.toLowerCase();
-        
-        if (!isCorrect) {
-          return {
-            blank_id: blank.id,
-            user_answer: userAnswer,
-            correct_answer: suffix,
-          };
-        }
-        return null;
-      })
-      .filter((mistake) => mistake !== null) as Array<{
-        blank_id: number;
-        user_answer: string;
-        correct_answer: string;
-      }>;
+    // Calculate score directly in this function to avoid stale closure issues
+    let correctCount = 0;
+    const mistakes: Array<{
+      blank_id: number;
+      user_answer: string;
+      correct_answer: string;
+    }> = [];
+    
+    blanks.forEach((blank) => {
+      const suffix = blank.full_word.slice(blank.prefix.length);
+      const userAnswer = userAnswers[blank.id] || '';
+      const isCorrect = userAnswer.toLowerCase() === suffix.toLowerCase();
+      
+      if (isCorrect) {
+        correctCount++;
+      } else {
+        mistakes.push({
+          blank_id: blank.id,
+          user_answer: userAnswer,
+          correct_answer: suffix,
+        });
+      }
+    });
+    
+    // Calculate score percent (avoid division by zero)
+    const totalQuestions = blanks.length;
+    const scorePercent = totalQuestions > 0 
+      ? Math.round((correctCount / totalQuestions) * 100) 
+      : 0;
+    
+    console.log(`[checkAnswers] Score: ${correctCount}/${totalQuestions} = ${scorePercent}%`);
     
     // Save history (only if authenticated)
     try {
-      // Calculate score percent
-      const scorePercent = blanks.length > 0 ? Math.round((score / blanks.length) * 100) : 0;
-      
       const result = await saveExerciseHistory(passage, {
-        score,
-        maxScore: blanks.length,
-        scorePercent, // IMPORTANT: Must pass this for Recent Activity display
+        score: correctCount,
+        maxScore: totalQuestions,
+        scorePercent,
         timeSpentSeconds,
         answers: userAnswers,
         mistakes,
@@ -214,7 +254,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
       // Silently handle errors - optional auth pattern
       console.error('Unexpected error saving exercise history:', err);
     }
-  }, [passage, showResults, blanks, userAnswers, score]);
+  }, [passage, showResults, blanks, userAnswers]);
 
   // Focus management
   const setInputRef = useCallback((key: string, el: HTMLInputElement | null) => {
@@ -338,11 +378,13 @@ export function useTextCompletion(): UseTextCompletionReturn {
     userAnswers,
     showResults,
     error,
+    isReviewMode,
     blanks,
     blankOrder,
     score,
     exerciseId,
     loadNewPassage,
+    loadSpecificExercise,
     updateAnswer,
     checkAnswers,
     inputRefs,

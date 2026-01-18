@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import Practice from "./pages/Practice";
 import Vocabulary from "./pages/Vocabulary";
 import VocabularyReview from "./pages/VocabularyReview";
+import History from "./pages/History";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
@@ -56,6 +57,7 @@ const AppContent = () => {
       <Route path="/practice/text-completion" element={<Practice />} />
       <Route path="/vocabulary" element={<Vocabulary />} />
       <Route path="/vocabulary/review" element={<VocabularyReview />} />
+      <Route path="/history" element={<History />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />

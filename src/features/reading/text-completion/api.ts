@@ -6,6 +6,50 @@ export interface GeneratePassageResult {
   error: Error | null;
 }
 
+export interface LoadExerciseResult {
+  data: TextCompletionPassage | null;
+  error: Error | null;
+}
+
+/**
+ * Load a specific exercise by ID (for review)
+ */
+export async function loadExerciseById(exerciseId: string): Promise<LoadExerciseResult> {
+  try {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, content, topic, topic_category, difficulty')
+      .eq('id', exerciseId)
+      .single();
+
+    if (error) {
+      console.error('Error loading exercise:', error);
+      return { data: null, error: new Error('Exercise not found') };
+    }
+
+    if (!data || !data.content) {
+      return { data: null, error: new Error('Exercise content not found') };
+    }
+
+    // Transform to TextCompletionPassage format
+    const content = data.content as any;
+    const passage: TextCompletionPassage = {
+      topic: content.topic || data.topic,
+      content_parts: content.content_parts || [],
+      difficulty: data.difficulty || content.difficulty,
+      topic_category: data.topic_category || content.topic_category,
+      exercise_id: data.id,
+    };
+
+    return { data: passage, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
+
 export interface SaveExerciseHistoryParams {
   exerciseId: string;
   score: number;
