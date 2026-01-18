@@ -52,15 +52,22 @@ const WordPopup: React.FC<WordPopupProps> = ({
   useEffect(() => {
     const fetchDefinition = async () => {
       setLoading(true);
+      setDefinition(null); // Reset definition for new word to prevent stale data
       try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        if (response.ok) {
-          const data = await response.json();
-          const meanings = data[0]?.meanings;
-          if (meanings && meanings.length > 0) {
-            const firstDef = meanings[0]?.definitions?.[0]?.definition;
-            setDefinition(firstDef || null);
-          }
+        if (!response.ok) {
+          // API returned error (404, 500, etc.)
+          setDefinition(null);
+          return;
+        }
+        const data = await response.json();
+        const meanings = data[0]?.meanings;
+        if (meanings && meanings.length > 0) {
+          const firstDef = meanings[0]?.definitions?.[0]?.definition;
+          setDefinition(firstDef || null);
+        } else {
+          // No meanings found in response
+          setDefinition(null);
         }
       } catch {
         setDefinition(null);
