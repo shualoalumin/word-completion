@@ -1,5 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useCallback } from 'react';
 import { ExerciseLayout } from '@/components/layout';
 import { LoadingSpinner } from '@/components/common';
 import { useTimer, useDarkMode } from '@/core/hooks';
@@ -10,9 +9,6 @@ import { PassageDisplay, ResultsPanel } from './components';
 
 export const TextCompletion: React.FC = () => {
   const { darkMode, toggle: toggleDarkMode } = useDarkMode();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const reviewExerciseId = searchParams.get('review');
-  const initialLoadDone = useRef(false);
   
   const timer = useTimer({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
@@ -27,10 +23,7 @@ export const TextCompletion: React.FC = () => {
     error,
     blanks,
     score,
-    exerciseId,
-    isReviewMode,
     loadNewPassage,
-    loadSpecificExercise,
     updateAnswer,
     checkAnswers,
     setInputRef,
@@ -40,19 +33,10 @@ export const TextCompletion: React.FC = () => {
     getNextBlank,
   } = useTextCompletion();
 
-  // Load initial passage or specific exercise for review
+  // Load initial passage
   useEffect(() => {
-    if (initialLoadDone.current) return;
-    initialLoadDone.current = true;
-    
-    if (reviewExerciseId) {
-      // Review mode - load specific exercise
-      loadSpecificExercise(reviewExerciseId);
-    } else {
-      // Normal mode - generate new passage
-      loadNewPassage();
-    }
-  }, [reviewExerciseId, loadSpecificExercise, loadNewPassage]);
+    loadNewPassage();
+  }, [loadNewPassage]);
 
   // Start timer when passage loads
   useEffect(() => {
@@ -223,20 +207,15 @@ export const TextCompletion: React.FC = () => {
   );
 
   // Handle check answers
-  const handleCheckAnswers = useCallback(async () => {
-    await checkAnswers();
+  const handleCheckAnswers = useCallback(() => {
+    checkAnswers();
     timer.stop();
   }, [checkAnswers, timer]);
 
   // Handle next exercise
   const handleNextExercise = useCallback(() => {
-    // Clear review param if in review mode, then load new passage
-    if (reviewExerciseId) {
-      setSearchParams({});
-    }
-    initialLoadDone.current = false;
     loadNewPassage();
-  }, [loadNewPassage, reviewExerciseId, setSearchParams]);
+  }, [loadNewPassage]);
 
   // Loading state
   if (loading) {
@@ -255,8 +234,6 @@ export const TextCompletion: React.FC = () => {
       onDarkModeToggle={toggleDarkMode}
       title="Fill in the missing letters in the paragraph."
       subtitle="(Questions 1-10)"
-      difficulty={passage?.difficulty}
-      topicCategory={passage?.topic_category}
       showResults={showResults}
       onCheckAnswers={handleCheckAnswers}
       onNextExercise={handleNextExercise}
@@ -267,10 +244,6 @@ export const TextCompletion: React.FC = () => {
           blanks={blanks}
           userAnswers={userAnswers}
           darkMode={darkMode}
-          topic={passage?.topic}
-          elapsedTime={timer.elapsed}
-          passage={passage}
-          exerciseId={exerciseId || undefined}
         />
       )}
     >
@@ -287,7 +260,6 @@ export const TextCompletion: React.FC = () => {
 };
 
 export default TextCompletion;
-
 
 
 
