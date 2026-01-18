@@ -190,13 +190,16 @@ export function useTextCompletion(): UseTextCompletionReturn {
     
     // Save history (only if authenticated)
     try {
+      // Calculate score percent
+      const scorePercent = blanks.length > 0 ? Math.round((score / blanks.length) * 100) : 0;
+      
       const result = await saveExerciseHistory(passage, {
         score,
         maxScore: blanks.length,
+        scorePercent, // IMPORTANT: Must pass this for Recent Activity display
         timeSpentSeconds,
         answers: userAnswers,
         mistakes,
-        // Include difficulty and topicCategory for tracking
         difficulty: passage.difficulty,
         topicCategory: passage.topic_category,
       });
