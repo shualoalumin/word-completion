@@ -1,4 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { ExerciseLayout } from '@/components/layout';
 import { LoadingSpinner } from '@/components/common';
 import { useTimer, useDarkMode } from '@/core/hooks';
@@ -9,6 +10,10 @@ import { PassageDisplay, ResultsPanel } from './components';
 
 export const TextCompletion: React.FC = () => {
   const { darkMode, toggle: toggleDarkMode } = useDarkMode();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const reviewExerciseId = searchParams.get('review');
+  const prevReviewIdRef = useRef<string | null | undefined>(undefined);
   
   const timer = useTimer({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
@@ -23,7 +28,10 @@ export const TextCompletion: React.FC = () => {
     error,
     blanks,
     score,
+    exerciseId,
+    isReviewMode,
     loadNewPassage,
+    loadSpecificExercise,
     updateAnswer,
     checkAnswers,
     setInputRef,
@@ -33,10 +41,18 @@ export const TextCompletion: React.FC = () => {
     getNextBlank,
   } = useTextCompletion();
 
-  // Load initial passage
+  // Load initial passage or specific exercise for review
   useEffect(() => {
-    loadNewPassage();
-  }, [loadNewPassage]);
+    // Only run if reviewExerciseId has actually changed
+    if (prevReviewIdRef.current === reviewExerciseId) return;
+    prevReviewIdRef.current = reviewExerciseId;
+
+    if (reviewExerciseId) {
+      loadSpecificExercise(reviewExerciseId);
+    } else {
+      loadNewPassage();
+    }
+  }, [reviewExerciseId, loadSpecificExercise, loadNewPassage]);
 
   // Start timer when passage loads
   useEffect(() => {
@@ -207,15 +223,21 @@ export const TextCompletion: React.FC = () => {
   );
 
   // Handle check answers
-  const handleCheckAnswers = useCallback(() => {
-    checkAnswers();
+  const handleCheckAnswers = useCallback(async () => {
+    await checkAnswers();
     timer.stop();
   }, [checkAnswers, timer]);
 
   // Handle next exercise
   const handleNextExercise = useCallback(() => {
-    loadNewPassage();
-  }, [loadNewPassage]);
+    if (isReviewMode) {
+      // Clear review param and load new passage
+      prevReviewIdRef.current = undefined;
+      navigate('/practice/text-completion', { replace: true });
+    } else {
+      loadNewPassage();
+    }
+  }, [isReviewMode, navigate, loadNewPassage]);
 
   // Loading state
   if (loading) {
@@ -234,6 +256,8 @@ export const TextCompletion: React.FC = () => {
       onDarkModeToggle={toggleDarkMode}
       title="Fill in the missing letters in the paragraph."
       subtitle="(Questions 1-10)"
+      difficulty={passage?.difficulty}
+      topicCategory={passage?.topic_category}
       showResults={showResults}
       onCheckAnswers={handleCheckAnswers}
       onNextExercise={handleNextExercise}
@@ -244,6 +268,10 @@ export const TextCompletion: React.FC = () => {
           blanks={blanks}
           userAnswers={userAnswers}
           darkMode={darkMode}
+          topic={passage?.topic}
+          elapsedTime={timer.elapsed}
+          passage={passage}
+          exerciseId={exerciseId || undefined}
         />
       )}
     >
@@ -260,9 +288,3 @@ export const TextCompletion: React.FC = () => {
 };
 
 export default TextCompletion;
-
-
-
-
-
-
