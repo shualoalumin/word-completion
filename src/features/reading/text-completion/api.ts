@@ -470,3 +470,98 @@ export async function checkBookmark(
     return { isBookmarked: false };
   }
 }
+
+export interface BookmarkItem {
+  id: string;
+  exerciseId: string;
+  note?: string;
+  folder: string;
+  createdAt: string;
+  topic?: string;
+  difficulty?: string;
+  topicCategory?: string;
+}
+
+export interface GetBookmarksResult {
+  data: BookmarkItem[] | null;
+  error: Error | null;
+}
+
+export async function getBookmarks(folder?: string): Promise<GetBookmarksResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      return {
+        data: null,
+        error: new Error('Authentication required'),
+      };
+    }
+
+    // First, get bookmarks
+    let query = supabase
+      .from('user_bookmarks')
+      .select('exercise_id, note, folder, created_at')
+      .eq('user_id', session.user.id)
+      .order('created_at', { ascending: false });
+
+    if (folder) {
+      query = query.eq('folder', folder);
+    }
+
+    const { data: bookmarksData, error: bookmarksError } = await query;
+
+    if (bookmarksError) {
+      throw bookmarksError;
+    }
+
+    if (!bookmarksData || bookmarksData.length === 0) {
+      return {
+        data: [],
+        error: null,
+      };
+    }
+
+    // Then, get exercise details
+    const exerciseIds = bookmarksData.map(b => b.exercise_id);
+    const { data: exercisesData, error: exercisesError } = await supabase
+      .from('exercises')
+      .select('id, topic, difficulty, topic_category')
+      .in('id', exerciseIds);
+
+    if (exercisesError) {
+      console.error('Error fetching exercises:', exercisesError);
+    }
+
+    // Create a map for quick lookup
+    const exercisesMap = new Map(
+      (exercisesData || []).map(ex => [ex.id, ex])
+    );
+
+    const bookmarks: BookmarkItem[] = bookmarksData.map((item) => {
+      const exercise = exercisesMap.get(item.exercise_id);
+      return {
+        id: `${item.exercise_id}-${item.created_at}`,
+        exerciseId: item.exercise_id,
+        note: item.note || undefined,
+        folder: item.folder,
+        createdAt: item.created_at,
+        topic: exercise?.topic,
+        difficulty: exercise?.difficulty,
+        topicCategory: exercise?.topic_category,
+      };
+    });
+
+    return {
+      data: bookmarks,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}

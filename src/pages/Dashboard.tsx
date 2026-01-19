@@ -409,6 +409,33 @@ export default function Dashboard() {
                 </svg>
               </div>
             </div>
+
+            {/* Bookmarks Link */}
+            <div 
+              className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-amber-600/50 transition-all cursor-pointer overflow-hidden"
+              onClick={() => navigate('/bookmarks')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="relative flex items-center gap-4">
+                <div className="w-14 h-14 bg-amber-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-1 group-hover:text-amber-400 transition-colors">
+                    My Bookmarks
+                  </h3>
+                  <p className="text-sm text-zinc-400">
+                    Saved exercises for later review
+                  </p>
+                </div>
+                <svg className="w-5 h-5 text-zinc-500 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </section>
 
