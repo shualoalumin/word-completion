@@ -291,59 +291,110 @@ export default function Vocabulary() {
             </div>
           ) : (
             <div className="space-y-3">
-              {vocabulary.map((word) => (
-                <div
-                  key={word.id}
-                  className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-white">{word.word}</h3>
-                        <span className={cn(
-                          'text-xs px-2 py-0.5 rounded-full border',
-                          getMasteryColor(word.mastery_level || 0)
-                        )}>
-                          {getMasteryLabel(word.mastery_level || 0)} (Level {word.mastery_level || 0})
-                        </span>
-                      </div>
-                      {word.definition && (
-                        <p className="text-sm text-zinc-400 mb-2">{word.definition}</p>
-                      )}
-                      {word.source_context && (
-                        <p className="text-xs text-zinc-500 italic mb-2">
-                          "{word.source_context}"
-                        </p>
-                      )}
-                      {word.example_sentence && (
-                        <p className="text-xs text-zinc-500">
-                          Example: {word.example_sentence}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-4 mt-2 text-xs text-zinc-600">
-                        {word.review_count > 0 && (
-                          <span>Reviewed {word.review_count} time{word.review_count > 1 ? 's' : ''}</span>
-                        )}
-                        {word.last_reviewed_at && (
-                          <span>
-                            Last: {new Date(word.last_reviewed_at).toLocaleDateString()}
+              {vocabulary.map((word) => {
+                // Truncate source_context if too long
+                const truncateText = (text: string, maxLength: number = 200) => {
+                  if (text.length <= maxLength) return text;
+                  return text.slice(0, maxLength) + '...';
+                };
+
+                return (
+                  <div
+                    key={word.id}
+                    className="p-5 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        {/* Header: Word + Mastery Level */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <h3 className="text-xl font-bold text-white">{word.word}</h3>
+                          <span className={cn(
+                            'text-xs px-2.5 py-1 rounded-full border shrink-0',
+                            getMasteryColor(word.mastery_level || 0)
+                          )}>
+                            {getMasteryLabel(word.mastery_level || 0)} (Level {word.mastery_level || 0})
                           </span>
+                        </div>
+
+                        {/* Definition - Most Important */}
+                        {word.definition ? (
+                          <div className="mb-3">
+                            <p className="text-sm font-medium text-zinc-300 leading-relaxed">
+                              {word.definition}
+                            </p>
+                          </div>
+                        ) : word.source_context ? (
+                          <div className="mb-3">
+                            <p className="text-xs text-zinc-500 mb-1">Context:</p>
+                            <p className="text-sm text-zinc-400 leading-relaxed">
+                              {truncateText(word.source_context)}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {/* Example Sentence */}
+                        {word.example_sentence && (
+                          <div className="mb-3 p-2.5 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
+                            <p className="text-xs text-zinc-500 mb-1">Example:</p>
+                            <p className="text-sm text-zinc-300 italic">
+                              {word.example_sentence}
+                            </p>
+                          </div>
                         )}
+
+                        {/* Source Context (if different from definition) */}
+                        {word.source_context && word.definition && (
+                          <div className="mb-3 p-2.5 bg-zinc-950/30 rounded-lg border border-zinc-800/30">
+                            <p className="text-xs text-zinc-500 mb-1">From passage:</p>
+                            <p className="text-xs text-zinc-500 italic leading-relaxed">
+                              "{truncateText(word.source_context, 150)}"
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Metadata Row */}
+                        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-zinc-800/50 text-xs">
+                          {word.review_count > 0 && (
+                            <span className="flex items-center gap-1.5 text-zinc-500">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Reviewed {word.review_count} time{word.review_count > 1 ? 's' : ''}
+                            </span>
+                          )}
+                          {word.last_reviewed_at && (
+                            <span className="flex items-center gap-1.5 text-zinc-500">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Last: {new Date(word.last_reviewed_at).toLocaleDateString()}
+                            </span>
+                          )}
+                          {word.first_encountered_at && (
+                            <span className="flex items-center gap-1.5 text-zinc-500">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              Added: {new Date(word.first_encountered_at).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-900/20 shrink-0"
+                        onClick={() => handleDeleteWord(word.id, word.word)}
+                        title="Delete word"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                      onClick={() => handleDeleteWord(word.id, word.word)}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </Button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
