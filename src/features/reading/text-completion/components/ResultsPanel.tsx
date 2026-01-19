@@ -25,6 +25,57 @@ interface WordPopupProps {
   isAdded: boolean;
 }
 
+// Translation helper function
+const translateToKorean = async (text: string): Promise<string | null> => {
+  try {
+    // Split long text into chunks (MyMemory has 500 char limit)
+    const maxLength = 450;
+    if (text.length <= maxLength) {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ko`
+      );
+      const data = await response.json();
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
+        return data.responseData.translatedText;
+      }
+      return null;
+    }
+    
+    // For longer texts, split by sentences
+    const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+    const chunks: string[] = [];
+    let currentChunk = '';
+    
+    for (const sentence of sentences) {
+      if ((currentChunk + sentence).length > maxLength) {
+        if (currentChunk) chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+      } else {
+        currentChunk += sentence;
+      }
+    }
+    if (currentChunk) chunks.push(currentChunk.trim());
+    
+    // Translate each chunk
+    const translations: string[] = [];
+    for (const chunk of chunks) {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunk)}&langpair=en|ko`
+      );
+      const data = await response.json();
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
+        translations.push(data.responseData.translatedText);
+      } else {
+        translations.push(''); // Keep position
+      }
+    }
+    
+    return translations.join(' ');
+  } catch {
+    return null;
+  }
+};
+
 const WordPopup: React.FC<WordPopupProps> = ({
   word,
   position,
@@ -163,6 +214,9 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 }) => {
   const [addingWords, setAddingWords] = useState<Set<string>>(new Set());
   const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
+  const [translation, setTranslation] = useState<string | null>(null);
+  const [translationLoading, setTranslationLoading] = useState(false);
+  const [translationError, setTranslationError] = useState(false);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     position: { x: number; y: number };
@@ -176,6 +230,25 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       .map((part) => (isTextPart(part) ? part.value : part.full_word))
       .join('');
   }, [passage]);
+
+  // Auto-translate passage to Korean
+  useEffect(() => {
+    if (!fullPassageText || translation) return;
+    
+    const translate = async () => {
+      setTranslationLoading(true);
+      setTranslationError(false);
+      const result = await translateToKorean(fullPassageText);
+      if (result) {
+        setTranslation(result);
+      } else {
+        setTranslationError(true);
+      }
+      setTranslationLoading(false);
+    };
+    
+    translate();
+  }, [fullPassageText, translation]);
 
   const handleWordClick = (e: React.MouseEvent, word: string) => {
     const cleanWord = word.replace(/[.,!?;:'"()]/g, '').trim();
@@ -405,14 +478,44 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               Click words to save
             </span>
           </h3>
-          <div className="max-w-3xl">
+          
+          {/* English Passage */}
+          <div className="max-w-3xl mb-4">
             <p className={cn('text-sm leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
               {renderClickablePassage()}
             </p>
           </div>
-          <p className={cn('text-xs mt-4 pt-3 border-t', darkMode ? 'text-zinc-500 border-zinc-700' : 'text-gray-400 border-gray-200')}>
-            💡 AI 기반 한국어 번역이 곧 제공될 예정입니다.
-          </p>
+          
+          {/* Korean Translation */}
+          <div className={cn('pt-4 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn('text-xs font-medium', darkMode ? 'text-zinc-400' : 'text-gray-500')}>
+                🇰🇷 한국어 해석
+              </span>
+              {translationLoading && (
+                <span className={cn('text-xs animate-pulse', darkMode ? 'text-blue-400' : 'text-blue-500')}>
+                  번역 중...
+                </span>
+              )}
+            </div>
+            <div className="max-w-3xl">
+              {translationLoading ? (
+                <div className="space-y-2">
+                  <div className={cn('h-4 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
+                  <div className={cn('h-4 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '95%' }} />
+                  <div className={cn('h-4 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '80%' }} />
+                </div>
+              ) : translationError ? (
+                <p className={cn('text-sm', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
+                  ⚠️ 번역을 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
+                </p>
+              ) : translation ? (
+                <p className={cn('text-sm leading-relaxed', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
+                  {translation}
+                </p>
+              ) : null}
+            </div>
+          </div>
         </div>
       )}
     </div>
