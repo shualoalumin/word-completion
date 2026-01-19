@@ -323,3 +323,150 @@ export async function addWordToVocabulary(
     };
   }
 }
+
+/**
+ * Bookmark related functions
+ */
+export interface BookmarkExerciseParams {
+  exerciseId: string;
+  note?: string;
+  folder?: string;
+}
+
+export interface BookmarkExerciseResult {
+  success: boolean;
+  error: Error | null;
+}
+
+export async function bookmarkExercise(
+  params: BookmarkExerciseParams
+): Promise<BookmarkExerciseResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      return {
+        success: false,
+        error: new Error('Authentication required'),
+      };
+    }
+
+    const { error } = await supabase
+      .from('user_bookmarks')
+      .insert({
+        user_id: session.user.id,
+        exercise_id: params.exerciseId,
+        note: params.note || null,
+        folder: params.folder || 'default',
+      });
+
+    if (error) {
+      // If already bookmarked, update instead
+      if (error.code === '23505') {
+        const { error: updateError } = await supabase
+          .from('user_bookmarks')
+          .update({
+            note: params.note || null,
+            folder: params.folder || 'default',
+          })
+          .eq('user_id', session.user.id)
+          .eq('exercise_id', params.exerciseId);
+
+        if (updateError) throw updateError;
+        return { success: true, error: null };
+      }
+      throw error;
+    }
+
+    return { success: true, error: null };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
+
+export interface UnbookmarkExerciseResult {
+  success: boolean;
+  error: Error | null;
+}
+
+export async function unbookmarkExercise(
+  exerciseId: string
+): Promise<UnbookmarkExerciseResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      return {
+        success: false,
+        error: new Error('Authentication required'),
+      };
+    }
+
+    const { error } = await supabase
+      .from('user_bookmarks')
+      .delete()
+      .eq('user_id', session.user.id)
+      .eq('exercise_id', exerciseId);
+
+    if (error) throw error;
+
+    return { success: true, error: null };
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
+
+export interface CheckBookmarkResult {
+  isBookmarked: boolean;
+  bookmark?: {
+    note?: string;
+    folder: string;
+    created_at: string;
+  };
+}
+
+export async function checkBookmark(
+  exerciseId: string
+): Promise<CheckBookmarkResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      return { isBookmarked: false };
+    }
+
+    const { data, error } = await supabase
+      .from('user_bookmarks')
+      .select('note, folder, created_at')
+      .eq('user_id', session.user.id)
+      .eq('exercise_id', exerciseId)
+      .single();
+
+    if (error || !data) {
+      return { isBookmarked: false };
+    }
+
+    return {
+      isBookmarked: true,
+      bookmark: {
+        note: data.note || undefined,
+        folder: data.folder,
+        created_at: data.created_at,
+      },
+    };
+  } catch {
+    return { isBookmarked: false };
+  }
+}

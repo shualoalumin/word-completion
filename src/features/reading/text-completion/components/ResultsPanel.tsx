@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { TextCompletionBlank, TextCompletionPassage, isTextPart } from '../types';
 import { cn } from '@/lib/utils';
-import { addWordToVocabulary } from '../api';
+import { addWordToVocabulary, bookmarkExercise, unbookmarkExercise, checkBookmark } from '../api';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 export interface ResultsPanelProps {
   blanks: TextCompletionBlank[];
@@ -25,10 +26,35 @@ interface WordPopupProps {
   isAdded: boolean;
 }
 
-// Translation helper function
+// Translation helper function - Improved quality with DeepL-like API fallback
 const translateToKorean = async (text: string): Promise<string | null> => {
   try {
-    // Split long text into chunks (MyMemory has 500 char limit)
+    // Try LibreTranslate first (better quality, free)
+    try {
+      const libreResponse = await fetch('https://libretranslate.com/translate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: text,
+          source: 'en',
+          target: 'ko',
+          format: 'text',
+        }),
+      });
+
+      if (libreResponse.ok) {
+        const data = await libreResponse.json();
+        if (data.translatedText) {
+          return data.translatedText;
+        }
+      }
+    } catch {
+      // Fallback to MyMemory
+    }
+
+    // Fallback: MyMemory (split long texts)
     const maxLength = 450;
     if (text.length <= maxLength) {
       const response = await fetch(
@@ -217,6 +243,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const [translation, setTranslation] = useState<string | null>(null);
   const [translationLoading, setTranslationLoading] = useState(false);
   const [translationError, setTranslationError] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [selectedWord, setSelectedWord] = useState<{
     word: string;
     position: { x: number; y: number };
@@ -230,6 +258,18 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       .map((part) => (isTextPart(part) ? part.value : part.full_word))
       .join('');
   }, [passage]);
+
+  // Check bookmark status
+  useEffect(() => {
+    if (!exerciseId) return;
+    
+    const check = async () => {
+      const result = await checkBookmark(exerciseId);
+      setIsBookmarked(result.isBookmarked);
+    };
+    
+    check();
+  }, [exerciseId]);
 
   // Auto-translate passage to Korean
   useEffect(() => {
@@ -249,6 +289,35 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     
     translate();
   }, [fullPassageText, translation]);
+
+  const handleBookmark = async () => {
+    if (!exerciseId) {
+      toast.error('Exercise ID not available');
+      return;
+    }
+
+    setBookmarkLoading(true);
+    
+    if (isBookmarked) {
+      const result = await unbookmarkExercise(exerciseId);
+      if (result.success) {
+        setIsBookmarked(false);
+        toast.success('북마크가 제거되었습니다');
+      } else {
+        toast.error(result.error?.message || 'Failed to remove bookmark');
+      }
+    } else {
+      const result = await bookmarkExercise({ exerciseId });
+      if (result.success) {
+        setIsBookmarked(true);
+        toast.success('북마크에 저장되었습니다! 나중에 다시 풀 수 있어요 📚');
+      } else {
+        toast.error(result.error?.message || 'Failed to save bookmark');
+      }
+    }
+    
+    setBookmarkLoading(false);
+  };
 
   const handleWordClick = (e: React.MouseEvent, word: string) => {
     const cleanWord = word.replace(/[.,!?;:'"()]/g, '').trim();
@@ -417,6 +486,49 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               </span>
             )}
           </div>
+
+          {/* Bookmark Button */}
+          {exerciseId && (
+            <div className="pt-2 border-t border-zinc-700/50">
+              <Button
+                onClick={handleBookmark}
+                disabled={bookmarkLoading}
+                variant={isBookmarked ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "w-full sm:w-auto group transition-all",
+                  isBookmarked
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    : darkMode
+                      ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500"
+                      : "border-amber-500/50 text-amber-600 hover:bg-amber-50 hover:border-amber-500"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  {isBookmarked ? (
+                    <>
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                      </svg>
+                      <span>북마크됨</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                      <span className="group-hover:font-medium transition-all">
+                        북마크 저장
+                      </span>
+                      <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                        (나중에 다시 풀기)
+                      </span>
+                    </>
+                  )}
+                </span>
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -468,8 +580,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
 
       {/* Passage Section - Always visible, no toggle */}
       {fullPassageText && (
-        <div className={cn('p-4 rounded-xl border', darkMode ? 'bg-zinc-900/30 border-zinc-800' : 'bg-gray-50 border-gray-200')}>
-          <h3 className={cn('text-base font-semibold mb-3 flex items-center gap-2', darkMode ? 'text-white' : 'text-gray-900')}>
+        <div className={cn('p-6 rounded-xl border', darkMode ? 'bg-zinc-900/40 border-zinc-800' : 'bg-white border-gray-200 shadow-sm')}>
+          <h3 className={cn('text-lg font-semibold mb-4 flex items-center gap-2', darkMode ? 'text-white' : 'text-gray-900')}>
             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
             </svg>
@@ -479,17 +591,25 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </span>
           </h3>
           
-          {/* English Passage */}
-          <div className="max-w-3xl mb-4">
-            <p className={cn('text-sm leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
-              {renderClickablePassage()}
-            </p>
+          {/* English Passage - Improved readability */}
+          <div className="max-w-4xl mb-6">
+            <div className={cn(
+              'p-5 rounded-lg border',
+              darkMode ? 'bg-zinc-950/50 border-zinc-700' : 'bg-gray-50 border-gray-200'
+            )}>
+              <p className={cn(
+                'text-base leading-7 font-serif tracking-wide',
+                darkMode ? 'text-zinc-100' : 'text-gray-800'
+              )}>
+                {renderClickablePassage()}
+              </p>
+            </div>
           </div>
           
-          {/* Korean Translation */}
-          <div className={cn('pt-4 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={cn('text-xs font-medium', darkMode ? 'text-zinc-400' : 'text-gray-500')}>
+          {/* Korean Translation - Improved readability */}
+          <div className={cn('pt-5 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
+            <div className="flex items-center gap-2 mb-3">
+              <span className={cn('text-sm font-semibold', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
                 🇰🇷 한국어 해석
               </span>
               {translationLoading && (
@@ -498,21 +618,29 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 </span>
               )}
             </div>
-            <div className="max-w-3xl">
+            <div className="max-w-4xl">
               {translationLoading ? (
-                <div className="space-y-2">
-                  <div className={cn('h-4 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
-                  <div className={cn('h-4 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '95%' }} />
-                  <div className={cn('h-4 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '80%' }} />
+                <div className="space-y-2.5">
+                  <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
+                  <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '95%' }} />
+                  <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '80%' }} />
                 </div>
               ) : translationError ? (
                 <p className={cn('text-sm', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
                   ⚠️ 번역을 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
                 </p>
               ) : translation ? (
-                <p className={cn('text-sm leading-relaxed', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
-                  {translation}
-                </p>
+                <div className={cn(
+                  'p-5 rounded-lg border',
+                  darkMode ? 'bg-zinc-950/50 border-zinc-700' : 'bg-gray-50 border-gray-200'
+                )}>
+                  <p className={cn(
+                    'text-base leading-7 tracking-wide',
+                    darkMode ? 'text-zinc-200' : 'text-gray-700'
+                  )}>
+                    {translation}
+                  </p>
+                </div>
               ) : null}
             </div>
           </div>
