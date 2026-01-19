@@ -559,7 +559,7 @@ export default function Dashboard() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/history')}
-              className="text-zinc-400 hover:text-white"
+              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
             >
               View All History
               <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -84,7 +84,7 @@ export default function Vocabulary() {
             <Button
               variant="ghost"
               size="sm"
-              className="text-zinc-400 hover:text-white"
+              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
               onClick={() => navigate('/dashboard')}
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +224,7 @@ export default function Vocabulary() {
               className={cn(
                 masteryFilter === undefined 
                   ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                  : 'border-zinc-700 text-zinc-300 hover:border-purple-500/50 hover:bg-purple-500/10'
               )}
             >
               All
@@ -236,7 +236,7 @@ export default function Vocabulary() {
               className={cn(
                 masteryFilter === 0 
                   ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                  : 'border-zinc-700 text-zinc-300 hover:border-amber-500/50 hover:bg-amber-500/10'
               )}
             >
               New
@@ -248,7 +248,7 @@ export default function Vocabulary() {
               className={cn(
                 masteryFilter === 2 
                   ? 'bg-blue-600 hover:bg-blue-700 text-white' 
-                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                  : 'border-zinc-700 text-zinc-300 hover:border-blue-500/50 hover:bg-blue-500/10'
               )}
             >
               Learning
@@ -260,7 +260,7 @@ export default function Vocabulary() {
               className={cn(
                 masteryFilter === 4 
                   ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                  : 'border-zinc-700 text-zinc-300 hover:border-emerald-500/50 hover:bg-emerald-500/10'
               )}
             >
               Mastered

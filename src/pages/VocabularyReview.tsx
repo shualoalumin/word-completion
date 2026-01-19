@@ -148,7 +148,7 @@ export default function VocabularyReview() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-zinc-400 hover:text-white mb-8"
+            className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30 mb-8"
             onClick={() => navigate('/vocabulary')}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +179,7 @@ export default function VocabularyReview() {
           <Button
             variant="ghost"
             size="sm"
-            className="text-zinc-400 hover:text-white"
+            className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
             onClick={() => navigate('/vocabulary')}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

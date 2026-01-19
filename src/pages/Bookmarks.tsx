@@ -73,7 +73,7 @@ export default function Bookmarks() {
               <Button
                 variant="ghost"
                 onClick={() => navigate('/dashboard')}
-                className="text-zinc-400 hover:text-white"
+                className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
               >
                 ← Dashboard
               </Button>
@@ -97,8 +97,8 @@ export default function Bookmarks() {
               onClick={() => setSelectedFolder(folder)}
               className={cn(
                 selectedFolder === folder
-                  ? 'bg-blue-600 text-white'
-                  : 'border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white'
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'border-zinc-700 text-zinc-300 hover:border-blue-500/50 hover:bg-blue-500/10'
               )}
             >
               {folder === 'all' ? 'All' : folder}

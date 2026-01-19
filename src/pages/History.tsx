@@ -173,7 +173,7 @@ export default function History() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/dashboard')}
-              className="text-zinc-400 hover:text-white"
+              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
