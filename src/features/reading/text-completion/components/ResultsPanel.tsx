@@ -487,46 +487,69 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             )}
           </div>
 
-          {/* Bookmark Button */}
+          {/* Bookmark Button - Minimal & Elegant */}
           {exerciseId && (
-            <div className="pt-2 border-t border-zinc-700/50">
-              <Button
+            <div className="flex items-center gap-2">
+              <button
                 onClick={handleBookmark}
                 disabled={bookmarkLoading}
-                variant={isBookmarked ? "default" : "outline"}
-                size="sm"
                 className={cn(
-                  "w-full sm:w-auto group transition-all",
+                  "relative p-2 rounded-lg transition-all group",
+                  "focus:outline-none focus:ring-2 focus:ring-offset-2",
                   isBookmarked
-                    ? "bg-amber-600 hover:bg-amber-700 text-white"
+                    ? darkMode
+                      ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 focus:ring-amber-500/50"
+                      : "bg-amber-100 text-amber-600 hover:bg-amber-200 focus:ring-amber-500"
                     : darkMode
-                      ? "border-amber-500/50 text-amber-400 hover:bg-amber-500/20 hover:border-amber-500"
-                      : "border-amber-500/50 text-amber-600 hover:bg-amber-50 hover:border-amber-500"
+                      ? "text-zinc-400 hover:text-amber-400 hover:bg-zinc-800/50 focus:ring-zinc-700"
+                      : "text-gray-400 hover:text-amber-600 hover:bg-gray-100 focus:ring-gray-300"
                 )}
+                title={isBookmarked ? "북마크 제거" : "북마크 저장 (나중에 다시 풀기)"}
               >
-                <span className="flex items-center gap-2">
-                  {isBookmarked ? (
-                    <>
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                      </svg>
-                      <span>북마크됨</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-4 h-4 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                      <span className="group-hover:font-medium transition-all">
-                        북마크 저장
-                      </span>
-                      <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity ml-1">
-                        (나중에 다시 풀기)
-                      </span>
-                    </>
-                  )}
+                {bookmarkLoading ? (
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <svg 
+                    className={cn(
+                      "w-5 h-5 transition-transform",
+                      isBookmarked ? "" : "group-hover:scale-110"
+                    )} 
+                    fill={isBookmarked ? "currentColor" : "none"} 
+                    stroke={isBookmarked ? "none" : "currentColor"}
+                    viewBox="0 0 24 24"
+                    strokeWidth={isBookmarked ? 0 : 1.5}
+                  >
+                    {isBookmarked ? (
+                      <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                    )}
+                  </svg>
+                )}
+                {/* Tooltip */}
+                <span className={cn(
+                  "absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 rounded text-xs whitespace-nowrap",
+                  "opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50",
+                  darkMode ? "bg-zinc-800 text-zinc-200 border border-zinc-700" : "bg-gray-900 text-gray-100"
+                )}>
+                  {isBookmarked ? "북마크 제거" : "북마크 저장"}
+                  <span className={cn(
+                    "absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45",
+                    darkMode ? "bg-zinc-800 border-r border-b border-zinc-700" : "bg-gray-900"
+                  )} />
                 </span>
-              </Button>
+              </button>
+              {isBookmarked && (
+                <span className={cn(
+                  "text-xs",
+                  darkMode ? "text-amber-400/70" : "text-amber-600/70"
+                )}>
+                  저장됨
+                </span>
+              )}
             </div>
           )}
         </div>
