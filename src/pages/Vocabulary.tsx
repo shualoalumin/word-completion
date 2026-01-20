@@ -322,7 +322,7 @@ export default function Vocabulary() {
                         {/* Source Context - One sentence with highlighted word */}
                         {highlightedContext && (
                           <div className="mb-2">
-                            <p className="text-xs text-zinc-500 mb-1">{t('vocabulary.fromPassage')}:</p>
+                            <p className="text-xs text-zinc-500 mb-1">해당 단어가 포함된 문장:</p>
                             <p 
                               className="text-sm text-zinc-400 leading-relaxed"
                               dangerouslySetInnerHTML={{ __html: highlightedContext }}
