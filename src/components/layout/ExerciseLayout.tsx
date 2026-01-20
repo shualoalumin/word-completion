@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, RotateCcw, User, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Timer, DarkModeToggle } from '@/components/common';
 import { UseTimerReturn } from '@/core/hooks';
@@ -38,6 +39,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   renderResults,
   className,
 }) => {
+  const { t } = useTranslation();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [showAuthModal, setShowAuthModal] = React.useState(false);
   const navigate = useNavigate();
@@ -70,7 +72,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
                   )}
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Dashboard</span>
+                  <span className="hidden sm:inline">{t('dashboard.title')}</span>
                 </button>
               )}
               <div className="flex items-center gap-2">
@@ -108,7 +110,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
                         ? 'hover:bg-zinc-700 text-zinc-400 hover:text-white' 
                         : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
                     )}
-                    title="Sign in"
+                    title={t('auth.signIn')}
                   >
                     <User className="w-5 h-5" />
                   </button>
@@ -166,7 +168,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
                 'bg-blue-600 text-white hover:bg-blue-700'
               )}
             >
-              <Check className="w-4 h-4" /> Check Answers
+              <Check className="w-4 h-4" /> {t('practice.checkAnswers')}
             </button>
           ) : (
             <button
@@ -176,7 +178,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
                 'bg-blue-600 text-white hover:bg-blue-700'
               )}
             >
-              <RotateCcw className="w-4 h-4" /> Next Passage
+              <RotateCcw className="w-4 h-4" /> {t('practice.nextExercise')}
             </button>
           )}
         </div>
