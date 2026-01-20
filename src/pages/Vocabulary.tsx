@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { useVocabularyList, useVocabularyStats, useDeleteVocabularyWord } from '@/features/vocabulary';
@@ -9,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function Vocabulary() {
+  const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -35,7 +37,7 @@ export default function Vocabulary() {
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="animate-pulse text-zinc-400">Loading...</div>
+        <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -44,7 +46,7 @@ export default function Vocabulary() {
   const vocabulary = vocabData?.data || [];
 
   const handleDeleteWord = async (wordId: string, word: string) => {
-    if (!confirm(`Delete "${word}" from your vocabulary?`)) return;
+    if (!confirm(t('vocabulary.confirmDelete'))) return;
 
     const result = await deleteWordMutation.mutateAsync(wordId);
     if (result.success) {
@@ -62,10 +64,10 @@ export default function Vocabulary() {
   };
 
   const getMasteryLabel = (level: number) => {
-    if (level >= 4) return 'Mastered';
-    if (level >= 2) return 'Learning';
-    if (level >= 1) return 'New';
-    return 'New';
+    if (level >= 4) return t('vocabulary.mastered');
+    if (level >= 2) return t('vocabulary.learning');
+    if (level >= 1) return t('vocabulary.new');
+    return t('vocabulary.new');
   };
 
   return (
@@ -90,12 +92,12 @@ export default function Vocabulary() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Back to Dashboard
+              {t('vocabulary.backToDashboard')}
             </Button>
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center font-bold text-lg">
               📚
             </div>
-            <span className="text-xl font-semibold tracking-tight">My Vocabulary</span>
+            <span className="text-xl font-semibold tracking-tight">{t('vocabulary.title')}</span>
           </div>
           
           {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
@@ -115,7 +117,7 @@ export default function Vocabulary() {
                 <div className="text-2xl font-bold text-purple-400">
                   {stats?.totalWords ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Total Words</div>
+                <div className="text-sm text-zinc-400">{t('vocabulary.totalWords')}</div>
               </>
             )}
           </div>
@@ -132,7 +134,7 @@ export default function Vocabulary() {
                 <div className="text-2xl font-bold text-emerald-400">
                   {stats?.masteredWords ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Mastered</div>
+                <div className="text-sm text-zinc-400">{t('vocabulary.mastered')}</div>
               </>
             )}
           </div>
@@ -149,7 +151,7 @@ export default function Vocabulary() {
                 <div className="text-2xl font-bold text-blue-400">
                   {stats?.learningWords ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Learning</div>
+                <div className="text-sm text-zinc-400">{t('vocabulary.learning')}</div>
               </>
             )}
           </div>
@@ -166,7 +168,7 @@ export default function Vocabulary() {
                 <div className="text-2xl font-bold text-amber-400">
                   {stats?.newWords ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">New</div>
+                <div className="text-sm text-zinc-400">{t('vocabulary.new')}</div>
               </>
             )}
           </div>
@@ -183,7 +185,7 @@ export default function Vocabulary() {
                 <div className="text-2xl font-bold text-red-400">
                   {stats?.wordsDueForReview ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Due for Review</div>
+                <div className="text-sm text-zinc-400">{t('vocabulary.dueForReview')}</div>
               </>
             )}
           </div>
@@ -210,7 +212,7 @@ export default function Vocabulary() {
           <div className="flex-1">
             <Input
               type="text"
-              placeholder="Search words..."
+              placeholder={t('vocabulary.searchWords')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-zinc-900/60 border-zinc-800 text-white placeholder:text-zinc-500"
@@ -227,7 +229,7 @@ export default function Vocabulary() {
                   : 'border-zinc-700 text-zinc-300 hover:border-purple-500/50 hover:bg-purple-500/10'
               )}
             >
-              All
+              {t('vocabulary.all')}
             </Button>
             <Button
               variant={masteryFilter === 0 ? 'default' : 'outline'}
@@ -239,7 +241,7 @@ export default function Vocabulary() {
                   : 'border-zinc-700 text-zinc-300 hover:border-amber-500/50 hover:bg-amber-500/10'
               )}
             >
-              New
+              {t('vocabulary.new')}
             </Button>
             <Button
               variant={masteryFilter === 2 ? 'default' : 'outline'}
@@ -251,7 +253,7 @@ export default function Vocabulary() {
                   : 'border-zinc-700 text-zinc-300 hover:border-blue-500/50 hover:bg-blue-500/10'
               )}
             >
-              Learning
+              {t('vocabulary.learning')}
             </Button>
             <Button
               variant={masteryFilter === 4 ? 'default' : 'outline'}
@@ -263,7 +265,7 @@ export default function Vocabulary() {
                   : 'border-zinc-700 text-zinc-300 hover:border-emerald-500/50 hover:bg-emerald-500/10'
               )}
             >
-              Mastered
+              {t('vocabulary.mastered')}
             </Button>
           </div>
         </section>
@@ -286,8 +288,8 @@ export default function Vocabulary() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
               </div>
-              <p className="text-zinc-500 mb-2">No words in your vocabulary yet</p>
-              <p className="text-zinc-600 text-sm">Complete exercises and add words to build your vocabulary!</p>
+              <p className="text-zinc-500 mb-2">{t('vocabulary.noWords')}</p>
+              <p className="text-zinc-600 text-sm">{t('vocabulary.completeExercises')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -312,7 +314,7 @@ export default function Vocabulary() {
                             'text-xs px-2.5 py-1 rounded-full border shrink-0',
                             getMasteryColor(word.mastery_level || 0)
                           )}>
-                            {getMasteryLabel(word.mastery_level || 0)} (Level {word.mastery_level || 0})
+                            {getMasteryLabel(word.mastery_level || 0)} ({t('mastery.level')} {word.mastery_level || 0})
                           </span>
                         </div>
 
@@ -335,7 +337,7 @@ export default function Vocabulary() {
                         {/* Example Sentence */}
                         {word.example_sentence && (
                           <div className="mb-3 p-2.5 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
-                            <p className="text-xs text-zinc-500 mb-1">Example:</p>
+                            <p className="text-xs text-zinc-500 mb-1">{t('vocabulary.example')}:</p>
                             <p className="text-sm text-zinc-300 italic">
                               {word.example_sentence}
                             </p>
@@ -345,7 +347,7 @@ export default function Vocabulary() {
                         {/* Source Context (if different from definition) */}
                         {word.source_context && word.definition && (
                           <div className="mb-3 p-2.5 bg-zinc-950/30 rounded-lg border border-zinc-800/30">
-                            <p className="text-xs text-zinc-500 mb-1">From passage:</p>
+                            <p className="text-xs text-zinc-500 mb-1">{t('vocabulary.fromPassage')}:</p>
                             <p className="text-xs text-zinc-500 italic leading-relaxed">
                               "{truncateText(word.source_context, 150)}"
                             </p>
@@ -359,7 +361,7 @@ export default function Vocabulary() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Reviewed {word.review_count} time{word.review_count > 1 ? 's' : ''}
+                              {t('vocabulary.reviewed')} {word.review_count} {word.review_count > 1 ? t('vocabulary.times') : t('vocabulary.time')}
                             </span>
                           )}
                           {word.last_reviewed_at && (
@@ -367,7 +369,7 @@ export default function Vocabulary() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              Last: {new Date(word.last_reviewed_at).toLocaleDateString()}
+                              {t('vocabulary.last')}: {new Date(word.last_reviewed_at).toLocaleDateString()}
                             </span>
                           )}
                           {word.first_encountered_at && (
@@ -375,7 +377,7 @@ export default function Vocabulary() {
                               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              Added: {new Date(word.first_encountered_at).toLocaleDateString()}
+                              {t('vocabulary.added')}: {new Date(word.first_encountered_at).toLocaleDateString()}
                             </span>
                           )}
                         </div>
@@ -385,7 +387,7 @@ export default function Vocabulary() {
                         size="sm"
                         className="text-red-400 hover:text-red-300 hover:bg-red-900/20 shrink-0"
                         onClick={() => handleDeleteWord(word.id, word.word)}
-                        title="Delete word"
+                        title={t('vocabulary.deleteWord')}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
