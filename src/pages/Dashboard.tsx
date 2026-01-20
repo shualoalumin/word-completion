@@ -359,6 +359,34 @@ export default function Dashboard() {
                 </svg>
               </div>
             </div>
+
+            {/* Leaderboard Link */}
+            <div 
+              className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-indigo-600/50 transition-all cursor-pointer overflow-hidden"
+              onClick={() => navigate('/leaderboard')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              
+              <div className="relative flex items-center gap-4">
+                <div className="w-14 h-14 bg-indigo-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <svg className="w-7 h-7 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                    <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold mb-1 group-hover:text-indigo-400 transition-colors">
+                    Leaderboard
+                  </h3>
+                  <p className="text-sm text-zinc-400">
+                    See how you rank this week
+                  </p>
+                </div>
+                <svg className="w-5 h-5 text-zinc-500 group-hover:text-indigo-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </section>
 
