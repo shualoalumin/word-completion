@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TextCompletionBlank, TextCompletionPassage, isTextPart } from '../types';
 import { cn } from '@/lib/utils';
 import { addWordToVocabulary, bookmarkExercise, unbookmarkExercise, checkBookmark } from '../api';
@@ -238,6 +239,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   passage,
   exerciseId,
 }) => {
+  const { t } = useTranslation();
   const [addingWords, setAddingWords] = useState<Set<string>>(new Set());
   const [addedWords, setAddedWords] = useState<Set<string>>(new Set());
   const [translation, setTranslation] = useState<string | null>(null);
@@ -302,7 +304,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       const result = await unbookmarkExercise(exerciseId);
       if (result.success) {
         setIsBookmarked(false);
-        toast.success('북마크가 제거되었습니다');
+        toast.success(t('results.bookmark.removed'));
       } else {
         toast.error(result.error?.message || 'Failed to remove bookmark');
       }
@@ -310,7 +312,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       const result = await bookmarkExercise({ exerciseId });
       if (result.success) {
         setIsBookmarked(true);
-        toast.success('북마크에 저장되었습니다! 나중에 다시 풀 수 있어요 📚');
+        toast.success(t('results.bookmark.savedSuccess'));
       } else {
         toast.error(result.error?.message || 'Failed to save bookmark');
       }
@@ -443,10 +445,10 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </div>
             <div>
               <p className={cn("font-bold text-lg", getScoreColor())}>
-                {percentage >= 90 ? "Excellent! 🎉" : percentage >= 70 ? "Good job! 👍" : percentage >= 50 ? "Keep going! 💪" : "Practice more! 📚"}
+                {percentage >= 90 ? t('results.excellent') : percentage >= 70 ? t('results.goodJob') : percentage >= 50 ? t('results.keepGoing') : t('results.practiceMore')}
               </p>
               <p className={cn("text-sm", darkMode ? "text-zinc-400" : "text-gray-600")}>
-                {correctCount}/{totalCount} correct
+                {correctCount}/{totalCount} {t('results.correct')}
               </p>
             </div>
           </div>
@@ -504,7 +506,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       ? "text-zinc-400 hover:text-amber-400 hover:bg-zinc-800/50 focus:ring-zinc-700"
                       : "text-gray-400 hover:text-amber-600 hover:bg-gray-100 focus:ring-gray-300"
                 )}
-                title={isBookmarked ? "북마크 제거" : "북마크 저장 (나중에 다시 풀기)"}
+                title={isBookmarked ? t('results.bookmark.remove') : t('results.bookmark.tooltip')}
               >
                 {bookmarkLoading ? (
                   <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -535,7 +537,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   "opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50",
                   darkMode ? "bg-zinc-800 text-zinc-200 border border-zinc-700" : "bg-gray-900 text-gray-100"
                 )}>
-                  {isBookmarked ? "북마크 제거" : "북마크 저장"}
+                  {isBookmarked ? t('results.bookmark.remove') : t('results.bookmark.save')}
                   <span className={cn(
                     "absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45",
                     darkMode ? "bg-zinc-800 border-r border-b border-zinc-700" : "bg-gray-900"
@@ -547,7 +549,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   "text-xs",
                   darkMode ? "text-amber-400/70" : "text-amber-600/70"
                 )}>
-                  저장됨
+                  {t('results.bookmark.saved')}
                 </span>
               )}
             </div>
@@ -561,7 +563,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          Answers & Explanations
+          {t('results.answersAndExplanations')}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {results.map(({ blank, userSuffix, correctSuffix, isCorrect }) => (
@@ -608,9 +610,9 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
             </svg>
-            Full Passage
+            {t('results.fullPassage')}
             <span className={cn('text-xs px-2 py-0.5 rounded font-normal', darkMode ? 'bg-zinc-700 text-zinc-400' : 'bg-gray-200 text-gray-500')}>
-              Click words to save
+              {t('results.clickWordsToSave')}
             </span>
           </h3>
           
@@ -633,11 +635,11 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           <div className={cn('pt-5 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
             <div className="flex items-center gap-2 mb-3">
               <span className={cn('text-sm font-semibold', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
-                🇰🇷 한국어 해석
+                🇰🇷 {t('results.koreanTranslation')}
               </span>
               {translationLoading && (
                 <span className={cn('text-xs animate-pulse', darkMode ? 'text-blue-400' : 'text-blue-500')}>
-                  번역 중...
+                  {t('results.translating')}
                 </span>
               )}
             </div>
@@ -650,7 +652,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 </div>
               ) : translationError ? (
                 <p className={cn('text-sm', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
-                  ⚠️ 번역을 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
+                  ⚠️ {t('results.translationError')}
                 </p>
               ) : translation ? (
                 <div className={cn(

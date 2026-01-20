@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -24,7 +26,7 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="animate-pulse text-zinc-400">Loading...</div>
+        <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -61,7 +63,7 @@ export default function Dashboard() {
         <section className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold">
-              Welcome back, <span className="text-emerald-400">{userName}</span> 👋
+              {t('auth.welcome')}, <span className="text-emerald-400">{userName}</span> 👋
             </h1>
             <p className="text-zinc-400 text-sm">Ready to continue your TOEFL preparation?</p>
           </div>
@@ -72,7 +74,7 @@ export default function Dashboard() {
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
-            Start Practice
+            {t('practice.title')}
           </Button>
         </section>
 
@@ -95,7 +97,7 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold text-blue-400">
                   {stats?.exercisesToday ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Exercises Today</div>
+                <div className="text-sm text-zinc-400">{t('dashboard.exercisesToday')}</div>
               </>
             )}
           </div>
@@ -117,7 +119,7 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold text-emerald-400">
                   {stats?.dayStreak ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Day Streak 🔥</div>
+                <div className="text-sm text-zinc-400">{t('dashboard.dayStreak')} 🔥</div>
               </>
             )}
           </div>
@@ -141,7 +143,7 @@ export default function Dashboard() {
                     ? `${Math.round(stats.averageScore)}%` 
                     : '-'}
                 </div>
-                <div className="text-sm text-zinc-400">Avg. Score</div>
+                <div className="text-sm text-zinc-400">{t('dashboard.avgScore')}</div>
               </>
             )}
           </div>
@@ -163,7 +165,7 @@ export default function Dashboard() {
                 <div className="text-2xl font-bold text-amber-400">
                   {stats?.totalExercises ?? 0}
                 </div>
-                <div className="text-sm text-zinc-400">Total Exercises</div>
+                <div className="text-sm text-zinc-400">{t('dashboard.totalExercises')}</div>
               </>
             )}
           </div>
@@ -201,7 +203,7 @@ export default function Dashboard() {
                       ? `${Math.round(stats.difficultyStats.easy.avgScore)}%`
                       : '-'}
                   </div>
-                  <div className="text-sm text-zinc-400">Avg. Score</div>
+                  <div className="text-sm text-zinc-400">{t('dashboard.avgScore')}</div>
                 </>
               )}
             </div>
@@ -228,7 +230,7 @@ export default function Dashboard() {
                       ? `${Math.round(stats.difficultyStats.intermediate.avgScore)}%`
                       : '-'}
                   </div>
-                  <div className="text-sm text-zinc-400">Avg. Score</div>
+                  <div className="text-sm text-zinc-400">{t('dashboard.avgScore')}</div>
                 </>
               )}
             </div>
@@ -255,7 +257,7 @@ export default function Dashboard() {
                       ? `${Math.round(stats.difficultyStats.hard.avgScore)}%`
                       : '-'}
                   </div>
-                  <div className="text-sm text-zinc-400">Avg. Score</div>
+                  <div className="text-sm text-zinc-400">{t('dashboard.avgScore')}</div>
                 </>
               )}
             </div>
@@ -282,10 +284,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold mb-1 group-hover:text-purple-400 transition-colors">
-                    My Vocabulary
+                    {t('dashboard.myVocabulary')}
                   </h3>
                   <p className="text-sm text-zinc-400">
-                    Review and manage your learned words
+                    {t('dashboard.reviewAndManage')}
                   </p>
                 </div>
                 <svg className="w-5 h-5 text-zinc-500 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -309,10 +311,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold mb-1 group-hover:text-amber-400 transition-colors">
-                    My Bookmarks
+                    {t('dashboard.myBookmarks')}
                   </h3>
                   <p className="text-sm text-zinc-400">
-                    Saved exercises for later review
+                    {t('dashboard.savedExercises')}
                   </p>
                 </div>
                 <svg className="w-5 h-5 text-zinc-500 group-hover:text-amber-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,7 +380,7 @@ export default function Dashboard() {
                     navigate('/practice/text-completion');
                   }}
                 >
-                  Start Practice
+                  {t('practice.title')}
                   <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
@@ -438,14 +440,14 @@ export default function Dashboard() {
         {/* Recent Activity */}
         <section>
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold">Recent Activity</h2>
+            <h2 className="text-xl font-semibold">{t('dashboard.recentActivity')}</h2>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/history')}
               className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
             >
-              View All History
+              {t('dashboard.viewAllHistory')}
               <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
