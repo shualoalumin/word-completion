@@ -20,6 +20,11 @@ export default function Dashboard() {
   // Dashboard 통계 데이터 fetching
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: recentActivity, isLoading: activityLoading, error: activityError } = useRecentActivity(5);
+  
+  // Skills, Learning Patterns, Topic Performance
+  const { data: skillsData, isLoading: skillsLoading } = useUserSkills();
+  const { data: patternsData, isLoading: patternsLoading } = useLearningPatterns();
+  const { data: topicPerformanceData, isLoading: topicPerformanceLoading } = useTopicPerformance();
 
   // Redirect to landing if not authenticated
   useEffect(() => {
@@ -438,6 +443,52 @@ export default function Dashboard() {
                   Coming Soon
                 </Button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Skills & Analytics */}
+        <section className="mb-12">
+          <h2 className="text-xl font-semibold mb-6">Skills & Analytics</h2>
+          
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Skill Radar Chart */}
+            <div className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl">
+              <h3 className="text-lg font-semibold mb-4">Skill Proficiency</h3>
+              {skillsLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="animate-pulse text-zinc-500">Loading skills...</div>
+                </div>
+              ) : skillsData && skillsData.length > 0 ? (
+                <SkillRadarChart
+                  data={skillsData.map((skill) => ({
+                    skill: skill.skill_type.charAt(0).toUpperCase() + skill.skill_type.slice(1),
+                    value: Math.round(skill.proficiency_score * 100),
+                    fullMark: 100,
+                  }))}
+                  darkMode={true}
+                />
+              ) : (
+                <div className="h-64 flex items-center justify-center text-zinc-500">
+                  <p>Complete exercises to see your skills</p>
+                </div>
+              )}
+            </div>
+
+            {/* Learning Heatmap */}
+            <div className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl">
+              <h3 className="text-lg font-semibold mb-4">Learning Activity</h3>
+              {patternsLoading ? (
+                <div className="h-64 flex items-center justify-center">
+                  <div className="animate-pulse text-zinc-500">Loading patterns...</div>
+                </div>
+              ) : patternsData && patternsData.length > 0 ? (
+                <LearningHeatmap patterns={patternsData} darkMode={true} />
+              ) : (
+                <div className="h-64 flex items-center justify-center text-zinc-500">
+                  <p>Complete exercises to see your learning patterns</p>
+                </div>
+              )}
             </div>
           </div>
         </section>
