@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { UserMenu } from '@/features/auth/components/UserMenu';
+import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { useVocabularyList, useVocabularyStats, useDeleteVocabularyWord } from '@/features/vocabulary';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -78,30 +78,11 @@ export default function Vocabulary() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
       </div>
 
+      {/* Global Header */}
+      <GlobalHeader darkMode={true} />
+
       {/* Content */}
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-12">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
-              onClick={() => navigate('/dashboard')}
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              {t('vocabulary.backToDashboard')}
-            </Button>
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center font-bold text-lg">
-              📚
-            </div>
-            <span className="text-xl font-semibold tracking-tight">{t('vocabulary.title')}</span>
-          </div>
-          
-          {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
-        </header>
 
         {/* Stats Overview */}
         <section className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -294,90 +275,77 @@ export default function Vocabulary() {
           ) : (
             <div className="space-y-3">
               {vocabulary.map((word) => {
-                // Truncate source_context if too long
-                const truncateText = (text: string, maxLength: number = 200) => {
-                  if (text.length <= maxLength) return text;
-                  return text.slice(0, maxLength) + '...';
+                // Extract first sentence from context
+                const getFirstSentence = (text: string) => {
+                  if (!text) return '';
+                  const sentences = text.match(/[^.!?]+[.!?]+/g);
+                  return sentences ? sentences[0].trim() : text.split('.')[0].trim() + '.';
                 };
+
+                // Highlight word in context
+                const highlightWordInContext = (context: string, wordToHighlight: string) => {
+                  if (!context || !wordToHighlight) return context;
+                  const regex = new RegExp(`\\b(${wordToHighlight})\\b`, 'gi');
+                  return context.replace(regex, '<mark class="bg-blue-500/30 text-blue-300 font-semibold">$1</mark>');
+                };
+
+                const firstSentence = word.source_context ? getFirstSentence(word.source_context) : '';
+                const highlightedContext = firstSentence ? highlightWordInContext(firstSentence, word.word) : '';
 
                 return (
                   <div
                     key={word.id}
-                    className="p-5 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-colors"
+                    className="p-3 bg-zinc-900/40 border border-zinc-800 rounded-lg hover:border-zinc-700 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         {/* Header: Word + Mastery Level */}
-                        <div className="flex items-center gap-3 mb-3">
-                          <h3 className="text-xl font-bold text-white">{word.word}</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-lg font-bold text-white">{word.word}</h3>
                           <span className={cn(
-                            'text-xs px-2.5 py-1 rounded-full border shrink-0',
+                            'text-xs px-2 py-0.5 rounded-full border shrink-0',
                             getMasteryColor(word.mastery_level || 0)
                           )}>
-                            {getMasteryLabel(word.mastery_level || 0)} ({t('mastery.level')} {word.mastery_level || 0})
+                            {getMasteryLabel(word.mastery_level || 0)}
                           </span>
                         </div>
 
                         {/* Definition - Most Important */}
-                        {word.definition ? (
-                          <div className="mb-3">
+                        {word.definition && (
+                          <div className="mb-2">
                             <p className="text-sm font-medium text-zinc-300 leading-relaxed">
                               {word.definition}
                             </p>
                           </div>
-                        ) : word.source_context ? (
-                          <div className="mb-3">
-                            <p className="text-xs text-zinc-500 mb-1">Context:</p>
-                            <p className="text-sm text-zinc-400 leading-relaxed">
-                              {truncateText(word.source_context)}
-                            </p>
-                          </div>
-                        ) : null}
-
-                        {/* Example Sentence */}
-                        {word.example_sentence && (
-                          <div className="mb-3 p-2.5 bg-zinc-950/50 rounded-lg border border-zinc-800/50">
-                            <p className="text-xs text-zinc-500 mb-1">{t('vocabulary.example')}:</p>
-                            <p className="text-sm text-zinc-300 italic">
-                              {word.example_sentence}
-                            </p>
-                          </div>
                         )}
 
-                        {/* Source Context (if different from definition) */}
-                        {word.source_context && word.definition && (
-                          <div className="mb-3 p-2.5 bg-zinc-950/30 rounded-lg border border-zinc-800/30">
+                        {/* Source Context - One sentence with highlighted word */}
+                        {highlightedContext && (
+                          <div className="mb-2">
                             <p className="text-xs text-zinc-500 mb-1">{t('vocabulary.fromPassage')}:</p>
-                            <p className="text-xs text-zinc-500 italic leading-relaxed">
-                              "{truncateText(word.source_context, 150)}"
-                            </p>
+                            <p 
+                              className="text-sm text-zinc-400 leading-relaxed"
+                              dangerouslySetInnerHTML={{ __html: highlightedContext }}
+                            />
                           </div>
                         )}
 
-                        {/* Metadata Row */}
-                        <div className="flex flex-wrap items-center gap-3 mt-3 pt-3 border-t border-zinc-800/50 text-xs">
+                        {/* Metadata Row - Compact */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500">
                           {word.review_count > 0 && (
-                            <span className="flex items-center gap-1.5 text-zinc-500">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              {t('vocabulary.reviewed')} {word.review_count} {word.review_count > 1 ? t('vocabulary.times') : t('vocabulary.time')}
+                              {word.review_count}
                             </span>
                           )}
                           {word.last_reviewed_at && (
-                            <span className="flex items-center gap-1.5 text-zinc-500">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <span className="flex items-center gap-1">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
-                              {t('vocabulary.last')}: {new Date(word.last_reviewed_at).toLocaleDateString()}
-                            </span>
-                          )}
-                          {word.first_encountered_at && (
-                            <span className="flex items-center gap-1.5 text-zinc-500">
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {t('vocabulary.added')}: {new Date(word.first_encountered_at).toLocaleDateString()}
+                              {new Date(word.last_reviewed_at).toLocaleDateString()}
                             </span>
                           )}
                         </div>

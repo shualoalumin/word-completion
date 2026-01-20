@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { UserMenu } from '@/features/auth/components/UserMenu';
+import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { Button } from '@/components/ui/button';
 import { useAchievements, useUserAchievements } from '@/features/achievements';
 import { cn } from '@/lib/utils';

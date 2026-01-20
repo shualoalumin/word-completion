@@ -67,27 +67,11 @@ export default function Bookmarks() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-sm">
-        <div className="mx-auto max-w-[1600px] px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/dashboard')}
-                className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
-              >
-                ← {t('bookmarks.backToDashboard')}
-              </Button>
-              <h1 className="text-xl font-bold text-white">{t('bookmarks.title')}</h1>
-            </div>
-            <UserMenu user={user} onSignOut={signOut} />
-          </div>
-        </div>
-      </header>
+      {/* Global Header */}
+      <GlobalHeader darkMode={true} />
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-[1600px] px-6 py-8">
+      <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <h1 className="text-2xl font-bold mb-6">{t('bookmarks.title')}</h1>
         {/* Folder Filter */}
         <div className="mb-6 flex items-center gap-3">
           <span className="text-sm text-zinc-400">{t('bookmarks.filter')}:</span>

@@ -83,6 +83,7 @@ export interface UseTextCompletionReturn {
 }
 
 export function useTextCompletion(): UseTextCompletionReturn {
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
   const [passage, setPassage] = useState<TextCompletionPassage | null>(null);
   const [userAnswers, setUserAnswers] = useState<UserAnswers>({});
@@ -249,6 +250,9 @@ export function useTextCompletion(): UseTextCompletionReturn {
         console.error('Failed to save exercise history:', result.error);
       } else if (result.success) {
         console.log('Exercise history saved successfully:', result.historyId);
+        // Invalidate queries to refresh Recent Activity and Dashboard stats
+        queryClient.invalidateQueries({ queryKey: ['recent-activity'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       }
     } catch (err) {
       // Silently handle errors - optional auth pattern

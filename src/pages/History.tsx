@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { UserMenu } from '@/features/auth/components/UserMenu';
+import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -168,23 +168,6 @@ export default function History() {
       </div>
 
       <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {t('history.backToDashboard')}
-            </Button>
-          </div>
-          {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
-        </header>
 
         {/* Title + Filter */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
