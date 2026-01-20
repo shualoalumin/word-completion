@@ -33,6 +33,31 @@ vi.mock('@/features/dashboard', () => ({
   }),
 }));
 
+// Mock skills, patterns, topic performance hooks
+vi.mock('@/features/skills', () => ({
+  useUserSkills: () => ({
+    data: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock('@/features/learning-patterns', () => ({
+  useLearningPatterns: () => ({
+    data: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock('@/features/topic-performance', () => ({
+  useTopicPerformance: () => ({
+    data: [],
+    isLoading: false,
+    error: null,
+  }),
+}));
+
 const createTestQueryClient = () =>
   new QueryClient({
     defaultOptions: {
