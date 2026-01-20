@@ -766,6 +766,7 @@ exercises
 ### 아키텍처 점검 (2026-01-16~18)
 - `docs/architecture/project-health-check-2026-01-16.md` - 코드 품질 점검 ⭐
 - `docs/architecture/schema-vs-fe-gap-analysis.md` - 스키마 vs FE 갭 분석 ⭐
+- `docs/architecture/2026-01-18-architecture-midterm-review.md` - 중간점검 경과보고서 ⭐⭐ (최신)
 
 ### 아키텍처 결정 (dev-logs)
 - `docs/dev-logs/2026-01-11-vocabulary-learning-system.md` - 어휘력 향상 시스템 구현
