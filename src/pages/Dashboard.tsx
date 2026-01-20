@@ -5,6 +5,11 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
+import { useUserSkills } from '@/features/skills';
+import { useLearningPatterns } from '@/features/learning-patterns';
+import { useTopicPerformance } from '@/features/topic-performance';
+import { SkillRadarChart } from '@/components/charts/SkillRadarChart';
+import { LearningHeatmap } from '@/components/charts/LearningHeatmap';
 import { cn } from '@/lib/utils';
 
 export default function Dashboard() {
