@@ -22,6 +22,7 @@ export default tseslint.config(
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       
       // 핵심 규칙 (에러 방지) - cn is not defined 같은 에러 방지
+      "no-undef": "error",  // ✅ 추가: 정의되지 않은 변수 사용 방지
       "@typescript-eslint/no-unused-vars": ["warn", { 
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_" 
