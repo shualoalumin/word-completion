@@ -14,6 +14,7 @@ import VocabularyReview from "./pages/VocabularyReview";
 import History from "./pages/History";
 import Bookmarks from "./pages/Bookmarks";
 import Settings from "./pages/Settings";
+import Achievements from "./pages/Achievements";
 import AuthCallback from "./pages/AuthCallback";
 import NotFound from "./pages/NotFound";
 
@@ -62,6 +63,7 @@ const AppContent = () => {
       <Route path="/history" element={<History />} />
       <Route path="/bookmarks" element={<Bookmarks />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/achievements" element={<Achievements />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
