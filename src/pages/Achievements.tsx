@@ -61,25 +61,11 @@ export default function Achievements() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />
       </div>
 
+      {/* Global Header */}
+      <GlobalHeader darkMode={true} />
+
       {/* Content */}
       <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {t('dashboard.title')}
-            </Button>
-          </div>
-          {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
-        </header>
 
         {/* Achievements Content */}
         <div className="space-y-6">
