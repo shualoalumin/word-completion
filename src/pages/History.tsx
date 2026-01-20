@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const DIFFICULTY_CONFIG = {
 };
 
 export default function History() {
+  const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -152,7 +154,7 @@ export default function History() {
   if (loading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="animate-pulse text-zinc-400">Loading...</div>
+        <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
   }
@@ -178,7 +180,7 @@ export default function History() {
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to Dashboard
+              {t('history.backToDashboard')}
             </Button>
           </div>
           {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
@@ -187,7 +189,7 @@ export default function History() {
         {/* Title + Filter */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Practice History</h1>
+            <h1 className="text-2xl font-bold">{t('history.title')}</h1>
             <p className="text-zinc-400 text-sm">
               {historyData?.length || 0} total exercises completed
             </p>
@@ -199,7 +201,7 @@ export default function History() {
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="all">All Time</option>
+            <option value="all">{t('history.allMonths')}</option>
             {availableMonths.map(month => {
               const [year, m] = month.split('-');
               const date = new Date(parseInt(year), parseInt(m) - 1);
@@ -228,13 +230,13 @@ export default function History() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-zinc-500 mb-2">No history found</p>
-            <p className="text-zinc-600 text-sm mb-4">Complete your first exercise to see it here!</p>
+            <p className="text-zinc-500 mb-2">{t('history.noHistory')}</p>
+            <p className="text-zinc-600 text-sm mb-4">{t('history.completeExercises')}</p>
             <Button
               className="bg-blue-600 hover:bg-blue-700"
               onClick={() => navigate('/practice/text-completion')}
             >
-              Start Practice
+              {t('practice.title')}
             </Button>
           </div>
         ) : (
@@ -294,7 +296,7 @@ export default function History() {
                             </div>
                             <div className="flex items-center gap-4 text-sm text-zinc-400">
                               <span>
-                                Score: {record.score}/{record.maxScore}
+                                {t('history.score')}: {record.score}/{record.maxScore}
                               </span>
                               <span>•</span>
                               <span>Time: {formatTime(record.timeSpentSeconds)}</span>

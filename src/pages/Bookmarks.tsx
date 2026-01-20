@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ const DIFFICULTY_CONFIG = {
 };
 
 export default function Bookmarks() {
+  const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const [selectedFolder, setSelectedFolder] = useState<string>('all');
@@ -75,9 +77,9 @@ export default function Bookmarks() {
                 onClick={() => navigate('/dashboard')}
                 className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
               >
-                ← Dashboard
+                ← {t('bookmarks.backToDashboard')}
               </Button>
-              <h1 className="text-xl font-bold text-white">My Bookmarks</h1>
+              <h1 className="text-xl font-bold text-white">{t('bookmarks.title')}</h1>
             </div>
             <UserMenu user={user} onSignOut={signOut} />
           </div>
@@ -88,7 +90,7 @@ export default function Bookmarks() {
       <main className="mx-auto max-w-[1600px] px-6 py-8">
         {/* Folder Filter */}
         <div className="mb-6 flex items-center gap-3">
-          <span className="text-sm text-zinc-400">Filter:</span>
+          <span className="text-sm text-zinc-400">{t('bookmarks.filter')}:</span>
           {folders.map((folder) => (
             <Button
               key={folder}
@@ -101,7 +103,7 @@ export default function Bookmarks() {
                   : 'border-zinc-700 text-zinc-300 hover:border-blue-500/50 hover:bg-blue-500/10'
               )}
             >
-              {folder === 'all' ? 'All' : folder}
+              {folder === 'all' ? t('bookmarks.all') : folder === 'default' ? t('bookmarks.default') : folder}
             </Button>
           ))}
         </div>
@@ -122,12 +124,12 @@ export default function Bookmarks() {
                 d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
               />
             </svg>
-            <h3 className="mb-2 text-lg font-semibold text-zinc-300">북마크가 없습니다</h3>
+            <h3 className="mb-2 text-lg font-semibold text-zinc-300">{t('bookmarks.noBookmarks')}</h3>
             <p className="mb-4 text-sm text-zinc-500">
-              문제를 풀고 결과 화면에서 북마크를 저장하세요.
+              {t('bookmarks.completeExercises')}
             </p>
             <Button onClick={() => navigate('/practice/text-completion')} variant="outline">
-              문제 풀러 가기
+              {t('bookmarks.goToPractice')}
             </Button>
           </div>
         ) : (
@@ -168,7 +170,7 @@ export default function Bookmarks() {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                         </svg>
-                        Review
+                        {t('bookmarks.review')}
                       </span>
                     </div>
                   </div>
