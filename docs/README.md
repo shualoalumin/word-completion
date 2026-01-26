@@ -46,6 +46,7 @@ docs/
 | 문서 | 상태 | 설명 |
 |------|------|------|
 | [Spacing Issues](troubleshooting/spacing-issues.md) | ✅ Fixed | AI 생성 공백 누락 문제 |
+| [UI/UX Issues & API Problems (2026-01-26)](troubleshooting/2026-01-26-ui-and-api-issues.md) | ✅ Fixed | Git 커밋 메시지, 반응형 UI, 단어 설명 API, Translation 토글 |
 
 ---
 
