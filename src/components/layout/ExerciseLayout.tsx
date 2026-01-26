@@ -148,12 +148,12 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
           )}
         </div>
 
-        {/* Exercise Content - max-w-4xl for passage readability (ETS style ~80 chars per line) */}
+        {/* Exercise Content - Responsive max-width for better readability on wide screens */}
         <div className={cn(
           'rounded-xl border p-4 sm:p-6',
           darkMode ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
         )}>
-          <div className="max-w-4xl">
+          <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
             {children}
           </div>
         </div>
