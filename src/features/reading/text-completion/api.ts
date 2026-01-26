@@ -565,3 +565,64 @@ export async function getBookmarks(folder?: string): Promise<GetBookmarksResult>
     };
   }
 }
+
+/**
+ * Explain word meaning in context using AI
+ */
+export interface ExplainWordInContextParams {
+  word: string;
+  context: string;
+}
+
+export interface ExplainWordInContextResult {
+  explanation: string | null;
+  error: Error | null;
+}
+
+export async function explainWordInContext(
+  params: ExplainWordInContextParams
+): Promise<ExplainWordInContextResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    // Optional Auth Pattern: Allow demo mode without session
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+
+    // Add Authorization if session exists
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/explain-word-in-context`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          word: params.word,
+          context: params.context,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to explain word: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return {
+      explanation: result.explanation || null,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      explanation: null,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}

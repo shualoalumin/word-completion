@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TextCompletionBlank, TextCompletionPassage, isTextPart } from '../types';
 import { cn } from '@/lib/utils';
-import { addWordToVocabulary, bookmarkExercise, unbookmarkExercise, checkBookmark } from '../api';
+import { addWordToVocabulary, bookmarkExercise, unbookmarkExercise, checkBookmark, explainWordInContext } from '../api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -20,6 +20,7 @@ export interface ResultsPanelProps {
 interface WordPopupProps {
   word: string;
   position: { x: number; y: number };
+  context: string;
   darkMode: boolean;
   onClose: () => void;
   onAddToVocabulary: () => void;
@@ -106,6 +107,7 @@ const translateToKorean = async (text: string): Promise<string | null> => {
 const WordPopup: React.FC<WordPopupProps> = ({
   word,
   position,
+  context,
   darkMode,
   onClose,
   onAddToVocabulary,
@@ -113,7 +115,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
   isAdded,
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
-  const [definition, setDefinition] = useState<string | null>(null);
+  const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -126,35 +128,29 @@ const WordPopup: React.FC<WordPopupProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  // Fetch word definition from free dictionary API
+  // Fetch word explanation in context using AI
   useEffect(() => {
-    const fetchDefinition = async () => {
+    const fetchExplanation = async () => {
       setLoading(true);
-      setDefinition(null); // Reset definition for new word to prevent stale data
+      setExplanation(null); // Reset explanation for new word to prevent stale data
       try {
-        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-        if (!response.ok) {
-          // API returned error (404, 500, etc.)
-          setDefinition(null);
-          return;
-        }
-        const data = await response.json();
-        const meanings = data[0]?.meanings;
-        if (meanings && meanings.length > 0) {
-          const firstDef = meanings[0]?.definitions?.[0]?.definition;
-          setDefinition(firstDef || null);
+        const result = await explainWordInContext({
+          word,
+          context,
+        });
+        if (result.error) {
+          setExplanation(null);
         } else {
-          // No meanings found in response
-          setDefinition(null);
+          setExplanation(result.explanation);
         }
       } catch {
-        setDefinition(null);
+        setExplanation(null);
       } finally {
         setLoading(false);
       }
     };
-    fetchDefinition();
-  }, [word]);
+    fetchExplanation();
+  }, [word, context]);
 
   return (
     <div
@@ -183,19 +179,19 @@ const WordPopup: React.FC<WordPopupProps> = ({
         </button>
       </div>
 
-      {/* Definition */}
+      {/* Explanation */}
       <div className="px-3 py-2">
         {loading ? (
           <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
-            Loading definition...
+            Analyzing context...
           </p>
-        ) : definition ? (
+        ) : explanation ? (
           <p className={cn('text-xs leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-600')}>
-            {definition}
+            {explanation}
           </p>
         ) : (
           <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
-            No definition found.
+            Unable to explain word in this context.
           </p>
         )}
       </div>
@@ -420,6 +416,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         <WordPopup
           word={selectedWord.word}
           position={selectedWord.position}
+          context={selectedWord.context}
           darkMode={darkMode}
           onClose={() => setSelectedWord(null)}
           onAddToVocabulary={() => handleAddWord(selectedWord.word, selectedWord.context)}
