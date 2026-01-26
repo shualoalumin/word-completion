@@ -616,16 +616,19 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </span>
           </h3>
           
-          {/* English Passage - Improved readability */}
-          <div className="max-w-4xl mb-6">
+          {/* English Passage - Responsive and consistent with problem passage */}
+          <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto mb-6">
             <div className={cn(
               'p-5 rounded-lg border',
               darkMode ? 'bg-zinc-950/50 border-zinc-700' : 'bg-gray-50 border-gray-200'
             )}>
-              <p className={cn(
-                'text-base leading-7 font-serif tracking-wide',
-                darkMode ? 'text-zinc-100' : 'text-gray-800'
-              )}>
+              <p 
+                className={cn(
+                  'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
+                  darkMode ? 'text-gray-100' : 'text-gray-900'
+                )}
+                style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
+              >
                 {renderClickablePassage()}
               </p>
             </div>
@@ -643,7 +646,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 </span>
               )}
             </div>
-            <div className="max-w-4xl">
+            <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
               {translationLoading ? (
                 <div className="space-y-2.5">
                   <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
@@ -659,10 +662,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   'p-5 rounded-lg border',
                   darkMode ? 'bg-zinc-950/50 border-zinc-700' : 'bg-gray-50 border-gray-200'
                 )}>
-                  <p className={cn(
-                    'text-base leading-7 tracking-wide',
-                    darkMode ? 'text-zinc-200' : 'text-gray-700'
-                  )}>
+                  <p 
+                    className={cn(
+                      'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
+                      darkMode ? 'text-gray-100' : 'text-gray-900'
+                    )}
+                    style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
+                  >
                     {translation}
                   </p>
                 </div>
