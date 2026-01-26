@@ -241,6 +241,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const [translation, setTranslation] = useState<string | null>(null);
   const [translationLoading, setTranslationLoading] = useState(false);
   const [translationError, setTranslationError] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkLoading, setBookmarkLoading] = useState(false);
   const [selectedWord, setSelectedWord] = useState<{
@@ -628,48 +629,80 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               >
                 {renderClickablePassage()}
               </p>
-            </div>
-          </div>
-          
-          {/* Korean Translation - Improved readability */}
-          <div className={cn('pt-5 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className={cn('text-sm font-semibold', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
-                🇰🇷 {t('results.koreanTranslation')}
-              </span>
-              {translationLoading && (
-                <span className={cn('text-xs animate-pulse', darkMode ? 'text-blue-400' : 'text-blue-500')}>
-                  {t('results.translating')}
-                </span>
+              
+              {/* Translation Toggle Button - Small, at bottom of passage card */}
+              <div className="mt-4 pt-4 border-t flex items-center justify-center">
+                <button
+                  onClick={() => setShowTranslation(!showTranslation)}
+                  className={cn(
+                    'text-xs px-3 py-1.5 rounded-md transition-colors flex items-center gap-1.5',
+                    darkMode
+                      ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  )}
+                >
+                  {translationLoading ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>{t('results.translating')}</span>
+                    </>
+                  ) : translationError ? (
+                    <>
+                      <span>⚠️</span>
+                      <span>{t('results.translationError')}</span>
+                    </>
+                  ) : showTranslation ? (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                      <span>🇰🇷 {t('results.hideTranslation')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <span>🇰🇷 {t('results.showTranslation')}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              
+              {/* Korean Translation - Shown when toggle is on */}
+              {showTranslation && (
+                <div className={cn('mt-4 pt-4 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
+                  {translationLoading ? (
+                    <div className="space-y-2.5">
+                      <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
+                      <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '95%' }} />
+                      <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '80%' }} />
+                    </div>
+                  ) : translationError ? (
+                    <p className={cn('text-sm', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
+                      ⚠️ {t('results.translationError')}
+                    </p>
+                  ) : translation ? (
+                    <div>
+                      <p className={cn('text-xs mb-2', darkMode ? 'text-zinc-400' : 'text-gray-500')}>
+                        {t('results.koreanTranslation')}
+                      </p>
+                      <p 
+                        className={cn(
+                          'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
+                          darkMode ? 'text-gray-100' : 'text-gray-900'
+                        )}
+                        style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
+                      >
+                        {translation}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
               )}
-            </div>
-            <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-              {translationLoading ? (
-                <div className="space-y-2.5">
-                  <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
-                  <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '95%' }} />
-                  <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '80%' }} />
-                </div>
-              ) : translationError ? (
-                <p className={cn('text-sm', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
-                  ⚠️ {t('results.translationError')}
-                </p>
-              ) : translation ? (
-                <div className={cn(
-                  'p-5 rounded-lg border',
-                  darkMode ? 'bg-zinc-950/50 border-zinc-700' : 'bg-gray-50 border-gray-200'
-                )}>
-                  <p 
-                    className={cn(
-                      'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
-                      darkMode ? 'text-gray-100' : 'text-gray-900'
-                    )}
-                    style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
-                  >
-                    {translation}
-                  </p>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>

@@ -64,6 +64,8 @@
     "fullPassage": "Full Passage",
     "clickWordsToSave": "Click words to save",
     "koreanTranslation": "Korean Translation",
+    "showTranslation": "Show Translation",
+    "hideTranslation": "Hide Translation",
     "translating": "Translating...",
     "translationError": "Unable to load translation. Please try again later.",
     "bookmark": {
