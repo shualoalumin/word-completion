@@ -630,8 +630,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                 {renderClickablePassage()}
               </p>
               
-              {/* Translation Toggle Button - Small, at bottom of passage card */}
-              <div className="mt-4 pt-4 border-t flex items-center justify-center">
+              {/* Translation Toggle Button - Small, at bottom left of passage card */}
+              <div className="mt-4 flex items-center justify-start">
                 <button
                   onClick={() => setShowTranslation(!showTranslation)}
                   className={cn(
@@ -674,7 +674,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               
               {/* Korean Translation - Shown when toggle is on */}
               {showTranslation && (
-                <div className={cn('mt-4 pt-4 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
+                <div className="mt-4 pt-4 border-t">
                   {translationLoading ? (
                     <div className="space-y-2.5">
                       <div className={cn('h-5 rounded animate-pulse', darkMode ? 'bg-zinc-700' : 'bg-gray-200')} style={{ width: '90%' }} />
@@ -686,20 +686,15 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       ⚠️ {t('results.translationError')}
                     </p>
                   ) : translation ? (
-                    <div>
-                      <p className={cn('text-xs mb-2', darkMode ? 'text-zinc-400' : 'text-gray-500')}>
-                        {t('results.koreanTranslation')}
-                      </p>
-                      <p 
-                        className={cn(
-                          'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
-                          darkMode ? 'text-gray-100' : 'text-gray-900'
-                        )}
-                        style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
-                      >
-                        {translation}
-                      </p>
-                    </div>
+                    <p 
+                      className={cn(
+                        'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
+                        darkMode ? 'text-gray-100' : 'text-gray-900'
+                      )}
+                      style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
+                    >
+                      {translation}
+                    </p>
                   ) : null}
                 </div>
               )}
