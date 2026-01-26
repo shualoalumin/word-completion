@@ -583,6 +583,10 @@ export async function explainWordInContext(
   params: ExplainWordInContextParams
 ): Promise<ExplainWordInContextResult> {
   try {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:582',message:'explainWordInContext entry',data:{word:params.word,contextLength:params.context?.length,wordType:typeof params.word,contextType:typeof params.context,hasWord:!!params.word,hasContext:!!params.context,sessionId:'debug-session',runId:'run1',hypothesisId:'B'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -597,8 +601,13 @@ export async function explainWordInContext(
       headers.Authorization = `Bearer ${session.access_token}`;
     }
 
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:599',message:'Before fetch - check URL and params',data:{supabaseUrl:supabaseUrl,hasUrl:!!supabaseUrl,urlType:typeof supabaseUrl,hasSession:!!session,hasAuthHeader:!!headers.Authorization,sessionId:'debug-session',runId:'run1',hypothesisId:'D'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/explain-word-in-context`,
+      `${supabaseUrl}/functions/v1/explain-word-in-context`,
       {
         method: 'POST',
         headers,
@@ -609,17 +618,31 @@ export async function explainWordInContext(
       }
     );
 
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:610',message:'Fetch response received',data:{ok:response.ok,status:response.status,statusText:response.statusText,url:response.url,sessionId:'debug-session',runId:'run1',hypothesisId:'A'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     if (!response.ok) {
       const errorText = await response.text();
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:614',message:'Response not OK - error details',data:{status:response.status,statusText:response.statusText,errorText:errorText.substring(0,200),sessionId:'debug-session',runId:'run1',hypothesisId:'A'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       throw new Error(`Failed to explain word: ${errorText}`);
     }
 
     const result = await response.json();
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:617',message:'Response JSON parsed',data:{hasExplanation:!!result.explanation,explanationType:typeof result.explanation,explanationLength:result.explanation?.length,hasError:!!result.error,errorMessage:result.error,resultKeys:Object.keys(result),sessionId:'debug-session',runId:'run1',hypothesisId:'C'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     return {
       explanation: result.explanation || null,
       error: null,
     };
   } catch (err) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:623',message:'Catch block - error occurred',data:{errorMessage:err instanceof Error ? err.message : String(err),errorName:err instanceof Error ? err.name : 'Unknown',errorStack:err instanceof Error ? err.stack?.substring(0,200) : undefined,sessionId:'debug-session',runId:'run1',hypothesisId:'F'},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     return {
       explanation: null,
       error: err instanceof Error ? err : new Error('Unknown error'),

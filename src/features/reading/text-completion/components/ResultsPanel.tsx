@@ -133,17 +133,26 @@ const WordPopup: React.FC<WordPopupProps> = ({
     const fetchExplanation = async () => {
       setLoading(true);
       setExplanation(null); // Reset explanation for new word to prevent stale data
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:133',message:'fetchExplanation start',data:{word:word,contextLength:context?.length,hasWord:!!word,hasContext:!!context,sessionId:'debug-session',runId:'run1',hypothesisId:'B'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       try {
         const result = await explainWordInContext({
           word,
           context,
         });
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:140',message:'explainWordInContext result received',data:{hasError:!!result.error,hasExplanation:!!result.explanation,explanationLength:result.explanation?.length,errorMessage:result.error?.message,sessionId:'debug-session',runId:'run1',hypothesisId:'E'},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         if (result.error) {
           setExplanation(null);
         } else {
           setExplanation(result.explanation);
         }
-      } catch {
+      } catch (err) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:147',message:'fetchExplanation catch',data:{errorMessage:err instanceof Error ? err.message : String(err),sessionId:'debug-session',runId:'run1',hypothesisId:'F'},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         setExplanation(null);
       } finally {
         setLoading(false);
