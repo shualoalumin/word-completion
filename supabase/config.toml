@@ -2,3 +2,6 @@ project_id = "xshxuggxwtsrdhzrkdyj"
 
 [functions.generate-passage]
 verify_jwt = false
+
+[functions.explain-word-in-context]
+verify_jwt = false
