@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AIClient } from "../_shared/ai/client.ts";
 
 const corsHeaders = {
@@ -23,22 +23,22 @@ serve(async (req) => {
 
     const aiClient = new AIClient();
 
-    const systemPrompt = You are an expert English language teacher helping students understand vocabulary in context. 
+    const systemPrompt = `You are an expert English language teacher helping students understand vocabulary in context. 
 Your task is to explain the meaning of a word as it is used in a specific passage, not just provide a dictionary definition.
-Focus on how the word functions in this particular context and what it means here.;
+Focus on how the word functions in this particular context and what it means here.`;
 
-    const userPrompt = Word: ""
+    const userPrompt = `Word: "${word}"
 
 Passage context:
-""
+"${context}"
 
-Please explain what "" means in this specific passage. 
+Please explain what "${word}" means in this specific passage. 
 - Focus on the meaning in this context, not all possible meanings
 - Explain how it functions in the sentence
 - Keep it concise (2-3 sentences maximum)
-- Write in clear, simple English;
+- Write in clear, simple English`;
 
-    console.log(Explaining word "" in context...);
+    console.log(`Explaining word "${word}" in context...`);
     const explanation = await aiClient.generate(systemPrompt, userPrompt, false);
 
     return new Response(
