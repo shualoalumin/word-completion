@@ -9,6 +9,8 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
+import { DarkModeToggle } from '@/components/common';
+import { useDarkMode } from '@/core/hooks';
 import { cn } from '@/lib/utils';
 
 interface GlobalHeaderProps {
@@ -17,13 +19,13 @@ interface GlobalHeaderProps {
 }
 
 export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
-  darkMode = true,
   className,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, signOut } = useAuth();
+  const { darkMode, toggle: toggleDarkMode } = useDarkMode();
 
   const navItems = [
     { path: '/dashboard', label: t('dashboard.title') },
@@ -63,9 +65,9 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
             {isAuthenticated && (
               <nav className="hidden md:flex items-center gap-1">
                 {navItems.map((item) => {
-                  const isActive = location.pathname === item.path || 
+                  const isActive = location.pathname === item.path ||
                     (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
-                  
+
                   return (
                     <Button
                       key={item.path}
@@ -79,8 +81,8 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                             ? 'text-blue-400 bg-blue-400/10'
                             : 'text-blue-600 bg-blue-50'
                           : darkMode
-                          ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                            ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
+                            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                       )}
                     >
                       {item.label}
@@ -93,6 +95,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+            <DarkModeToggle darkMode={darkMode} onToggle={toggleDarkMode} />
             {isAuthenticated && user ? (
               <UserMenu user={user} onSignOut={signOut} darkMode={darkMode} />
             ) : (
@@ -113,9 +116,9 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
           <div className="md:hidden pb-3 border-t border-zinc-800 mt-2 pt-3">
             <nav className="flex items-center gap-1 overflow-x-auto">
               {navItems.map((item) => {
-                const isActive = location.pathname === item.path || 
+                const isActive = location.pathname === item.path ||
                   (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
-                
+
                 return (
                   <Button
                     key={item.path}
@@ -129,8 +132,8 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                           ? 'text-blue-400 bg-blue-400/10'
                           : 'text-blue-600 bg-blue-50'
                         : darkMode
-                        ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                          ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                     )}
                   >
                     {item.label}

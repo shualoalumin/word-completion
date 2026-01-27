@@ -1,12 +1,10 @@
 import React from 'react';
-import { Check, RotateCcw, User, ArrowLeft } from 'lucide-react';
+import { Check, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
-import { Timer, DarkModeToggle } from '@/components/common';
+import { Timer } from '@/components/common';
 import { UseTimerReturn } from '@/core/hooks';
 import { Difficulty } from '@/core/types/exercise';
 import { cn } from '@/lib/utils';
-import { useAuth, AuthModal, UserMenu } from '@/features/auth';
 
 export interface ExerciseLayoutProps {
   children: React.ReactNode;
@@ -30,7 +28,6 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   children,
   timer,
   darkMode,
-  onDarkModeToggle,
   title,
   subtitle,
   showResults,
@@ -40,9 +37,6 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   className,
 }) => {
   const { t } = useTranslation();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const [showAuthModal, setShowAuthModal] = React.useState(false);
-  const navigate = useNavigate();
 
   return (
     <div
@@ -52,81 +46,23 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
         className
       )}
     >
-      {/* Sticky Header - Clean, no metadata badges */}
+      {/* Sticky Header - Minimal, only Timer */}
       <header className={cn(
         'sticky top-0 z-40 border-b backdrop-blur-sm',
         darkMode ? 'bg-zinc-950/90 border-zinc-800' : 'bg-white/90 border-gray-200'
       )}>
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14">
-            {/* Left: Navigation + Logo */}
-            <div className="flex items-center gap-3">
-              {isAuthenticated && (
-                <button
-                  onClick={() => navigate('/dashboard')}
-                  className={cn(
-                    'flex items-center gap-1.5 px-2 py-1.5 rounded-lg transition-colors text-sm',
-                    darkMode 
-                      ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' 
-                      : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
-                  )}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">{t('dashboard.title')}</span>
-                </button>
-              )}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center font-bold text-sm text-white">
-                  GP
-                </div>
-                <span className={cn(
-                  "text-lg font-semibold tracking-tight hidden sm:block",
-                  darkMode ? "text-white" : "text-gray-900"
-                )}>
-                  GlobalPrep
-                </span>
-              </div>
-            </div>
-            
-            {/* Right: Timer + Controls */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Timer
-                remaining={timer.remaining}
-                overtime={timer.overtime}
-                isOvertime={timer.isOvertime}
-                darkMode={darkMode}
-              />
-              <DarkModeToggle darkMode={darkMode} onToggle={onDarkModeToggle} />
-              
-              {!authLoading && (
-                isAuthenticated && user ? (
-                  <UserMenu user={user} onSignOut={() => {}} darkMode={darkMode} />
-                ) : (
-                  <button
-                    onClick={() => setShowAuthModal(true)}
-                    className={cn(
-                      'p-2 rounded-full transition-colors',
-                      darkMode 
-                        ? 'hover:bg-zinc-700 text-zinc-400 hover:text-white' 
-                        : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
-                    )}
-                    title={t('auth.signIn')}
-                  >
-                    <User className="w-5 h-5" />
-                  </button>
-                )
-              )}
-            </div>
+          <div className="flex justify-end items-center h-14">
+            {/* Right: Timer */}
+            <Timer
+              remaining={timer.remaining}
+              overtime={timer.overtime}
+              isOvertime={timer.isOvertime}
+              darkMode={darkMode}
+            />
           </div>
         </div>
       </header>
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={() => setShowAuthModal(false)}
-        darkMode={darkMode}
-      />
 
       {/* Main Content - ETS style max-width for readability */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
