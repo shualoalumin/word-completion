@@ -51,21 +51,31 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
       {/* Main Content - ETS style max-width for readability */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Title & Subtitle */}
-        <div className="mb-4">
-          <h1 className={cn(
-            'text-lg font-bold',
-            darkMode ? 'text-gray-100' : 'text-gray-900'
-          )}>
-            {title}
-          </h1>
-          {subtitle && (
-            <p className={cn(
-              'text-sm',
-              darkMode ? 'text-zinc-400' : 'text-gray-600'
+        {/* Title & Subtitle & Timer */}
+        <div className="mb-4 flex items-start justify-between">
+          <div>
+            <h1 className={cn(
+              'text-lg font-bold',
+              darkMode ? 'text-gray-100' : 'text-gray-900'
             )}>
-              {subtitle}
-            </p>
-          )}
+              {title}
+            </h1>
+            {subtitle && (
+              <p className={cn(
+                'text-sm',
+                darkMode ? 'text-zinc-400' : 'text-gray-600'
+              )}>
+                {subtitle}
+              </p>
+            )}
+          </div>
+          <Timer
+            remaining={timer.remaining}
+            overtime={timer.overtime}
+            isOvertime={timer.isOvertime}
+            darkMode={darkMode}
+            className="py-1 px-3 text-base"
+          />
         </div>
 
         {/* Exercise Content - Responsive max-width for better readability on wide screens */}
@@ -74,15 +84,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
           darkMode ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
         )}>
           <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-            {/* Timer moved here */}
-            <div className="flex justify-end mb-4">
-              <Timer
-                remaining={timer.remaining}
-                overtime={timer.overtime}
-                isOvertime={timer.isOvertime}
-                darkMode={darkMode}
-              />
-            </div>
+
             {children}
           </div>
         </div>
