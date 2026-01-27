@@ -46,23 +46,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
         className
       )}
     >
-      {/* Sticky Header - Minimal, only Timer */}
-      <header className={cn(
-        'sticky top-0 z-40 border-b backdrop-blur-sm',
-        darkMode ? 'bg-zinc-950/90 border-zinc-800' : 'bg-white/90 border-gray-200'
-      )}>
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-end items-center h-14">
-            {/* Right: Timer */}
-            <Timer
-              remaining={timer.remaining}
-              overtime={timer.overtime}
-              isOvertime={timer.isOvertime}
-              darkMode={darkMode}
-            />
-          </div>
-        </div>
-      </header>
+
 
       {/* Main Content - ETS style max-width for readability */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -90,6 +74,15 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
           darkMode ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
         )}>
           <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
+            {/* Timer moved here */}
+            <div className="flex justify-end mb-4">
+              <Timer
+                remaining={timer.remaining}
+                overtime={timer.overtime}
+                isOvertime={timer.isOvertime}
+                darkMode={darkMode}
+              />
+            </div>
             {children}
           </div>
         </div>
