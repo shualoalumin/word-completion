@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
@@ -67,7 +67,7 @@ export default function Dashboard() {
           </div>
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white"
-            onClick={() => navigate('/practice/text-completion')}
+            onClick={() => navigate('/practice')}
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -386,7 +386,7 @@ export default function Dashboard() {
             {/* Complete the Words */}
             <div
               className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-blue-600/50 transition-all cursor-pointer overflow-hidden"
-              onClick={() => navigate('/practice/text-completion')}
+              onClick={() => navigate('/practice')}
             >
               {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

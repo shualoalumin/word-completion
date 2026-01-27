@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+﻿import { useEffect } from 'react';
 import { ThemeProvider } from '@/core/contexts/ThemeContext';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import Landing from "./pages/Landing";
 import Dashboard from "./pages/Dashboard";
-import Practice from "./pages/Practice";
+import Practice from './pages/Practice';
+import PracticeSelection from './pages/PracticeSelection';
+import BuildSentence from './pages/BuildSentence';
 import Vocabulary from "./pages/Vocabulary";
 import VocabularyReview from "./pages/VocabularyReview";
 import History from "./pages/History";
@@ -23,31 +25,31 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// OAuth 콜백 처리를 위한 컴포넌트
+// OAuth 콜백 처리�??�한 컴포?�트
 const AppContent = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    // Auth 상태 변경 리스너 (팝업이 아닌 경우에만 리디렉션)
+    // Auth ?�태 변�?리스??(?�업???�닌 경우?�만 리디?�션)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // 팝업 창이 아닌 경우에만 리디렉션 처리
+        // ?�업 창이 ?�닌 경우?�만 리디?�션 처리
         if (window.opener) {
-          // 팝업 창에서는 AuthCallback 페이지가 처리
+          // ?�업 창에?�는 AuthCallback ?�이지가 처리
           return;
         }
 
-        // 자동 리디렉션 제거: 사용자가 명시적으로 로그인할 때만 Dashboard로 이동
-        // 이미 로그인된 사용자가 랜딩 페이지에 접속해도 자동 리디렉션하지 않음
+        // ?�동 리디?�션 ?�거: ?�용?��? 명시?�으�?로그?�할 ?�만 Dashboard�??�동
+        // ?��? 로그?�된 ?�용?��? ?�딩 ?�이지???�속?�도 ?�동 리디?�션?��? ?�음
 
         if (event === 'SIGNED_OUT') {
-          // 로그아웃 시 Dashboard에서 Landing으로 리디렉션
+          // 로그?�웃 ??Dashboard?�서 Landing?�로 리디?�션
           if (location.pathname.startsWith('/dashboard')) {
             navigate('/', { replace: true });
           }
         }
-        // SIGNED_IN 이벤트는 각 페이지에서 처리 (Landing의 handleAuthSuccess 등)
+        // SIGNED_IN ?�벤?�는 �??�이지?�서 처리 (Landing??handleAuthSuccess ??
       }
     );
 
@@ -58,16 +60,18 @@ const AppContent = () => {
 
   return (
     <Routes>
-      {/* 랜딩 페이지 - 헤더 없음 */}
+      {/* ?�딩 ?�이지 - ?�더 ?�음 */}
       <Route path="/" element={<Landing />} />
 
-      {/* 인증 콜백 - 헤더 없음 */}
+      {/* ?�증 콜백 - ?�더 ?�음 */}
       <Route path="/auth/callback" element={<AuthCallback />} />
 
-      {/* AppLayout이 적용되는 모든 인증 페이지 */}
+      {/* AppLayout???�용?�는 모든 ?�증 ?�이지 */}
       <Route element={<AppLayout />}>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/practice" element={<PracticeSelection />} />
         <Route path="/practice/text-completion" element={<Practice />} />
+        <Route path="/practice/build-sentence" element={<BuildSentence />} />
         <Route path="/vocabulary" element={<Vocabulary />} />
         <Route path="/vocabulary/review" element={<VocabularyReview />} />
         <Route path="/history" element={<History />} />
@@ -77,7 +81,7 @@ const AppContent = () => {
         <Route path="/leaderboard" element={<Leaderboard />} />
       </Route>
 
-      {/* 404 페이지 */}
+      {/* 404 ?�이지 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

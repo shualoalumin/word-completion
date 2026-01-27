@@ -1,4 +1,4 @@
-{
+﻿{
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
@@ -155,10 +155,18 @@
     "hard": "Hard",
     "intermediate": "Medium"
   },
+  "practiceSelection": {
+    "title": "Choose Your Practice",
+    "subtitle": "Select an exercise type to begin",
+    "buildSentence": "Build a Sentence",
+    "buildSentenceDesc": "Arrange scrambled words to form grammatically correct sentences. Practice word order and syntax patterns.",
+    "comingSoon": "Coming Soon",
+    "tryTextCompletion": "Try Text Completion Instead",
+    "sentences": "sentences"
+  },
   "mastery": {
     "new": "New",
     "learning": "Learning",
     "mastered": "Mastered",
     "level": "Level"
   }
-}
