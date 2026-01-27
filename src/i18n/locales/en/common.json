@@ -36,6 +36,7 @@
     "choosePractice": "Choose Your Practice",
     "completeTheWords": "Complete the Words",
     "readingSection": "Reading Section",
+    "writingSection": "Writing Section",
     "fillMissingLetters": "Fill in the missing letters to complete words in academic passages.",
     "aiAdaptsDifficulty": "AI adapts difficulty based on your performance.",
     "minutes": "min",
@@ -162,7 +163,8 @@
     "buildSentenceDesc": "Arrange scrambled words to form grammatically correct sentences. Practice word order and syntax patterns.",
     "comingSoon": "Coming Soon",
     "tryTextCompletion": "Try Text Completion Instead",
-    "sentences": "sentences"
+    "sentences": "sentences",
+    "questions": "questions"
   },
   "mastery": {
     "new": "New",
