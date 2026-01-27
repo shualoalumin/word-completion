@@ -104,7 +104,8 @@ export default function VocabularyReview() {
         // All words reviewed
         toast.success('Review session complete!');
         // Invalidate vocabulary queries to refresh the list
-        queryClient.invalidateQueries({ queryKey: ['vocabulary'] });
+        queryClient.invalidateQueries({ queryKey: ['vocabulary-list'] });
+        queryClient.invalidateQueries({ queryKey: ['vocabulary-stats'] });
         navigate('/vocabulary');
       }
     } else {
