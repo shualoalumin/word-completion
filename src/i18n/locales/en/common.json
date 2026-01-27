@@ -1,4 +1,4 @@
-﻿{
+{
   "common": {
     "loading": "Loading...",
     "error": "An error occurred",
@@ -170,3 +170,4 @@
     "mastered": "Mastered",
     "level": "Level"
   }
+}
