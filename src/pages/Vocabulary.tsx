@@ -51,6 +51,7 @@ export default function Vocabulary() {
 
   const stats = statsData?.data;
   const vocabulary = vocabData?.data || [];
+  const hasWords = stats && stats.totalWords > 0;
 
   const handleDeleteWord = async (wordId: string, word: string) => {
     if (!confirm(t('vocabulary.confirmDelete'))) return;
@@ -176,18 +177,24 @@ export default function Vocabulary() {
           </div>
         </section>
 
-        {/* Review Button */}
-        {stats && stats.wordsDueForReview > 0 && (
+        {/* Review Button - Always visible if user has words */}
+        {hasWords && (
           <div className="mb-6">
             <Button
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className={cn(
+                "w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+                stats && stats.wordsDueForReview === 0 && "opacity-60 cursor-not-allowed"
+              )}
               size="lg"
               onClick={() => navigate('/vocabulary/review')}
+              disabled={stats && stats.wordsDueForReview === 0}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
               </svg>
-              Start Review Session ({stats.wordsDueForReview} words due)
+              {stats && stats.wordsDueForReview > 0
+                ? `Start Review Session (${stats.wordsDueForReview} words due)`
+                : 'Start Review Session (All words up to date)'}
             </Button>
           </div>
         )}
