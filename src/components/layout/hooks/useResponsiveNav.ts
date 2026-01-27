@@ -56,20 +56,18 @@ export function useResponsiveNav(
 
     const parentWidth = parentContainer.getBoundingClientRect().width;
     const logoWidth = logoRef.current.getBoundingClientRect().width;
-    const rightSideWidth = rightSideRef.current.getBoundingClientRect().width;
-    const gap = 24; // gap-6 = 24px between logo and nav
-    const navGap = 4; // gap-1 = 4px between nav items
-    const padding = 16; // Some safety padding
-    
+    const gap = 16; // gap-4 = 16px between logo and nav
+    const navGap = 4; // flex-nowrap usually has no gap unless specified, but we'll keep a small buffer
+    const padding = 8; // Small safety padding
+
     // Calculate available width for navigation
-    // parentWidth - logoWidth - gap - rightSideWidth - padding
-    const availableWidth = parentWidth - logoWidth - gap - rightSideWidth - padding;
-    
+    // parentWidth is the total width of the flex-1 container (logo + nav)
+    const availableWidth = parentWidth - logoWidth - gap - padding;
+
     // More button width (estimate if not rendered, or measure if rendered)
-    const moreButtonWidth = moreButtonRef.current?.getBoundingClientRect().width || 70;
-    
+    const moreButtonWidth = moreButtonRef.current?.getBoundingClientRect().width || 80;
+
     // Available width for visible items (subtract More button width if needed)
-    // We always reserve space for More button in calculation, but only show it if needed
     let widthForItems = availableWidth - moreButtonWidth - navGap;
 
     let totalWidth = 0;
@@ -80,14 +78,14 @@ export function useResponsiveNav(
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const itemElement = itemRefs.current.get(item.path);
-      
+
       if (itemElement) {
         // Measure actual rendered width
         const itemRect = itemElement.getBoundingClientRect();
         const itemWidth = itemRect.width;
         const gapNeeded = newVisibleItems.length > 0 ? navGap : 0;
         const wouldFit = totalWidth + itemWidth + gapNeeded <= widthForItems;
-        
+
         if (wouldFit) {
           newVisibleItems.push(item);
           totalWidth += itemWidth + gapNeeded;
@@ -102,7 +100,7 @@ export function useResponsiveNav(
         const estimatedWidth = Math.max(item.label.length * 7 + 40, 60);
         const gapNeeded = newVisibleItems.length > 0 ? navGap : 0;
         const wouldFit = totalWidth + estimatedWidth + gapNeeded <= widthForItems;
-        
+
         if (wouldFit) {
           newVisibleItems.push(item);
           totalWidth += estimatedWidth + gapNeeded;

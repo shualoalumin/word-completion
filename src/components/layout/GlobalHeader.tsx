@@ -21,6 +21,17 @@ import { DarkModeToggle } from '@/components/common';
 import { useDarkMode } from '@/core/hooks';
 import { cn } from '@/lib/utils';
 import { useResponsiveNav } from './hooks/useResponsiveNav';
+import {
+  LayoutDashboard,
+  GraduationCap,
+  Book,
+  Bookmark,
+  History,
+  Trophy,
+  Settings,
+  ChevronDown,
+  MoreHorizontal
+} from 'lucide-react';
 
 interface GlobalHeaderProps {
   darkMode?: boolean;
@@ -37,13 +48,13 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
   const { darkMode, toggle: toggleDarkMode } = useDarkMode();
 
   const navItems = [
-    { path: '/dashboard', label: t('dashboard.title') },
-    { path: '/practice', label: t('practiceSelection.title', 'Practice') },
-    { path: '/vocabulary', label: t('vocabulary.title') },
-    { path: '/bookmarks', label: t('bookmarks.title') },
-    { path: '/history', label: t('history.title') },
-    { path: '/achievements', label: 'Achievements' },
-    { path: '/settings', label: 'Settings' },
+    { path: '/dashboard', label: t('dashboard.title'), icon: LayoutDashboard },
+    { path: '/practice', label: t('practiceSelection.title', 'Practice'), icon: GraduationCap },
+    { path: '/vocabulary', label: t('vocabulary.title'), icon: Book },
+    { path: '/bookmarks', label: t('bookmarks.title'), icon: Bookmark },
+    { path: '/history', label: t('history.title'), icon: History },
+    { path: '/achievements', label: 'Achievements', icon: Trophy },
+    { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
   const { visibleItems, hiddenItems, containerRef, moreButtonRef, rightSideRef, logoRef, setItemRef } = useResponsiveNav(navItems);
@@ -73,55 +84,117 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
           {/* Main Header Row */}
           <div className="flex items-center justify-between h-16 flex-nowrap">
             {/* Logo / Home */}
-            <div className="flex items-center gap-6 flex-1 min-w-0 flex-nowrap">
+            <div className="flex items-center gap-4 flex-1 min-w-0 flex-nowrap h-full">
               <button
                 ref={logoRef}
                 onClick={() => navigate('/dashboard')}
                 className={cn(
-                  'text-lg font-bold transition-colors shrink-0',
+                  'flex items-center gap-2 px-2 h-full transition-colors shrink-0',
                   darkMode ? 'text-white hover:text-blue-400' : 'text-gray-900 hover:text-blue-600'
                 )}
               >
-                TOEFL Practice
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center font-bold text-lg",
+                  darkMode ? "bg-zinc-800 text-white" : "bg-zinc-900 text-white"
+                )}>
+                  T
+                </div>
+                <span className="font-bold hidden sm:inline-block">TOEFL Prep</span>
               </button>
 
               {/* Navigation Links - GitHub Style Responsive */}
               {isAuthenticated && (
                 <nav
                   ref={containerRef}
-                  className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-hidden flex-nowrap"
+                  className="hidden md:flex items-center h-full flex-1 min-w-0 overflow-hidden flex-nowrap"
                 >
                   {/* Visible Navigation Items */}
                   {visibleItems.map((item) => {
                     const active = isActive(item.path);
+                    const Icon = (item as any).icon;
                     return (
-                      <Button
+                      <button
                         key={item.path}
                         ref={(el) => setItemRef(item.path, el)}
-                        variant="ghost"
-                        size="sm"
                         onClick={() => navigate(item.path)}
                         className={cn(
-                          'text-sm shrink-0 whitespace-nowrap',
+                          'relative h-full px-3 flex items-center gap-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap group',
                           active
                             ? darkMode
-                              ? 'text-blue-400 bg-blue-400/10'
-                              : 'text-blue-600 bg-blue-50'
-                            : darkMode
-                              ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                              ? 'text-white border-orange-500'
+                              : 'text-gray-900 border-orange-500'
+                            : 'border-transparent',
+                          !active && (darkMode
+                            ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80')
                         )}
                       >
-                        {item.label}
-                      </Button>
+                        {Icon && <Icon className={cn("w-4 h-4", active ? "text-orange-500" : "text-zinc-400 group-hover:text-zinc-300")} />}
+                        <span>{item.label}</span>
+                      </button>
                     );
                   })}
+
+                  {/* More Menu Item Inside Nav */}
+                  {hiddenItems.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          ref={moreButtonRef}
+                          className={cn(
+                            'relative h-full px-3 flex items-center gap-1 text-sm font-medium transition-colors border-b-2 border-transparent whitespace-nowrap',
+                            darkMode
+                              ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                              : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/80'
+                          )}
+                        >
+                          <MoreHorizontal className="w-4 h-4 mr-1" />
+                          More
+                          <ChevronDown className="w-3 h-3 opacity-50" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="start"
+                        className={cn(
+                          'w-48',
+                          darkMode
+                            ? 'bg-zinc-900 border-zinc-800'
+                            : 'bg-white border-gray-200 shadow-lg'
+                        )}
+                      >
+                        {hiddenItems.map((item) => {
+                          const active = isActive(item.path);
+                          const Icon = (item as any).icon;
+                          return (
+                            <DropdownMenuItem
+                              key={item.path}
+                              onClick={() => navigate(item.path)}
+                              className={cn(
+                                'flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors',
+                                active
+                                  ? darkMode
+                                    ? 'text-white bg-zinc-800'
+                                    : 'text-gray-900 bg-gray-100'
+                                  : darkMode
+                                    ? 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                              )}
+                            >
+                              {Icon && <Icon className="w-4 h-4" />}
+                              <span className="flex-1">{item.label}</span>
+                              {active && <div className="w-1 h-1 rounded-full bg-orange-500" />}
+                            </DropdownMenuItem>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </nav>
               )}
             </div>
 
             {/* Right Side */}
-            <div ref={rightSideRef} className="flex items-center gap-3 shrink-0 flex-nowrap">
+            <div ref={rightSideRef} className="flex items-center gap-3 shrink-0 flex-nowrap pl-4">
               <DarkModeToggle darkMode={darkMode} onToggle={toggleDarkMode} />
               {isAuthenticated && user ? (
                 <UserMenu user={user} onSignOut={signOut} darkMode={darkMode} />
@@ -137,162 +210,84 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
               )}
             </div>
           </div>
+        </div>
 
-          {/* More Menu Row - GitHub Style (Left-aligned, new line) */}
-          {isAuthenticated && hiddenItems.length > 0 && (
-            <div className="hidden md:flex items-center pb-2 -mt-1">
+        {/* Mobile Navigation - Also use More menu instead of scrollbar */}
+        {isAuthenticated && (
+          <div className="md:hidden py-2 border-t border-zinc-200 dark:border-zinc-800 mt-0">
+            <nav className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
+                {navItems.slice(0, 3).map((item) => {
+                  const active = isActive(item.path);
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        'flex flex-col items-center justify-center min-w-[64px] py-1 gap-1 text-[10px] font-medium transition-colors rounded-md',
+                        active
+                          ? darkMode
+                            ? 'text-white bg-zinc-800'
+                            : 'text-gray-900 bg-gray-100'
+                          : darkMode
+                            ? 'text-zinc-500'
+                            : 'text-gray-500'
+                      )}
+                    >
+                      {Icon && <Icon className={cn("w-5 h-5", active ? "text-orange-500" : "text-zinc-400")} />}
+                      {item.label.split(' ')[0]}
+                    </button>
+                  );
+                })}
+              </div>
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    ref={moreButtonRef}
-                    variant="ghost"
-                    size="sm"
+                  <button
                     className={cn(
-                      'text-sm h-7 px-2',
-                      darkMode
-                        ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      'flex flex-col items-center justify-center min-w-[64px] py-1 gap-1 text-[10px] font-medium transition-colors rounded-md',
+                      darkMode ? 'text-zinc-500' : 'text-gray-500'
                     )}
                   >
+                    <MoreHorizontal className="w-5 h-5" />
                     More
-                    <svg
-                      className="w-3 h-3 ml-1"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                  align="start"
+                  align="end"
                   className={cn(
+                    'w-48',
                     darkMode
                       ? 'bg-zinc-900 border-zinc-800'
                       : 'bg-white border-gray-200'
                   )}
                 >
-                  {hiddenItems.map((item) => {
+                  {navItems.slice(3).map((item) => {
                     const active = isActive(item.path);
+                    const Icon = item.icon;
                     return (
                       <DropdownMenuItem
                         key={item.path}
                         onClick={() => navigate(item.path)}
                         className={cn(
-                          'cursor-pointer',
+                          'flex items-center gap-2 px-3 py-2 cursor-pointer',
                           active
                             ? darkMode
-                              ? 'text-blue-400 bg-blue-400/10'
-                              : 'text-blue-600 bg-blue-50'
+                              ? 'text-white bg-zinc-800'
+                              : 'text-gray-900 bg-gray-100'
                             : darkMode
-                              ? 'text-zinc-300'
-                              : 'text-gray-900'
+                              ? 'text-zinc-400'
+                              : 'text-gray-600'
                         )}
                       >
-                        {item.label}
+                        {Icon && <Icon className="w-4 h-4" />}
+                        <span>{item.label}</span>
                       </DropdownMenuItem>
                     );
                   })}
                 </DropdownMenuContent>
               </DropdownMenu>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile Navigation - Also use More menu instead of scrollbar */}
-        {isAuthenticated && (
-          <div className="md:hidden pb-3 border-t border-zinc-800 mt-2 pt-3">
-            <nav className="flex items-center gap-1 flex-wrap">
-              {navItems.slice(0, 4).map((item) => {
-                const active = isActive(item.path);
-                return (
-                  <Button
-                    key={item.path}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate(item.path)}
-                    className={cn(
-                      'text-xs whitespace-nowrap',
-                      active
-                        ? darkMode
-                          ? 'text-blue-400 bg-blue-400/10'
-                          : 'text-blue-600 bg-blue-50'
-                        : darkMode
-                          ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    )}
-                  >
-                    {item.label}
-                  </Button>
-                );
-              })}
-              {navItems.length > 4 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        'text-xs whitespace-nowrap',
-                        darkMode
-                          ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      )}
-                    >
-                      More
-                      <svg
-                        className="w-3 h-3 ml-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className={cn(
-                      darkMode
-                        ? 'bg-zinc-900 border-zinc-800'
-                        : 'bg-white border-gray-200'
-                    )}
-                  >
-                    {navItems.slice(4).map((item) => {
-                      const active = isActive(item.path);
-                      return (
-                        <DropdownMenuItem
-                          key={item.path}
-                          onClick={() => navigate(item.path)}
-                          className={cn(
-                            'cursor-pointer',
-                            active
-                              ? darkMode
-                                ? 'text-blue-400 bg-blue-400/10'
-                                : 'text-blue-600 bg-blue-50'
-                              : darkMode
-                                ? 'text-zinc-300'
-                                : 'text-gray-900'
-                          )}
-                        >
-                          {item.label}
-                        </DropdownMenuItem>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
             </nav>
           </div>
         )}
