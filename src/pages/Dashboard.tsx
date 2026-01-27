@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
 import { useUserSkills } from '@/features/skills';
@@ -16,11 +15,11 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  
+
   // Dashboard 통계 데이터 fetching
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
   const { data: recentActivity, isLoading: activityLoading, error: activityError } = useRecentActivity(5);
-  
+
   // Skills, Learning Patterns, Topic Performance
   const { data: skillsData, isLoading: skillsLoading } = useUserSkills();
   const { data: patternsData, isLoading: patternsLoading } = useLearningPatterns();
@@ -48,7 +47,7 @@ export default function Dashboard() {
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
@@ -57,17 +56,6 @@ export default function Dashboard() {
 
       {/* Content - Wider layout */}
       <div className="relative z-10 max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header - Sticky */}
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center font-bold text-sm">
-              GP
-            </div>
-            <span className="text-lg font-semibold tracking-tight">GlobalPrep</span>
-          </div>
-          
-          {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
-        </header>
 
         {/* Welcome + Start Practice - Row layout */}
         <section className="flex items-center justify-between mb-6 gap-4 flex-wrap">
@@ -77,7 +65,7 @@ export default function Dashboard() {
             </h1>
             <p className="text-zinc-400 text-sm">Ready to continue your TOEFL preparation?</p>
           </div>
-          <Button 
+          <Button
             className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={() => navigate('/practice/text-completion')}
           >
@@ -149,8 +137,8 @@ export default function Dashboard() {
             ) : (
               <>
                 <div className="text-2xl font-bold text-purple-400">
-                  {stats && stats.averageScore !== null && stats.averageScore !== undefined 
-                    ? `${Math.round(stats.averageScore)}%` 
+                  {stats && stats.averageScore !== null && stats.averageScore !== undefined
+                    ? `${Math.round(stats.averageScore)}%`
                     : '-'}
                 </div>
                 <div className="text-sm text-zinc-400">{t('dashboard.avgScore')}</div>
@@ -189,7 +177,7 @@ export default function Dashboard() {
             </svg>
             Performance by Difficulty
           </h2>
-          
+
           <div className="grid grid-cols-3 gap-4">
             {/* Easy */}
             <div className="p-4 bg-zinc-900/60 border border-zinc-800 rounded-xl">
@@ -277,15 +265,15 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <section className="mb-12">
           <h2 className="text-xl font-semibold mb-6">Quick Actions</h2>
-          
+
           <div className="grid md:grid-cols-2 gap-4 mb-8">
             {/* Vocabulary Link */}
-            <div 
+            <div
               className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-purple-600/50 transition-all cursor-pointer overflow-hidden"
               onClick={() => navigate('/vocabulary')}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
+
               <div className="relative flex items-center gap-4">
                 <div className="w-14 h-14 bg-purple-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-7 h-7 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -307,12 +295,12 @@ export default function Dashboard() {
             </div>
 
             {/* Bookmarks Link */}
-            <div 
+            <div
               className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-amber-600/50 transition-all cursor-pointer overflow-hidden"
               onClick={() => navigate('/bookmarks')}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-amber-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
+
               <div className="relative flex items-center gap-4">
                 <div className="w-14 h-14 bg-amber-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-7 h-7 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
@@ -334,12 +322,12 @@ export default function Dashboard() {
             </div>
 
             {/* Achievements Link */}
-            <div 
+            <div
               className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-emerald-600/50 transition-all cursor-pointer overflow-hidden"
               onClick={() => navigate('/achievements')}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
+
               <div className="relative flex items-center gap-4">
                 <div className="w-14 h-14 bg-emerald-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-7 h-7 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
@@ -361,12 +349,12 @@ export default function Dashboard() {
             </div>
 
             {/* Leaderboard Link */}
-            <div 
+            <div
               className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-indigo-600/50 transition-all cursor-pointer overflow-hidden"
               onClick={() => navigate('/leaderboard')}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
+
               <div className="relative flex items-center gap-4">
                 <div className="w-14 h-14 bg-indigo-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-7 h-7 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
@@ -393,16 +381,16 @@ export default function Dashboard() {
         {/* Practice Cards */}
         <section className="mb-12">
           <h2 className="text-xl font-semibold mb-6">Choose Your Practice</h2>
-          
+
           <div className="grid md:grid-cols-2 gap-6">
             {/* Complete the Words */}
-            <div 
+            <div
               className="group relative p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl hover:border-blue-600/50 transition-all cursor-pointer overflow-hidden"
               onClick={() => navigate('/practice/text-completion')}
             >
               {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              
+
               <div className="relative">
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-14 h-14 bg-blue-600/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -419,7 +407,7 @@ export default function Dashboard() {
                   Complete the Words
                 </h3>
                 <p className="text-zinc-400 text-sm mb-4 leading-relaxed">
-                  Fill in the missing letters to complete words in academic passages. 
+                  Fill in the missing letters to complete words in academic passages.
                   AI adapts difficulty based on your performance.
                 </p>
 
@@ -438,7 +426,7 @@ export default function Dashboard() {
                   </span>
                 </div>
 
-                <Button 
+                <Button
                   className="mt-6 w-full bg-blue-600 hover:bg-blue-700"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -471,7 +459,7 @@ export default function Dashboard() {
                   Build a Sentence
                 </h3>
                 <p className="text-zinc-500 text-sm mb-4 leading-relaxed">
-                  Arrange scrambled words to form grammatically correct sentences. 
+                  Arrange scrambled words to form grammatically correct sentences.
                   Practice word order and syntax patterns.
                 </p>
 
@@ -490,7 +478,7 @@ export default function Dashboard() {
                   </span>
                 </div>
 
-                <Button 
+                <Button
                   className="mt-6 w-full"
                   variant="outline"
                   disabled
@@ -505,7 +493,7 @@ export default function Dashboard() {
         {/* Skills & Analytics */}
         <section className="mb-12">
           <h2 className="text-xl font-semibold mb-6">Skills & Analytics</h2>
-          
+
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Skill Radar Chart */}
             <div className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl">
@@ -580,7 +568,7 @@ export default function Dashboard() {
                 const completedDate = new Date(activity.completedAt);
                 const timeAgo = getTimeAgo(completedDate);
                 const scorePercent = activity.scorePercent || 0;
-                
+
                 return (
                   <div
                     key={activity.id}
@@ -595,12 +583,11 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <div className={`w-2 h-2 rounded-full ${
-                            scorePercent >= 90 ? 'bg-emerald-500' :
+                          <div className={`w-2 h-2 rounded-full ${scorePercent >= 90 ? 'bg-emerald-500' :
                             scorePercent >= 70 ? 'bg-blue-500' :
-                            scorePercent >= 50 ? 'bg-amber-500' :
-                            'bg-red-500'
-                          }`} />
+                              scorePercent >= 50 ? 'bg-amber-500' :
+                                'bg-red-500'
+                            }`} />
                           <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors">
                             {activity.topic || 'Text Completion'}
                           </h3>
@@ -608,11 +595,11 @@ export default function Dashboard() {
                             <span className={cn(
                               'text-xs px-2 py-0.5 rounded-full',
                               activity.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
-                              activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
-                              'bg-yellow-500/20 text-yellow-400'
+                                activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
+                                  'bg-yellow-500/20 text-yellow-400'
                             )}>
-                              {activity.difficulty === 'easy' ? 'Easy' : 
-                               activity.difficulty === 'hard' ? 'Hard' : 'Medium'}
+                              {activity.difficulty === 'easy' ? 'Easy' :
+                                activity.difficulty === 'hard' ? 'Hard' : 'Medium'}
                             </span>
                           )}
                         </div>
@@ -630,12 +617,11 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
+                      <div className={`px-3 py-1 rounded-full text-sm font-medium ${scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
                         scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
-                        scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-red-500/20 text-red-400'
-                      }`}>
+                          scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-red-500/20 text-red-400'
+                        }`}>
                         {Math.round(scorePercent)}%
                       </div>
                     </div>

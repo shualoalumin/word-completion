@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { useVocabularyList, useVocabularyStats, useDeleteVocabularyWord } from '@/features/vocabulary';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,7 @@ export default function Vocabulary() {
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [masteryFilter, setMasteryFilter] = useState<number | undefined>(undefined);
   const [sortBy, setSortBy] = useState<'word' | 'created_at' | 'mastery_level' | 'next_review_at'>('created_at');
@@ -36,7 +35,7 @@ export default function Vocabulary() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
@@ -71,15 +70,12 @@ export default function Vocabulary() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
       </div>
-
-      {/* Global Header */}
-      <GlobalHeader darkMode={true} />
 
       {/* Content */}
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
@@ -205,8 +201,8 @@ export default function Vocabulary() {
               size="sm"
               onClick={() => setMasteryFilter(undefined)}
               className={cn(
-                masteryFilter === undefined 
-                  ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                masteryFilter === undefined
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white'
                   : 'border-zinc-700 text-zinc-300 hover:border-purple-500/50 hover:bg-purple-500/10'
               )}
             >
@@ -217,8 +213,8 @@ export default function Vocabulary() {
               size="sm"
               onClick={() => setMasteryFilter(0)}
               className={cn(
-                masteryFilter === 0 
-                  ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                masteryFilter === 0
+                  ? 'bg-amber-600 hover:bg-amber-700 text-white'
                   : 'border-zinc-700 text-zinc-300 hover:border-amber-500/50 hover:bg-amber-500/10'
               )}
             >
@@ -229,8 +225,8 @@ export default function Vocabulary() {
               size="sm"
               onClick={() => setMasteryFilter(2)}
               className={cn(
-                masteryFilter === 2 
-                  ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                masteryFilter === 2
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
                   : 'border-zinc-700 text-zinc-300 hover:border-blue-500/50 hover:bg-blue-500/10'
               )}
             >
@@ -241,8 +237,8 @@ export default function Vocabulary() {
               size="sm"
               onClick={() => setMasteryFilter(4)}
               className={cn(
-                masteryFilter === 4 
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                masteryFilter === 4
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                   : 'border-zinc-700 text-zinc-300 hover:border-emerald-500/50 hover:bg-emerald-500/10'
               )}
             >
@@ -323,7 +319,7 @@ export default function Vocabulary() {
                         {highlightedContext && (
                           <div className="mb-2">
                             <p className="text-xs text-zinc-500 mb-1">해당 단어가 포함된 문장:</p>
-                            <p 
+                            <p
                               className="text-sm text-zinc-400 leading-relaxed"
                               dangerouslySetInnerHTML={{ __html: highlightedContext }}
                             />

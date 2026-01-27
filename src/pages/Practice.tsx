@@ -10,7 +10,7 @@ export default function Practice() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="">
       {/* Demo banner for non-authenticated users - at the top */}
       {!isAuthenticated && (
         <div className="bg-gradient-to-r from-blue-600/20 to-emerald-600/20 border-b border-zinc-800">

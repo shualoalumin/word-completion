@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { UserMenu } from '@/features/auth/components/UserMenu';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUserProfile, useUpdateProfile } from '@/features/settings';
@@ -13,7 +12,7 @@ export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  
+
   const { data: profile, isLoading: profileLoading } = useUserProfile();
   const updateProfileMutation = useUpdateProfile();
 
@@ -61,7 +60,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
@@ -70,23 +69,6 @@ export default function Settings() {
 
       {/* Content */}
       <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <header className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/dashboard')}
-              className="text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              {t('dashboard.title')}
-            </Button>
-          </div>
-          {user && <UserMenu user={user} onSignOut={signOut} darkMode={true} />}
-        </header>
 
         {/* Settings Content */}
         <div className="space-y-6">
@@ -95,7 +77,7 @@ export default function Settings() {
           {/* Profile Section */}
           <section className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl">
             <h2 className="text-lg font-semibold mb-4">Profile</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
@@ -128,7 +110,7 @@ export default function Settings() {
           {/* Preferences Section */}
           <section className="p-6 bg-zinc-900/60 border border-zinc-800 rounded-2xl">
             <h2 className="text-lg font-semibold mb-4">Preferences</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">

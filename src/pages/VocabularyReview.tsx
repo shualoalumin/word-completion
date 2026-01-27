@@ -12,7 +12,7 @@ type ReviewMode = 'flashcard' | 'fill_blank' | 'multiple_choice';
 export default function VocabularyReview() {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  
+
   const [words, setWords] = useState<ReviewWord[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [reviewMode, setReviewMode] = useState<ReviewMode>('flashcard');
@@ -53,7 +53,7 @@ export default function VocabularyReview() {
   // Generate multiple choice options
   const generateChoices = useCallback((word: ReviewWord): string[] => {
     if (!word.definition) return [];
-    
+
     // For now, generate simple choices (in production, use AI or word bank)
     const choices = [word.definition];
     const fakeChoices = [
@@ -62,11 +62,11 @@ export default function VocabularyReview() {
       'A common English word',
       'An advanced vocabulary word',
     ];
-    
+
     // Shuffle and take 3 random fake choices
     const shuffled = fakeChoices.sort(() => Math.random() - 0.5).slice(0, 3);
     const allChoices = [...choices, ...shuffled].sort(() => Math.random() - 0.5);
-    
+
     return allChoices;
   }, []);
 
@@ -143,7 +143,7 @@ export default function VocabularyReview() {
 
   if (words.length === 0) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white">
+      <div className="text-white">
         <div className="max-w-4xl mx-auto px-6 py-12">
           <Button
             variant="ghost"
@@ -172,7 +172,7 @@ export default function VocabularyReview() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       <div className="max-w-4xl mx-auto px-6 py-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

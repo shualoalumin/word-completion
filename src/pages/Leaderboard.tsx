@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { useLeaderboard, useUserRank } from '@/features/leaderboard';
 import { cn } from '@/lib/utils';
 
@@ -9,7 +8,7 @@ export default function Leaderboard() {
   const { t } = useTranslation();
   const { user, isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
-  
+
   const { data: leaderboard, isLoading: leaderboardLoading } = useLeaderboard();
   const { data: userRank, isLoading: rankLoading } = useUserRank();
 
@@ -21,7 +20,7 @@ export default function Leaderboard() {
 
   if (loading || leaderboardLoading || rankLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
@@ -46,15 +45,12 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />
       </div>
-
-      {/* Global Header */}
-      <GlobalHeader darkMode={true} />
 
       {/* Content */}
       <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -69,7 +65,7 @@ export default function Leaderboard() {
               <div className="mt-3 p-3 bg-zinc-900/60 border border-zinc-800 rounded-xl">
                 <p className="text-sm text-zinc-400">
                   Your Rank: <span className="text-white font-semibold">
-                    {userRank.rank ? `#${userRank.rank}` : 'Not ranked'} 
+                    {userRank.rank ? `#${userRank.rank}` : 'Not ranked'}
                   </span> out of {userRank.total} participants
                 </p>
               </div>

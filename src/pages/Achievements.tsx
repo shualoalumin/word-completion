@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { Button } from '@/components/ui/button';
 import { useAchievements, useUserAchievements } from '@/features/achievements';
 import { cn } from '@/lib/utils';
@@ -10,7 +9,7 @@ export default function Achievements() {
   const { t } = useTranslation();
   const { user, isAuthenticated, loading, signOut } = useAuth();
   const navigate = useNavigate();
-  
+
   const { data: allAchievements, isLoading: achievementsLoading } = useAchievements();
   const { data: userAchievements, isLoading: userAchievementsLoading } = useUserAchievements();
 
@@ -22,7 +21,7 @@ export default function Achievements() {
 
   if (loading || achievementsLoading || userAchievementsLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
@@ -54,15 +53,12 @@ export default function Achievements() {
   }, {} as Record<string, typeof allAchievements>);
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-emerald-600/10 rounded-full blur-3xl" />
       </div>
-
-      {/* Global Header */}
-      <GlobalHeader darkMode={true} />
 
       {/* Content */}
       <div className="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">

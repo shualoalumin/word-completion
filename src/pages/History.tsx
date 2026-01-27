@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { GlobalHeader } from '@/components/layout/GlobalHeader';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -113,10 +112,10 @@ export default function History() {
     const filtered = selectedMonth === 'all'
       ? historyData
       : historyData.filter(h => {
-          const date = new Date(h.completedAt);
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          return monthKey === selectedMonth;
-        });
+        const date = new Date(h.completedAt);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return monthKey === selectedMonth;
+      });
 
     return filtered.reduce((groups: GroupedHistory, record) => {
       const date = new Date(record.completedAt).toLocaleDateString('en-US', {
@@ -153,14 +152,14 @@ export default function History() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+      <div className="flex items-center justify-center py-12">
         <div className="animate-pulse text-zinc-400">{t('common.loading')}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
+    <div className="text-white">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
@@ -254,12 +253,11 @@ export default function History() {
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                               <span className="text-zinc-500 text-sm">{time}</span>
-                              <div className={`w-1.5 h-1.5 rounded-full ${
-                                record.scorePercent >= 90 ? 'bg-emerald-500' :
+                              <div className={`w-1.5 h-1.5 rounded-full ${record.scorePercent >= 90 ? 'bg-emerald-500' :
                                 record.scorePercent >= 70 ? 'bg-blue-500' :
-                                record.scorePercent >= 50 ? 'bg-amber-500' :
-                                'bg-red-500'
-                              }`} />
+                                  record.scorePercent >= 50 ? 'bg-amber-500' :
+                                    'bg-red-500'
+                                }`} />
                               <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">
                                 {record.topic || 'Text Completion'}
                               </h3>
@@ -286,12 +284,11 @@ export default function History() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
-                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              record.scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
+                            <div className={`px-3 py-1 rounded-full text-sm font-medium ${record.scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
                               record.scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
-                              record.scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
-                              'bg-red-500/20 text-red-400'
-                            }`}>
+                                record.scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                                  'bg-red-500/20 text-red-400'
+                              }`}>
                               {Math.round(record.scorePercent)}%
                             </div>
                             <span className="text-zinc-500 group-hover:text-blue-400 transition-colors">
