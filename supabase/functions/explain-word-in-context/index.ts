@@ -24,18 +24,19 @@ serve(async (req) => {
 
     const aiClient = new AIClient();
 
-    const systemPrompt = `You are an expert English language teacher. Explain a word's meaning as used in a specific passage context. Return JSON with two fields.`;
+    const systemPrompt = `You are an expert English teacher. Return JSON with "definition" (one sentence) and "explanation" (2-3 sentences) for the word's meaning in the given context.`;
+
+    // Limit context length for faster processing
+    const limitedContext = context.length > 500 ? context.substring(0, 500) + '...' : context;
 
     const userPrompt = `Word: "${word}"
+Context: "${limitedContext}"
 
-Context:
-"${context}"
-
-Return a JSON object with:
-- "definition": A single concise sentence defining what "${word}" means in this context.
-- "explanation": 2-3 sentences explaining how "${word}" functions in this passage and what it conveys here.
-
-Focus only on the meaning in this context, not all possible meanings.`;
+Return JSON:
+{
+  "definition": "One concise sentence defining '${word}' in this context",
+  "explanation": "2-3 sentences explaining how '${word}' functions here"
+}`;
 
     console.log(`Explaining word "${word}" in context...`);
     const result = await aiClient.generate(systemPrompt, userPrompt, true);

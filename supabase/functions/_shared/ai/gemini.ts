@@ -23,7 +23,8 @@ export class GeminiProvider implements AIProvider {
       ],
       generationConfig: {
         responseMimeType: request.jsonMode ? "application/json" : "text/plain",
-        temperature: 0.7,
+        temperature: 0.3, // Lower temperature for faster, more focused responses
+        maxOutputTokens: 500, // Limit response length for faster generation
       }
     };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { getWordsForReview, submitReviewResult, ReviewWord, ReviewType } from '@/features/vocabulary/review/api';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ type ReviewMode = 'flashcard' | 'fill_blank' | 'multiple_choice';
 export default function VocabularyReview() {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [words, setWords] = useState<ReviewWord[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -101,6 +103,8 @@ export default function VocabularyReview() {
       } else {
         // All words reviewed
         toast.success('Review session complete!');
+        // Invalidate vocabulary queries to refresh the list
+        queryClient.invalidateQueries({ queryKey: ['vocabulary'] });
         navigate('/vocabulary');
       }
     } else {

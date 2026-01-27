@@ -192,20 +192,44 @@ const WordPopup: React.FC<WordPopupProps> = ({
         </button>
       </div>
 
-      {/* Explanation */}
-      <div className="px-3 py-2">
+      {/* Definition and Explanation */}
+      <div className="px-3 py-2 space-y-2">
         {loading ? (
           <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
             Analyzing context...
           </p>
-        ) : explanation ? (
-          <p className={cn('text-xs leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-600')}>
-            {explanation}
-          </p>
         ) : (
-          <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
-            Unable to explain word in this context.
-          </p>
+          <>
+            {/* Definition - Most Important */}
+            {definition && (
+              <div>
+                <p className={cn('text-xs font-semibold mb-1', darkMode ? 'text-zinc-200' : 'text-gray-800')}>
+                  Definition:
+                </p>
+                <p className={cn('text-xs leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
+                  {definition}
+                </p>
+              </div>
+            )}
+            {/* Explanation */}
+            {explanation && (
+              <div>
+                {definition && (
+                  <p className={cn('text-xs font-semibold mb-1', darkMode ? 'text-zinc-200' : 'text-gray-800')}>
+                    Explanation:
+                  </p>
+                )}
+                <p className={cn('text-xs leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-600')}>
+                  {explanation}
+                </p>
+              </div>
+            )}
+            {!definition && !explanation && (
+              <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
+                Unable to explain word in this context.
+              </p>
+            )}
+          </>
         )}
       </div>
 
