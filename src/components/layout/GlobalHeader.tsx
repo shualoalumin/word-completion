@@ -2,6 +2,7 @@
  * Global Header Component
  * 모든 페이지에 통일된 헤더 제공
  * GitHub-style responsive navigation with "More" menu
+ * Prevents header from wrapping to two lines
  */
 
 import React from 'react';
@@ -45,7 +46,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
     { path: '/settings', label: 'Settings' },
   ];
 
-  const { visibleItems, hiddenItems, containerRef, moreButtonRef, setItemRef } = useResponsiveNav(navItems);
+  const { visibleItems, hiddenItems, containerRef, moreButtonRef, rightSideRef, logoRef, setItemRef } = useResponsiveNav(navItems);
 
   const isActive = (path: string) => {
     if (path === '/dashboard') {
@@ -68,10 +69,11 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
       )}
     >
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 flex-nowrap">
           {/* Logo / Home */}
-          <div className="flex items-center gap-6 flex-1 min-w-0">
+          <div className="flex items-center gap-6 flex-1 min-w-0 flex-nowrap">
             <button
+              ref={logoRef}
               onClick={() => navigate('/dashboard')}
               className={cn(
                 'text-lg font-bold transition-colors shrink-0',
@@ -85,7 +87,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
             {isAuthenticated && (
               <nav
                 ref={containerRef}
-                className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-hidden"
+                className="hidden md:flex items-center gap-1 flex-1 min-w-0 overflow-hidden flex-nowrap"
               >
                 {/* Visible Navigation Items */}
                 {visibleItems.map((item) => {
@@ -98,7 +100,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                       size="sm"
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        'text-sm shrink-0',
+                        'text-sm shrink-0 whitespace-nowrap',
                         active
                           ? darkMode
                             ? 'text-blue-400 bg-blue-400/10'
@@ -122,7 +124,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                         variant="ghost"
                         size="sm"
                         className={cn(
-                          'text-sm shrink-0',
+                          'text-sm shrink-0 whitespace-nowrap',
                           darkMode
                             ? 'text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/30'
                             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -181,7 +183,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center gap-3 shrink-0">
+          <div ref={rightSideRef} className="flex items-center gap-3 shrink-0 flex-nowrap">
             <DarkModeToggle darkMode={darkMode} onToggle={toggleDarkMode} />
             {isAuthenticated && user ? (
               <UserMenu user={user} onSignOut={signOut} darkMode={darkMode} />
