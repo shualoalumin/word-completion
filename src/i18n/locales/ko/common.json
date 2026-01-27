@@ -101,7 +101,13 @@
     "fromPassage": "지문에서",
     "deleteWord": "단어 삭제",
     "confirmDelete": "이 단어를 삭제하시겠습니까?",
-    "wordDeleted": "단어가 삭제되었습니다"
+    "wordDeleted": "단어가 삭제되었습니다",
+    "sortBy": "정렬",
+    "sortNewest": "최신순",
+    "sortOldest": "오래된순",
+    "sortAlphabetical": "알파벳순",
+    "sortMastery": "숙련도순",
+    "sortReviewDue": "리뷰 예정순"
   },
   "vocabularyReview": {
     "title": "단어 복습",

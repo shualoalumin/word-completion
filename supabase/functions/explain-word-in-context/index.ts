@@ -24,26 +24,27 @@ serve(async (req) => {
 
     const aiClient = new AIClient();
 
-    const systemPrompt = `You are an expert English language teacher helping students understand vocabulary in context. 
-Your task is to explain the meaning of a word as it is used in a specific passage, not just provide a dictionary definition.
-Focus on how the word functions in this particular context and what it means here.`;
+    const systemPrompt = `You are an expert English language teacher. Explain a word's meaning as used in a specific passage context. Return JSON with two fields.`;
 
     const userPrompt = `Word: "${word}"
 
-Passage context:
+Context:
 "${context}"
 
-Please explain what "${word}" means in this specific passage. 
-- Focus on the meaning in this context, not all possible meanings
-- Explain how it functions in the sentence
-- Keep it concise (2-3 sentences maximum)
-- Write in clear, simple English`;
+Return a JSON object with:
+- "definition": A single concise sentence defining what "${word}" means in this context.
+- "explanation": 2-3 sentences explaining how "${word}" functions in this passage and what it conveys here.
+
+Focus only on the meaning in this context, not all possible meanings.`;
 
     console.log(`Explaining word "${word}" in context...`);
-    const explanation = await aiClient.generate(systemPrompt, userPrompt, false);
+    const result = await aiClient.generate(systemPrompt, userPrompt, true);
 
     return new Response(
-      JSON.stringify({ explanation }),
+      JSON.stringify({
+        definition: result.definition || null,
+        explanation: result.explanation || null,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

@@ -15,8 +15,16 @@ export default function Vocabulary() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [masteryFilter, setMasteryFilter] = useState<number | undefined>(undefined);
-  const [sortBy, setSortBy] = useState<'word' | 'created_at' | 'mastery_level' | 'next_review_at'>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortOption, setSortOption] = useState<string>('created_at_desc');
+
+  const sortMap: Record<string, { sortBy: 'word' | 'created_at' | 'mastery_level' | 'next_review_at'; sortOrder: 'asc' | 'desc' }> = {
+    created_at_desc: { sortBy: 'created_at', sortOrder: 'desc' },
+    created_at_asc: { sortBy: 'created_at', sortOrder: 'asc' },
+    word_asc: { sortBy: 'word', sortOrder: 'asc' },
+    mastery_level_desc: { sortBy: 'mastery_level', sortOrder: 'desc' },
+    next_review_at_asc: { sortBy: 'next_review_at', sortOrder: 'asc' },
+  };
+  const { sortBy, sortOrder } = sortMap[sortOption] || sortMap.created_at_desc;
 
   const { data: statsData, isLoading: statsLoading } = useVocabularyStats();
   const { data: vocabData, isLoading: vocabLoading } = useVocabularyList({
@@ -186,7 +194,7 @@ export default function Vocabulary() {
 
         {/* Filters and Search */}
         <section className="mb-6 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+          <div className="flex-1 flex gap-2">
             <Input
               type="text"
               placeholder={t('vocabulary.searchWords')}
@@ -194,6 +202,17 @@ export default function Vocabulary() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-zinc-900/60 border-zinc-800 text-white placeholder:text-zinc-500"
             />
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value)}
+              className="bg-zinc-900/60 border border-zinc-800 text-zinc-300 text-sm rounded-md px-3 py-2 focus:outline-none focus:border-purple-500/50 min-w-[140px]"
+            >
+              <option value="created_at_desc">{t('vocabulary.sortNewest')}</option>
+              <option value="created_at_asc">{t('vocabulary.sortOldest')}</option>
+              <option value="word_asc">{t('vocabulary.sortAlphabetical')}</option>
+              <option value="mastery_level_desc">{t('vocabulary.sortMastery')}</option>
+              <option value="next_review_at_asc">{t('vocabulary.sortReviewDue')}</option>
+            </select>
           </div>
           <div className="flex gap-2">
             <Button
@@ -271,11 +290,14 @@ export default function Vocabulary() {
           ) : (
             <div className="space-y-3">
               {vocabulary.map((word) => {
-                // Extract first sentence from context
-                const getFirstSentence = (text: string) => {
+                // Find sentence containing the word, fallback to first sentence
+                const findSentenceWithWord = (text: string, targetWord: string) => {
                   if (!text) return '';
                   const sentences = text.match(/[^.!?]+[.!?]+/g);
-                  return sentences ? sentences[0].trim() : text.split('.')[0].trim() + '.';
+                  if (!sentences) return text.split('.')[0].trim() + '.';
+                  const wordRegex = new RegExp(`\\b${targetWord}\\b`, 'i');
+                  const match = sentences.find((s) => wordRegex.test(s));
+                  return (match || sentences[0]).trim();
                 };
 
                 // Highlight word in context
@@ -285,8 +307,8 @@ export default function Vocabulary() {
                   return context.replace(regex, '<mark class="bg-blue-500/30 text-blue-300 font-semibold">$1</mark>');
                 };
 
-                const firstSentence = word.source_context ? getFirstSentence(word.source_context) : '';
-                const highlightedContext = firstSentence ? highlightWordInContext(firstSentence, word.word) : '';
+                const contextSentence = word.source_context ? findSentenceWithWord(word.source_context, word.word) : '';
+                const highlightedContext = contextSentence ? highlightWordInContext(contextSentence, word.word) : '';
 
                 return (
                   <div
@@ -318,9 +340,8 @@ export default function Vocabulary() {
                         {/* Source Context - One sentence with highlighted word */}
                         {highlightedContext && (
                           <div className="mb-2">
-                            <p className="text-xs text-zinc-500 mb-1">해당 단어가 포함된 문장:</p>
                             <p
-                              className="text-sm text-zinc-400 leading-relaxed"
+                              className="text-sm text-zinc-500 italic leading-relaxed border-l-2 border-zinc-700 pl-3"
                               dangerouslySetInnerHTML={{ __html: highlightedContext }}
                             />
                           </div>

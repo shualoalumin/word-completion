@@ -101,7 +101,13 @@
     "fromPassage": "From passage",
     "deleteWord": "Delete word",
     "confirmDelete": "Are you sure you want to delete this word?",
-    "wordDeleted": "Word deleted successfully"
+    "wordDeleted": "Word deleted successfully",
+    "sortBy": "Sort by",
+    "sortNewest": "Newest first",
+    "sortOldest": "Oldest first",
+    "sortAlphabetical": "Alphabetical",
+    "sortMastery": "Mastery level",
+    "sortReviewDue": "Review due"
   },
   "vocabularyReview": {
     "title": "Vocabulary Review",

@@ -23,7 +23,7 @@ interface WordPopupProps {
   context: string;
   darkMode: boolean;
   onClose: () => void;
-  onAddToVocabulary: () => void;
+  onAddToVocabulary: (definition: string | null, explanation: string | null) => void;
   isAdding: boolean;
   isAdded: boolean;
 }
@@ -115,6 +115,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
   isAdded,
 }) => {
   const popupRef = useRef<HTMLDivElement>(null);
+  const [definition, setDefinition] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -132,7 +133,8 @@ const WordPopup: React.FC<WordPopupProps> = ({
   useEffect(() => {
     const fetchExplanation = async () => {
       setLoading(true);
-      setExplanation(null); // Reset explanation for new word to prevent stale data
+      setDefinition(null);
+      setExplanation(null); // Reset for new word to prevent stale data
       // #region agent log
       fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:133',message:'fetchExplanation start',data:{word:word,contextLength:context?.length,hasWord:!!word,hasContext:!!context,sessionId:'debug-session',runId:'run1',hypothesisId:'B'},timestamp:Date.now()})}).catch(()=>{});
       // #endregion
@@ -145,8 +147,10 @@ const WordPopup: React.FC<WordPopupProps> = ({
         fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:140',message:'explainWordInContext result received',data:{hasError:!!result.error,hasExplanation:!!result.explanation,explanationLength:result.explanation?.length,errorMessage:result.error?.message,sessionId:'debug-session',runId:'run1',hypothesisId:'E'},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         if (result.error) {
+          setDefinition(null);
           setExplanation(null);
         } else {
+          setDefinition(result.definition);
           setExplanation(result.explanation);
         }
       } catch (err) {
@@ -219,7 +223,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
                   : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
           )}
           disabled={isAdding || isAdded}
-          onClick={onAddToVocabulary}
+          onClick={() => onAddToVocabulary(definition, explanation)}
         >
           {isAdding ? 'Adding...' : isAdded ? '✓ Added' : '+ Add to Vocabulary'}
         </button>
@@ -327,17 +331,31 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     setBookmarkLoading(false);
   };
 
+  // Extract only the sentence containing the word + 1 surrounding sentence for faster AI processing
+  const extractRelevantContext = (text: string, targetWord: string): string => {
+    const sentences = text.match(/[^.!?]+[.!?]+/g);
+    if (!sentences) return text;
+
+    const wordRegex = new RegExp(`\\b${targetWord}\\b`, 'i');
+    const targetIndex = sentences.findIndex((s) => wordRegex.test(s));
+    if (targetIndex === -1) return sentences.slice(0, 2).join(' ').trim();
+
+    const start = Math.max(0, targetIndex - 1);
+    const end = Math.min(sentences.length, targetIndex + 2);
+    return sentences.slice(start, end).join(' ').trim();
+  };
+
   const handleWordClick = (e: React.MouseEvent, word: string) => {
     const cleanWord = word.replace(/[.,!?;:'"()]/g, '').trim();
     if (cleanWord.length < 2) return;
     setSelectedWord({
       word: cleanWord.toLowerCase(),
       position: { x: e.clientX, y: e.clientY },
-      context: fullPassageText,
+      context: extractRelevantContext(fullPassageText, cleanWord),
     });
   };
 
-  const handleAddWord = async (word: string, context: string) => {
+  const handleAddWord = async (word: string, context: string, wordDefinition?: string | null, wordExplanation?: string | null) => {
     if (!exerciseId) {
       toast.error('Exercise ID not available');
       return;
@@ -345,6 +363,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     setAddingWords((prev) => new Set(prev).add(word));
     const result = await addWordToVocabulary({
       word,
+      definition: wordDefinition || undefined,
+      exampleSentence: wordExplanation || undefined,
       sourceContext: context,
       sourcePassageId: exerciseId,
       addedFrom: 'manual',
@@ -429,7 +449,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
           context={selectedWord.context}
           darkMode={darkMode}
           onClose={() => setSelectedWord(null)}
-          onAddToVocabulary={() => handleAddWord(selectedWord.word, selectedWord.context)}
+          onAddToVocabulary={(def, expl) => handleAddWord(selectedWord.word, selectedWord.context, def, expl)}
           isAdding={addingWords.has(selectedWord.word)}
           isAdded={addedWords.has(selectedWord.word)}
         />

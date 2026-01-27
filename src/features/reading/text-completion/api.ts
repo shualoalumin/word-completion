@@ -272,14 +272,18 @@ export async function addWordToVocabulary(
       .single();
 
     if (existing) {
+      const updateData: Record<string, unknown> = {
+        source_context: params.sourceContext,
+        source_passage_id: params.sourcePassageId,
+        added_from: params.addedFrom || 'auto_extract',
+        first_encountered_at: new Date().toISOString(),
+      };
+      if (params.definition) updateData.definition = params.definition;
+      if (params.exampleSentence) updateData.example_sentence = params.exampleSentence;
+
       const { data, error } = await supabase
         .from('user_vocabulary')
-        .update({
-          source_context: params.sourceContext,
-          source_passage_id: params.sourcePassageId,
-          added_from: params.addedFrom || 'auto_extract',
-          first_encountered_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', existing.id)
         .select('id')
         .single();
@@ -575,6 +579,7 @@ export interface ExplainWordInContextParams {
 }
 
 export interface ExplainWordInContextResult {
+  definition: string | null;
   explanation: string | null;
   error: Error | null;
 }
@@ -636,6 +641,7 @@ export async function explainWordInContext(
     // #endregion
 
     return {
+      definition: result.definition || null,
       explanation: result.explanation || null,
       error: null,
     };
@@ -644,6 +650,7 @@ export async function explainWordInContext(
     fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:623',message:'Catch block - error occurred',data:{errorMessage:err instanceof Error ? err.message : String(err),errorName:err instanceof Error ? err.name : 'Unknown',errorStack:err instanceof Error ? err.stack?.substring(0,200) : undefined,sessionId:'debug-session',runId:'run1',hypothesisId:'F'},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
     return {
+      definition: null,
       explanation: null,
       error: err instanceof Error ? err : new Error('Unknown error'),
     };
