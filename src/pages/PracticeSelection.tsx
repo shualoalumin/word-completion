@@ -69,7 +69,7 @@ export default function PracticeSelection() {
                 </span>
               </div>
 
-              <h3 className="text-2xl font-semibold mb-3 group-hover:text-blue-400 transition-colors">
+              <h3 className="text-2xl font-semibold mb-3 text-white group-hover:text-blue-400 transition-colors">
                 {t('dashboard.completeTheWords', 'Complete the Words')}
               </h3>
               <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
@@ -115,7 +115,7 @@ export default function PracticeSelection() {
                 </span>
               </div>
 
-              <h3 className="text-2xl font-semibold mb-3 group-hover:text-emerald-400 transition-colors">
+              <h3 className="text-2xl font-semibold mb-3 text-white group-hover:text-emerald-400 transition-colors">
                 {t('practiceSelection.buildSentence', 'Build a Sentence')}
               </h3>
               <p className="text-zinc-400 text-sm mb-6 leading-relaxed">
