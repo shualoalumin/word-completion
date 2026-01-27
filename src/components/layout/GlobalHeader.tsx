@@ -29,7 +29,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
 
   const navItems = [
     { path: '/dashboard', label: t('dashboard.title') },
-    { path: '/practice/text-completion', label: t('practice.title') },
+    { path: '/practice', label: t('practiceSelection.title', 'Practice') },
     { path: '/vocabulary', label: t('vocabulary.title') },
     { path: '/bookmarks', label: t('bookmarks.title') },
     { path: '/history', label: t('history.title') },
@@ -66,7 +66,8 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
               <nav className="hidden md:flex items-center gap-1">
                 {navItems.map((item) => {
                   const isActive = location.pathname === item.path ||
-                    (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                    (item.path !== '/dashboard' && item.path !== '/practice' && location.pathname.startsWith(item.path)) ||
+                    (item.path === '/practice' && location.pathname.startsWith('/practice'));
 
                   return (
                     <Button
@@ -117,7 +118,8 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
             <nav className="flex items-center gap-1 overflow-x-auto">
               {navItems.map((item) => {
                 const isActive = location.pathname === item.path ||
-                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                  (item.path !== '/dashboard' && item.path !== '/practice' && location.pathname.startsWith(item.path)) ||
+                  (item.path === '/practice' && location.pathname.startsWith('/practice'));
 
                 return (
                   <Button
