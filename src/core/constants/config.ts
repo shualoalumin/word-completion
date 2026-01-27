@@ -1,7 +1,7 @@
 // App configuration constants
 
 export const TIMER_CONFIG = {
-  TEXT_COMPLETION: 180,      // 3 minutes
+  TEXT_COMPLETION: 150,      // 2 minutes 30 seconds
   BUILD_SENTENCE: 120,       // 2 minutes
   DEFAULT: 180,
 } as const;

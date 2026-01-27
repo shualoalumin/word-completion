@@ -18,7 +18,7 @@ export default function PracticeSelection() {
         <div className="bg-gradient-to-r from-blue-600/20 to-emerald-600/20 border-b border-zinc-800">
           <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
             <p className="text-sm text-zinc-300">
-              ?렜 <span className="font-medium">Demo Mode</span> ??{t('auth.signIn')} to save your progress
+              ???<span className="font-medium">Demo Mode</span> ??{t('auth.signIn')} to save your progress
             </p>
             <Button
               size="sm"
@@ -83,7 +83,7 @@ export default function PracticeSelection() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  3 {t('dashboard.minutes', 'min')}
+                  2:30
                 </span>
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
