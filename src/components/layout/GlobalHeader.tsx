@@ -30,7 +30,8 @@ import {
   Trophy,
   Settings,
   ChevronDown,
-  MoreHorizontal
+  MoreHorizontal,
+  MoreVertical
 } from 'lucide-react';
 
 interface GlobalHeaderProps {
@@ -225,15 +226,15 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                       key={item.path}
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        'flex items-center gap-1.5 px-3 h-full text-xs font-medium transition-colors border-b-2 whitespace-nowrap',
+                        'flex items-center gap-1 px-1.5 min-[380px]:px-2 h-full text-[11px] min-[380px]:text-xs font-medium transition-colors border-b-2 whitespace-nowrap',
                         active
                           ? darkMode
                             ? 'text-white border-orange-500'
                             : 'text-gray-900 border-orange-500'
-                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                          : 'border-transparent text-zinc-500'
                       )}
                     >
-                      {Icon && <Icon className={cn("w-4 h-4", active ? "text-orange-500" : "text-zinc-400")} />}
+                      {Icon && <Icon className={cn("w-3.5 h-3.5 min-[380px]:w-4 min-[380px]:h-4", active ? "text-orange-500" : "text-zinc-400")} />}
                       {item.label}
                     </button>
                   );
@@ -244,11 +245,12 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                 <DropdownMenuTrigger asChild>
                   <button
                     className={cn(
-                      'flex items-center gap-1 px-3 h-full text-xs font-medium transition-colors border-b-2 border-transparent text-zinc-500 whitespace-nowrap ml-2',
+                      'flex items-center justify-center gap-1 px-1.5 min-[380px]:px-2 h-full text-[11px] min-[380px]:text-xs font-medium transition-colors border-b-2 border-transparent text-zinc-500 whitespace-nowrap ml-1',
                     )}
                   >
-                    <MoreHorizontal className="w-4 h-4 mr-1" />
-                    More
+                    <MoreVertical className="w-4 h-4 min-[380px]:hidden" />
+                    <MoreHorizontal className="w-4 h-4 hidden min-[380px]:block" />
+                    <span className="hidden min-[380px]:inline">More</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
