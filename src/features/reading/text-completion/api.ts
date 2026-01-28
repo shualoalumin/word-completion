@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { TextCompletionPassage } from '../types';
+import { TextCompletionPassage } from './types';
 
 export interface GeneratePassageResult {
   data: TextCompletionPassage | null;
