@@ -83,17 +83,14 @@ export const CharInput = React.memo<CharInputProps>(({
   };
 
   const handleBeforeInput = (e: React.FormEvent<HTMLInputElement>) => {
-    // Cast to any to access data property which is standard in InputEvent but not fully typed in React yet
-    const nativeEvent = e.nativeEvent as InputEvent;
-    if (nativeEvent.data && !/^[a-zA-Z]$/.test(nativeEvent.data)) {
-      e.preventDefault();
-    }
+    // We don't preventDefault here anymore to support all input methods (like IME).
+    // Validation is handled in onChange and the parent onInput handler.
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     const typedChar = newValue.slice(-1);
-    
+
     // Double check regex in case onBeforeInput isn't supported
     if (typedChar && /^[a-zA-Z]$/.test(typedChar)) {
       onInput(wordId, charIndex, expectedLength, 'type', typedChar);
