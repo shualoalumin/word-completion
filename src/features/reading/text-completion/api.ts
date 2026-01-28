@@ -576,6 +576,7 @@ export async function getBookmarks(folder?: string): Promise<GetBookmarksResult>
 export interface ExplainWordInContextParams {
   word: string;
   context: string;
+  signal?: AbortSignal;
 }
 
 export interface ExplainWordInContextResult {
@@ -611,6 +612,7 @@ export async function explainWordInContext(
       {
         method: 'POST',
         headers,
+        signal: params.signal,
         body: JSON.stringify({
           word: params.word,
           context: params.context,

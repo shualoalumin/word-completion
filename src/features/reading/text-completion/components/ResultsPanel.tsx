@@ -131,43 +131,48 @@ const WordPopup: React.FC<WordPopupProps> = ({
   }, [onClose]);
 
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   // Fetch word explanation in context using AI
-  const fetchExplanation = async () => {
-    if (!word || !context) {
-      console.log('[WordPopup] Skipping fetch - missing word or context');
-      return;
-    }
-    console.log('[WordPopup] Fetching explanation for:', word);
-    setLoading(true);
-    setErrorStatus(null);
-    setDefinition(null);
-    setExplanation(null);
-    try {
-      const result = await explainWordInContext({ word, context });
-      console.log('[WordPopup] API result:', result);
-      
-      if (result.error) {
-        console.error('[WordPopup] API error:', result.error);
-        setErrorStatus(result.error.message);
-        setDefinition(null);
-        setExplanation(null);
-      } else {
-        setDefinition(result.definition);
-        setExplanation(result.explanation);
-      }
-    } catch (err: any) {
-      console.error('[WordPopup] Fetch error:', err);
-      setErrorStatus(err.message || 'Unknown network error');
-      setExplanation(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchExplanation();
-  }, [word, context]);
+    const controller = new AbortController();
+    
+    const performFetch = async () => {
+      if (!word || !context) return;
+      
+      console.log('[WordPopup] Fetching (attempt %d) for:', retryKey + 1, word);
+      setLoading(true);
+      setErrorStatus(null);
+      setDefinition(null);
+      setExplanation(null);
+      
+      try {
+        const result = await explainWordInContext({ 
+          word, 
+          context, 
+          signal: controller.signal 
+        });
+        
+        if (result.error) {
+          setErrorStatus(result.error.message);
+        } else {
+          setDefinition(result.definition);
+          setExplanation(result.explanation);
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        console.error('[WordPopup] Fetch error:', err);
+        setErrorStatus(err.message || 'Unknown network error');
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    performFetch();
+    return () => controller.abort();
+  }, [word, context, retryKey]);
 
   useEffect(() => {
     if (popupRef.current) {
@@ -249,7 +254,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
                   {errorStatus.includes('429') ? 'Rate limit exceeded.' : 'Failed to fetch explanation.'}
                 </p>
                 <button 
-                  onClick={() => fetchExplanation()}
+                  onClick={() => setRetryKey(prev => prev + 1)}
                   className="text-[10px] px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-600 transition-colors"
                 >
                   Try Again

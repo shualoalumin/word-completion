@@ -16,7 +16,10 @@ export class GeminiProvider implements AIProvider {
 
     while (attempt < maxRetries) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+        // Dynamic versioning: 1.5 models work better on v1, 2.0 on v1beta
+        const apiVersion = this.model.includes("2.0") ? "v1beta" : "v1";
+        const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${this.model}:generateContent?key=${this.apiKey}`;
+        
         const body = {
           contents: [{
             role: "user",

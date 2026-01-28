@@ -37,7 +37,8 @@ export class AIClient {
   async generate(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<any> {
     const models = [
       Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash",
-      "gemini-1.5-flash"
+      "gemini-1.5-flash",
+      "gemini-1.5-flash-8b"
     ];
     
     let lastError: any = null;
