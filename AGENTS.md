@@ -42,7 +42,18 @@
 
 ---
 
-## 4. Documentation
+## 4. Maintenance & Synchronization
+
+### 🔄 Environment Synchronization
+- **Principle**: Local configuration must reflect the real remote state to prevent drift.
+- **Practice**:
+    - **Supabase Config**: Whenever a function is deployed or settings are changed via tools, update `supabase/config.toml` immediately.
+    - **Project ID**: Ensure the `project_id` in `config.toml` matches the active project being worked on.
+    - **Edge Function Settings**: Keep `verify_jwt` and other function-specific flags in sync between local config and remote deployment.
+
+---
+
+## 5. Documentation
 - Update `docs/dev-logs/` for major architectural decisions.
 - Keep `docs/troubleshooting/` updated with solved critical issues.
 

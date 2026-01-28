@@ -30,6 +30,8 @@ docs/
 | 문서 | 설명 |
 |------|------|
 | [ETS Text Completion](algorithms/ets-text-completion-algorithm.md) | ETS 출제 알고리즘 분석, 56개 토픽 풀 |
+| [ETS Build a Sentence](algorithms/ets-build-sentence-algorithm.md) | **NEW** Writing Task 1 (청크 조립) 심층 분석 |
+| [TOEFL 2026 Summary](algorithms/toefl-2026-format-summary.md) | 2026년 개편안 요약 |
 
 ---
 
