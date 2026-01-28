@@ -12,7 +12,7 @@ export interface ExerciseLayoutProps {
   darkMode: boolean;
   onDarkModeToggle: () => void;
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   difficulty?: Difficulty;
   topicCategory?: string;
   showResults: boolean;

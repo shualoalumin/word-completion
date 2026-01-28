@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ExerciseLayout } from '@/components/layout';
 import { LoadingSpinner } from '@/components/common';
 import { useTimer, useDarkMode } from '@/core/hooks';
@@ -9,12 +10,13 @@ import { useTextCompletion } from './hooks';
 import { PassageDisplay, ResultsPanel } from './components';
 
 export const TextCompletion: React.FC = () => {
+  const { t } = useTranslation();
   const { darkMode, toggle: toggleDarkMode } = useDarkMode();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const reviewExerciseId = searchParams.get('review');
   const prevReviewIdRef = useRef<string | null | undefined>(undefined);
-  
+
   const timer = useTimer({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
     autoStart: false,
@@ -97,7 +99,7 @@ export const TextCompletion: React.FC = () => {
         case 'type': {
           if (!char) return;
           const englishChar = char.replace(/[^a-zA-Z]/g, '').slice(-1).toLowerCase();
-          
+
           const chars = currentAnswer.padEnd(expectedLength, ' ').split('');
           chars[charIndex] = englishChar;
           updateAnswer(wordId, chars.join('').replace(/ /g, ''));
@@ -117,7 +119,7 @@ export const TextCompletion: React.FC = () => {
 
         case 'backspace': {
           const chars = currentAnswer.padEnd(expectedLength, ' ').split('');
-          
+
           if (chars[charIndex].trim()) {
             chars[charIndex] = ' ';
             updateAnswer(wordId, chars.join('').replace(/ /g, ''));
@@ -141,7 +143,7 @@ export const TextCompletion: React.FC = () => {
 
         case 'delete': {
           const chars = currentAnswer.padEnd(expectedLength, ' ').split('');
-          
+
           if (chars[charIndex].trim()) {
             chars[charIndex] = ' ';
             updateAnswer(wordId, chars.join('').replace(/ /g, ''));
@@ -255,7 +257,14 @@ export const TextCompletion: React.FC = () => {
       darkMode={darkMode}
       onDarkModeToggle={toggleDarkMode}
       title="Fill in the missing letters in the paragraph."
-      subtitle="(Questions 1-10)"
+      subtitle={
+        <div className="flex flex-col gap-1">
+          <span>(Questions 1-10)</span>
+          <span className="text-[11px] text-blue-500/80 dark:text-blue-400/60 font-medium">
+            💡 {t('practice.englishModeHint')}
+          </span>
+        </div>
+      }
       difficulty={passage?.difficulty}
       topicCategory={passage?.topic_category}
       showResults={showResults}

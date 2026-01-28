@@ -51,7 +51,8 @@
     "questions": "Questions 1-10",
     "checkAnswers": "Check Answers",
     "nextExercise": "Next Exercise",
-    "backToDashboard": "Back to Dashboard"
+    "backToDashboard": "Back to Dashboard",
+    "englishModeHint": "Please set your keyboard to English for input."
   },
   "results": {
     "scoreSummary": "Score Summary",

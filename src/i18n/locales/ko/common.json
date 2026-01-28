@@ -51,7 +51,8 @@
     "questions": "문제 1-10",
     "checkAnswers": "답 확인",
     "nextExercise": "다음 문제",
-    "backToDashboard": "대시보드로 돌아가기"
+    "backToDashboard": "대시보드로 돌아가기",
+    "englishModeHint": "영문 키보드 모드에서만 입력이 가능합니다."
   },
   "results": {
     "scoreSummary": "점수 요약",
