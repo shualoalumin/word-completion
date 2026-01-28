@@ -587,6 +587,7 @@ export interface ExplainWordInContextResult {
 export async function explainWordInContext(
   params: ExplainWordInContextParams
 ): Promise<ExplainWordInContextResult> {
+  console.log('[API] explainWordInContext called for:', params.word);
   try {
     const {
       data: { session },
@@ -603,6 +604,7 @@ export async function explainWordInContext(
     }
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    console.log('[API] Calling edge function...');
 
     const response = await fetch(
       `${supabaseUrl}/functions/v1/explain-word-in-context`,
@@ -616,12 +618,16 @@ export async function explainWordInContext(
       }
     );
 
+    console.log('[API] Response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('[API] Error response:', errorText);
       throw new Error(`Failed to explain word: ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('[API] Success result:', result);
 
     return {
       definition: result.definition || null,
@@ -629,6 +635,7 @@ export async function explainWordInContext(
       error: null,
     };
   } catch (err) {
+    console.error('[API] Catch error:', err);
     return {
       definition: null,
       explanation: null,

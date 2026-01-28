@@ -134,14 +134,23 @@ const WordPopup: React.FC<WordPopupProps> = ({
   useEffect(() => {
     let cancelled = false;
     const fetchExplanation = async () => {
-      if (!word || !context) return;
+      if (!word || !context) {
+        console.log('[WordPopup] Skipping fetch - missing word or context');
+        return;
+      }
+      console.log('[WordPopup] Fetching explanation for:', word);
       setLoading(true);
       setDefinition(null);
       setExplanation(null);
       try {
         const result = await explainWordInContext({ word, context });
-        if (cancelled) return;
+        console.log('[WordPopup] API result:', result);
+        if (cancelled) {
+          console.log('[WordPopup] Request cancelled, ignoring result');
+          return;
+        }
         if (result.error) {
+          console.error('[WordPopup] API error:', result.error);
           setDefinition(null);
           setExplanation(null);
         } else {
@@ -150,7 +159,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
         }
       } catch (err) {
         if (cancelled) return;
-        console.error('Error fetching explanation:', err);
+        console.error('[WordPopup] Fetch error:', err);
         setExplanation(null);
       } finally {
         if (!cancelled) setLoading(false);
@@ -379,10 +388,12 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const handleWordClick = (e: React.MouseEvent, word: string) => {
     const cleanWord = word.replace(/[.,!?;:'"()]/g, '').trim();
     if (cleanWord.length < 2) return;
+    const context = extractRelevantContext(fullPassageText, cleanWord);
+    console.log('[WordClick] word:', cleanWord, 'context length:', context.length);
     setSelectedWord({
       word: cleanWord.toLowerCase(),
       position: { x: e.clientX, y: e.clientY },
-      context: extractRelevantContext(fullPassageText, cleanWord),
+      context,
     });
   };
 
