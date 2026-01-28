@@ -68,12 +68,12 @@ const translateToKorean = async (text: string): Promise<string | null> => {
       }
       return null;
     }
-    
+
     // For longer texts, split by sentences
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
     const chunks: string[] = [];
     let currentChunk = '';
-    
+
     for (const sentence of sentences) {
       if ((currentChunk + sentence).length > maxLength) {
         if (currentChunk) chunks.push(currentChunk.trim());
@@ -83,7 +83,7 @@ const translateToKorean = async (text: string): Promise<string | null> => {
       }
     }
     if (currentChunk) chunks.push(currentChunk.trim());
-    
+
     // Translate each chunk
     const translations: string[] = [];
     for (const chunk of chunks) {
@@ -97,7 +97,7 @@ const translateToKorean = async (text: string): Promise<string | null> => {
         translations.push(''); // Keep position
       }
     }
-    
+
     return translations.join(' ');
   } catch {
     return null;
@@ -118,6 +118,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
   const [definition, setDefinition] = useState<string | null>(null);
   const [explanation, setExplanation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -132,20 +133,12 @@ const WordPopup: React.FC<WordPopupProps> = ({
   // Fetch word explanation in context using AI
   useEffect(() => {
     const fetchExplanation = async () => {
+      if (!word || !context) return;
       setLoading(true);
       setDefinition(null);
-      setExplanation(null); // Reset for new word to prevent stale data
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:133',message:'fetchExplanation start',data:{word:word,contextLength:context?.length,hasWord:!!word,hasContext:!!context,sessionId:'debug-session',runId:'run1',hypothesisId:'B'},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
+      setExplanation(null);
       try {
-        const result = await explainWordInContext({
-          word,
-          context,
-        });
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:140',message:'explainWordInContext result received',data:{hasError:!!result.error,hasExplanation:!!result.explanation,explanationLength:result.explanation?.length,errorMessage:result.error?.message,sessionId:'debug-session',runId:'run1',hypothesisId:'E'},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+        const result = await explainWordInContext({ word, context });
         if (result.error) {
           setDefinition(null);
           setExplanation(null);
@@ -154,9 +147,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
           setExplanation(result.explanation);
         }
       } catch (err) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:147',message:'fetchExplanation catch',data:{errorMessage:err instanceof Error ? err.message : String(err),sessionId:'debug-session',runId:'run1',hypothesisId:'F'},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
+        console.error('Error fetching explanation:', err);
         setExplanation(null);
       } finally {
         setLoading(false);
@@ -165,21 +156,35 @@ const WordPopup: React.FC<WordPopupProps> = ({
     fetchExplanation();
   }, [word, context]);
 
+  useEffect(() => {
+    if (popupRef.current) {
+      setDimensions({
+        width: popupRef.current.offsetWidth,
+        height: popupRef.current.offsetHeight,
+      });
+    }
+  }, [loading, definition, explanation]);
+
+  const popupHeight = dimensions.height || 200;
+  const isNearBottom = position.y + popupHeight + 20 > window.innerHeight;
+  const adjustedTop = isNearBottom ? position.y - popupHeight - 10 : position.y + 10;
+
   return (
     <div
       ref={popupRef}
       className={cn(
-        'fixed z-50 rounded-lg shadow-xl border animate-in fade-in zoom-in-95 duration-150 w-64',
+        'fixed z-50 rounded-lg shadow-xl border animate-in fade-in zoom-in-95 duration-150 w-64 flex flex-col',
         darkMode ? 'bg-zinc-900 border-zinc-700' : 'bg-white border-gray-200'
       )}
       style={{
-        left: Math.min(position.x - 128, window.innerWidth - 280),
-        top: position.y + 10,
+        left: Math.max(10, Math.min(position.x - 128, window.innerWidth - 270)),
+        top: adjustedTop,
+        maxHeight: 'min(350px, 80vh)',
       }}
     >
       {/* Header */}
       <div className={cn(
-        'px-3 py-2 border-b flex items-center justify-between',
+        'px-3 py-2 border-b flex items-center justify-between shrink-0',
         darkMode ? 'border-zinc-700' : 'border-gray-200'
       )}>
         <span className={cn('font-bold text-sm', darkMode ? 'text-white' : 'text-gray-900')}>
@@ -192,8 +197,8 @@ const WordPopup: React.FC<WordPopupProps> = ({
         </button>
       </div>
 
-      {/* Definition and Explanation */}
-      <div className="px-3 py-2 space-y-2">
+      {/* Definition and Explanation - Scrollable if content is long */}
+      <div className="px-3 py-2.5 space-y-2 overflow-y-auto custom-scrollbar">
         {loading ? (
           <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
             Analyzing context...
@@ -203,10 +208,10 @@ const WordPopup: React.FC<WordPopupProps> = ({
             {/* Definition - Most Important */}
             {definition && (
               <div>
-                <p className={cn('text-xs font-semibold mb-1', darkMode ? 'text-zinc-200' : 'text-gray-800')}>
-                  Definition:
+                <p className={cn('text-[10px] uppercase tracking-wider font-bold mb-0.5', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
+                  Synonyms
                 </p>
-                <p className={cn('text-xs leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
+                <p className={cn('text-xs leading-relaxed font-medium', darkMode ? 'text-zinc-200' : 'text-gray-800')}>
                   {definition}
                 </p>
               </div>
@@ -214,12 +219,10 @@ const WordPopup: React.FC<WordPopupProps> = ({
             {/* Explanation */}
             {explanation && (
               <div>
-                {definition && (
-                  <p className={cn('text-xs font-semibold mb-1', darkMode ? 'text-zinc-200' : 'text-gray-800')}>
-                    Explanation:
-                  </p>
-                )}
-                <p className={cn('text-xs leading-relaxed', darkMode ? 'text-zinc-300' : 'text-gray-600')}>
+                <p className={cn('text-[10px] uppercase tracking-wider font-bold mb-0.5', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
+                  Context
+                </p>
+                <p className={cn('text-xs leading-snug italic', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
                   {explanation}
                 </p>
               </div>
@@ -233,11 +236,11 @@ const WordPopup: React.FC<WordPopupProps> = ({
         )}
       </div>
 
-      {/* Add to Vocabulary */}
-      <div className={cn('px-3 py-2 border-t', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
+      {/* Add to Vocabulary - Fixed at bottom */}
+      <div className={cn('px-3 py-2 border-t shrink-0', darkMode ? 'border-zinc-700' : 'border-gray-200')}>
         <button
           className={cn(
-            'w-full text-xs py-1.5 px-2 rounded transition-colors flex items-center justify-center gap-1',
+            'w-full text-xs font-semibold py-1.5 px-2 rounded transition-colors flex items-center justify-center gap-1',
             isAdded
               ? 'bg-emerald-600/20 text-emerald-400 cursor-default'
               : isAdding
@@ -298,19 +301,19 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   // Check bookmark status
   useEffect(() => {
     if (!exerciseId) return;
-    
+
     const check = async () => {
       const result = await checkBookmark(exerciseId);
       setIsBookmarked(result.isBookmarked);
     };
-    
+
     check();
   }, [exerciseId]);
 
   // Auto-translate passage to Korean
   useEffect(() => {
     if (!fullPassageText || translation) return;
-    
+
     const translate = async () => {
       setTranslationLoading(true);
       setTranslationError(false);
@@ -322,7 +325,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       }
       setTranslationLoading(false);
     };
-    
+
     translate();
   }, [fullPassageText, translation]);
 
@@ -333,7 +336,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     }
 
     setBookmarkLoading(true);
-    
+
     if (isBookmarked) {
       const result = await unbookmarkExercise(exerciseId);
       if (result.success) {
@@ -351,7 +354,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
         toast.error(result.error?.message || 'Failed to save bookmark');
       }
     }
-    
+
     setBookmarkLoading(false);
   };
 
@@ -414,7 +417,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     const isCorrect = userSuffix.toLowerCase() === correctSuffix.toLowerCase();
     return { blank, userSuffix, correctSuffix, isCorrect };
   });
-  
+
   const correctCount = results.filter(r => r.isCorrect).length;
   const totalCount = blanks.length;
   const percentage = Math.round((correctCount / totalCount) * 100);
@@ -565,12 +568,12 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
                 ) : (
-                  <svg 
+                  <svg
                     className={cn(
                       "w-5 h-5 transition-transform",
                       isBookmarked ? "" : "group-hover:scale-110"
-                    )} 
-                    fill={isBookmarked ? "currentColor" : "none"} 
+                    )}
+                    fill={isBookmarked ? "currentColor" : "none"}
                     stroke={isBookmarked ? "none" : "currentColor"}
                     viewBox="0 0 24 24"
                     strokeWidth={isBookmarked ? 0 : 1.5}
@@ -666,14 +669,14 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               {t('results.clickWordsToSave')}
             </span>
           </h3>
-          
+
           {/* English Passage - Responsive and consistent with problem passage */}
           <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto mb-6">
             <div className={cn(
               'p-5 rounded-lg border',
               darkMode ? 'bg-zinc-950/50 border-zinc-700' : 'bg-gray-50 border-gray-200'
             )}>
-              <p 
+              <p
                 className={cn(
                   'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
                   darkMode ? 'text-gray-100' : 'text-gray-900'
@@ -682,7 +685,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               >
                 {renderClickablePassage()}
               </p>
-              
+
               {/* Translation Toggle Button - Small, at bottom left of passage card */}
               <div className="mt-4 flex items-center justify-start">
                 <button
@@ -724,7 +727,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                   )}
                 </button>
               </div>
-              
+
               {/* Korean Translation - Shown when toggle is on */}
               {showTranslation && (
                 <div className="mt-4 pt-4 border-t">
@@ -739,7 +742,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
                       ⚠️ {t('results.translationError')}
                     </p>
                   ) : translation ? (
-                    <p 
+                    <p
                       className={cn(
                         'text-[17px] leading-[1.85] text-justify tracking-[0.01em]',
                         darkMode ? 'text-gray-100' : 'text-gray-900'

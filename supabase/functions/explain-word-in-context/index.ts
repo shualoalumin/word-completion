@@ -24,7 +24,7 @@ serve(async (req) => {
 
     const aiClient = new AIClient();
 
-    const systemPrompt = `You are an expert English teacher. Return JSON with "definition" (one sentence) and "explanation" (2-3 sentences) for the word's meaning in the given context.`;
+    const systemPrompt = `You are an expert English teacher. Return JSON with "definition" (2-3 very short synonyms) and "explanation" (max 2 short lines) for the word's meaning in the given context.`;
 
     // Limit context length for faster processing
     const limitedContext = context.length > 500 ? context.substring(0, 500) + '...' : context;
@@ -34,8 +34,8 @@ Context: "${limitedContext}"
 
 Return JSON:
 {
-  "definition": "One concise sentence defining '${word}' in this context",
-  "explanation": "2-3 sentences explaining how '${word}' functions here"
+  "definition": "2-3 easy synonyms separated by commas (e.g., 'huge, vast, massive')",
+  "explanation": "1-2 concise lines explaining context-specific use"
 }`;
 
     console.log(`Explaining word "${word}" in context...`);
