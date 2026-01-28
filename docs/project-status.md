@@ -493,6 +493,29 @@ exercises
 
 ## 📝 Change Log (최근 변경사항)
 
+### 2026-01-28 - TOEFL 2026 개편안 대응 및 시스템 안정화 🚀
+
+- 📝 **TOEFL 2026 개편안 심층 분석**
+  - ✅ `docs/algorithms/toefl-2026-format-summary.md` 생성 (개편 요약)
+  - ✅ `docs/algorithms/ets-build-sentence-algorithm.md` 생성 (Writing Task 1 상세 분석)
+  - 🎯 **핵심**: "Build a Sentence" 유형의 청킹(Chunking) 및 함정(Distractor) 알고리즘 정립
+
+- 🛠️ **시스템 안정화 및 개발 환경 동기화**
+  - ✅ `AGENTS.md`에 **Maintenance & Synchronization** 룰 추가 (로컬-서버 동기화 강제)
+  - ✅ `supabase/config.toml` 프로젝트 ID 동기화 및 보안 설정(`verify_jwt: false`) 조정
+  - ✅ 401 Unauthorized 에러 해결을 통해 비인증 사용자도 단어 설명 기능 사용 가능하도록 개선
+
+- 🎨 **UI/UX 개선**
+  - ✅ 단어 설명(Word Explanation) 팝업 레이아웃 최적화 (AI 응답 길이 제한 프롬프트 적용)
+  - ✅ "English Mode" 키보드 입력 힌트 추가 (연습 화면)
+  - ✅ 모바일 네비게이션 "App-like" 레이아웃으로 개선 및 아이콘 최적화
+
+- 🧹 **문서 구조 정리**
+  - ✅ 루트 폴더의 불필요한 스크립트 및 작업 로그 파일 삭제
+  - ✅ `CHANGELOG.md`를 `docs/` 폴더로 이동하여 문서 일관성 확보
+
+---
+
 ### 2026-01-18 - 아키텍처 중간점검 경과보고서 작성 📊
 
 - 📊 **아키텍처 중간점검 경과보고서 작성**

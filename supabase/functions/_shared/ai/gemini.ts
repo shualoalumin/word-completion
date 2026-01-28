@@ -4,7 +4,7 @@ export class GeminiProvider implements AIProvider {
   private apiKey: string;
   private model: string;
 
-  constructor(apiKey: string, model: string = "gemini-2.5-flash") {
+  constructor(apiKey: string, model: string = "gemini-1.5-flash") {
     this.apiKey = apiKey;
     this.model = model;
   }
@@ -45,7 +45,7 @@ export class GeminiProvider implements AIProvider {
     }
 
     const data = await response.json();
-    
+
     // Safety check for response structure
     if (!data.candidates || data.candidates.length === 0) {
       throw new Error("Gemini returned no candidates.");

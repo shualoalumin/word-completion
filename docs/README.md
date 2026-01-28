@@ -35,10 +35,21 @@ docs/
 
 ---
 
+## 📋 Status & History (프로젝트 상태 및 기록)
+
+| 문서 | 설명 |
+|------|------|
+| [**Project Status**](project-status.md) | **현재 전체 진행 상황 및 상세 Change Log (Main)** |
+| [**Changelog**](CHANGELOG.md) | 주요 릴리즈 및 개발 마일스톤 기록 |
+| [Development Summary](development-summary.md) | 초기 개발 요약 및 아카이브 |
+
+---
+
 ## 📖 Guides (설정 가이드)
 
 | 문서 | 설명 |
 |------|------|
+| [**Unified Context Management**](guides/unified-context-management.md) | **다중 IDE/환경 간 일관된 개발 컨텍스트 유지법** |
 | [Supabase Setup](guides/supabase-setup.md) | Auth, DB, Edge Functions 설정 |
 
 ---
@@ -51,8 +62,6 @@ docs/
 | [UI/UX Issues & API Problems (2026-01-26)](troubleshooting/2026-01-26-ui-and-api-issues.md) | ✅ Fixed | Git 커밋 메시지, 반응형 UI, 단어 설명 API, Translation 토글 |
 
 ---
-
-## 📋 Main Documents
 
 | 문서 | 설명 |
 |------|------|
