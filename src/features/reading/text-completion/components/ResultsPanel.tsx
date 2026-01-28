@@ -460,8 +460,9 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   const difficultyConfig = passage?.difficulty ? DIFFICULTY_CONFIG[passage.difficulty] : null;
 
   const renderClickablePassage = () => {
-    const words = fullPassageText.split(/(\s+)/);
-    return words.map((segment, index) => {
+    // Split on whitespace OR between punctuation and capital letter (e.g., "word.Next" -> "word.", "Next")
+    const words = fullPassageText.split(/(\s+)|(?<=[.!?])(?=[A-Z])/);
+    return words.filter(Boolean).map((segment, index) => {
       if (/^\s+$/.test(segment)) return <span key={index}>{segment}</span>;
       const cleanWord = segment.replace(/[.,!?;:'"()]/g, '').trim();
       const isClickable = cleanWord.length >= 2;

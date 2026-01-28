@@ -14,8 +14,8 @@ export class AIClient {
         if (!apiKey) {
           throw new Error("GEMINI_API_KEY is not configured");
         }
-        // Force gemini-1.5-flash for maximum reliability
-        const model = Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash";
+        // Use gemini-2.0-flash (1.5-flash deprecated in v1beta)
+        const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash";
         this.provider = new GeminiProvider(apiKey, model);
         break;
       }
