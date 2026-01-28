@@ -72,6 +72,14 @@
   perform the `add`, `commit`, and `push` cycle without waiting for a user
   request to ensure progress is tracked in real-time.
 
+### 🚀 Supabase Edge Function Deployment
+
+- **Command**: Always use `--use-api` flag to deploy without Docker:
+  ```bash
+  npx supabase functions deploy <function-name> --no-verify-jwt --use-api
+  ```
+- **Reason**: Docker is not required; server-side bundling is faster and simpler.
+
 ---
 
 ## 5. Documentation

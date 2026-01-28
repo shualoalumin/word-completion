@@ -6,7 +6,9 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\ndebug: add console logs to word definition feature\n\n- Add logging to track word clicks, API calls, and responses\n- Fix mousedown/click event conflict with stopPropagation\n- Add cancelled flag to prevent race conditions\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx supabase functions deploy:*)",
+      "Bash(npx supabase:*)"
     ]
   }
 }
