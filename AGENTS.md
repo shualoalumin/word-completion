@@ -1,6 +1,6 @@
 # 🧠 TOEFL iBT Project Constitution
 
-> **Vision**: Build a scalable, global-ready TOEFL learning platform.  
+> **Vision**: Build a scalable, global-ready TOEFL learning platform.\
 > **Core Philosophy**: Long-term Scalability > Short-term Convenience.
 
 ---
@@ -8,13 +8,16 @@
 ## 1. Architectural Principles
 
 ### 🛡️ Clean In, Clean Out (Data Integrity)
-- **Principle**: Never rely on frontend to fix broken data. Fix it at the source (Ingestion Layer).
+
+- **Principle**: Never rely on frontend to fix broken data. Fix it at the source
+  (Ingestion Layer).
 - **Practice**:
-    - AI-generated content MUST be normalized **before** database insertion.
-    - Use `_shared/normalize-spacing.ts` in Edge Functions.
-    - Implement **Self-Healing** logic for reading cached data.
+  - AI-generated content MUST be normalized **before** database insertion.
+  - Use `_shared/normalize-spacing.ts` in Edge Functions.
+  - Implement **Self-Healing** logic for reading cached data.
 
 ### 🌍 Global First (Scalability)
+
 - Database schema is designed for global scale (41+ tables).
 - Always consider **i18n** (Internationalization) constraints.
 - Avoid hardcoded logic that breaks in other languages (e.g., blind spacing).
@@ -33,27 +36,45 @@
 ## 3. Critical Implementation Rules
 
 ### AI Content Generation
-- **Prompting**: Explicitly instruct AI about formatting (e.g., "Text MUST end with a space").
-- **Spacing**: AI treats spaces as separators. Always verify `Text` <-> `Blank` boundaries.
+
+- **Prompting**: Explicitly instruct AI about formatting (e.g., "Text MUST end
+  with a space").
+- **Spacing**: AI treats spaces as separators. Always verify `Text` <-> `Blank`
+  boundaries.
 
 ### Database
+
 - **Schema**: Use `docs/architecture/database-schema.md` as the source of truth.
-- **Migration**: Prefer lazy migration (self-healing) over batch updates for live data.
+- **Migration**: Prefer lazy migration (self-healing) over batch updates for
+  live data.
 
 ---
 
 ## 4. Maintenance & Synchronization
 
 ### 🔄 Environment Synchronization
-- **Principle**: Local configuration must reflect the real remote state to prevent drift.
+
+- **Principle**: Local configuration must reflect the real remote state to
+  prevent drift.
 - **Practice**:
-    - **Supabase Config**: Whenever a function is deployed or settings are changed via tools, update `supabase/config.toml` immediately.
-    - **Project ID**: Ensure the `project_id` in `config.toml` matches the active project being worked on.
-    - **Edge Function Settings**: Keep `verify_jwt` and other function-specific flags in sync between local config and remote deployment.
+  - **Supabase Config**: Whenever a function is deployed or settings are changed
+    via tools, update `supabase/config.toml` immediately.
+  - **Project ID**: Ensure the `project_id` in `config.toml` matches the active
+    project being worked on.
+  - **Edge Function Settings**: Keep `verify_jwt` and other function-specific
+    flags in sync between local config and remote deployment.
+- **Automated Execution**: When the user explicitly requests "push" or "push
+  완료", execute the corresponding git commands directly without asking for
+  further confirmation, assuming the safety and correctness of the staged
+  changes.
+- **Proactive Pushing**: For simple modifications like Markdown (`.md`) updates,
+  documentation, or minor UI adjustments (CSS/Layout tweaks), automatically
+  perform the `add`, `commit`, and `push` cycle without waiting for a user
+  request to ensure progress is tracked in real-time.
 
 ---
 
 ## 5. Documentation
+
 - Update `docs/dev-logs/` for major architectural decisions.
 - Keep `docs/troubleshooting/` updated with solved critical issues.
-
