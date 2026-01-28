@@ -9,7 +9,7 @@ export class AIClient {
     const providerName = (Deno.env.get("AI_PROVIDER") as AIProviderName) || "gemini";
 
     switch (providerName) {
-      case "gemini":
+      case "gemini": {
         const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
         if (!apiKey) {
           throw new Error("GEMINI_API_KEY is not configured");
@@ -18,15 +18,19 @@ export class AIClient {
         const model = Deno.env.get("GEMINI_MODEL") || "gemini-1.5-flash";
         this.provider = new GeminiProvider(apiKey, model);
         break;
+      }
 
-      case "openai":
+      case "openai": {
         throw new Error("OpenAI provider not yet implemented");
+      }
 
-      case "lovable":
+      case "lovable": {
         throw new Error("Lovable provider is deprecated. Please migrate to Gemini or OpenAI.");
+      }
 
-      default:
+      default: {
         throw new Error(`Unsupported AI provider: ${providerName}`);
+      }
     }
   }
 
@@ -43,9 +47,9 @@ export class AIClient {
           // Clean up markdown code blocks if AI included them
           const cleanedText = resultText.replace(/```json\n?|\n?```/g, '').trim();
           return JSON.parse(cleanedText);
-        } catch (e) {
-          console.error("Failed to parse JSON response:", resultText);
-          throw new Error("AI returned invalid JSON");
+        } catch (_e) {
+          console.error("Failed to parse AI JSON. Raw response:", resultText);
+          throw new Error("AI returned invalid JSON structure");
         }
       }
 
