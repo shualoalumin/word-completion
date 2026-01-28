@@ -35,29 +35,48 @@ export class AIClient {
   }
 
   async generate(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<any> {
-    try {
-      const resultText = await this.provider.generateContent({
-        systemPrompt,
-        userPrompt,
-        jsonMode
-      });
+    const models = [
+      Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash",
+      "gemini-1.5-flash"
+    ];
+    
+    let lastError: any = null;
+    const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
 
-      if (jsonMode) {
-        try {
-          // Clean up markdown code blocks if AI included them
-          const cleanedText = resultText.replace(/```json\n?|\n?```/g, '').trim();
-          return JSON.parse(cleanedText);
-        } catch (_e) {
-          console.error("Failed to parse AI JSON. Raw response:", resultText);
-          throw new Error("AI returned invalid JSON structure");
+    for (const model of models) {
+      try {
+        console.log(`AIClient: Trying model ${model}...`);
+        const provider = new GeminiProvider(apiKey || "", model);
+        const resultText = await provider.generateContent({
+          systemPrompt,
+          userPrompt,
+          jsonMode
+        });
+
+        if (jsonMode) {
+          try {
+            const cleanedText = resultText.replace(/```json\n?|\n?```/g, '').trim();
+            return JSON.parse(cleanedText);
+          } catch (parseError) {
+            console.error(`AIClient: JSON parse error for model ${model}:`, parseError);
+            console.error("Raw response:", resultText);
+            throw new Error("AI returned invalid JSON structure");
+          }
+        }
+
+        return resultText;
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`AIClient: Model ${model} failed. Error:`, error.message);
+        
+        // If this wasn't the last model, try the next one
+        if (model !== models[models.length - 1]) {
+           console.log("AIClient: Attempting fallback to next model...");
+           continue;
         }
       }
-
-      return resultText;
-    } catch (error) {
-      console.error("AI Generation Error:", error);
-      throw error;
     }
+
+    throw lastError || new Error("AI Generation failed with all available models");
   }
 }
-

@@ -130,43 +130,43 @@ const WordPopup: React.FC<WordPopupProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
+  const [errorStatus, setErrorStatus] = useState<string | null>(null);
+
   // Fetch word explanation in context using AI
-  useEffect(() => {
-    let cancelled = false;
-    const fetchExplanation = async () => {
-      if (!word || !context) {
-        console.log('[WordPopup] Skipping fetch - missing word or context');
-        return;
-      }
-      console.log('[WordPopup] Fetching explanation for:', word);
-      setLoading(true);
-      setDefinition(null);
-      setExplanation(null);
-      try {
-        const result = await explainWordInContext({ word, context });
-        console.log('[WordPopup] API result:', result);
-        if (cancelled) {
-          console.log('[WordPopup] Request cancelled, ignoring result');
-          return;
-        }
-        if (result.error) {
-          console.error('[WordPopup] API error:', result.error);
-          setDefinition(null);
-          setExplanation(null);
-        } else {
-          setDefinition(result.definition);
-          setExplanation(result.explanation);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        console.error('[WordPopup] Fetch error:', err);
+  const fetchExplanation = async () => {
+    if (!word || !context) {
+      console.log('[WordPopup] Skipping fetch - missing word or context');
+      return;
+    }
+    console.log('[WordPopup] Fetching explanation for:', word);
+    setLoading(true);
+    setErrorStatus(null);
+    setDefinition(null);
+    setExplanation(null);
+    try {
+      const result = await explainWordInContext({ word, context });
+      console.log('[WordPopup] API result:', result);
+      
+      if (result.error) {
+        console.error('[WordPopup] API error:', result.error);
+        setErrorStatus(result.error.message);
+        setDefinition(null);
         setExplanation(null);
-      } finally {
-        if (!cancelled) setLoading(false);
+      } else {
+        setDefinition(result.definition);
+        setExplanation(result.explanation);
       }
-    };
+    } catch (err: any) {
+      console.error('[WordPopup] Fetch error:', err);
+      setErrorStatus(err.message || 'Unknown network error');
+      setExplanation(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchExplanation();
-    return () => { cancelled = true; };
   }, [word, context]);
 
   useEffect(() => {
@@ -176,7 +176,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
         height: popupRef.current.offsetHeight,
       });
     }
-  }, [loading, definition, explanation]);
+  }, [loading, definition, explanation, errorStatus]);
 
   const popupHeight = dimensions.height || 200;
   const isNearBottom = position.y + popupHeight + 20 > window.innerHeight;
@@ -213,9 +213,12 @@ const WordPopup: React.FC<WordPopupProps> = ({
       {/* Definition and Explanation - Scrollable if content is long */}
       <div className="px-3 py-2.5 space-y-2 overflow-y-auto custom-scrollbar">
         {loading ? (
-          <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
-            Analyzing context...
-          </p>
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
+              Analyzing context...
+            </p>
+          </div>
         ) : (
           <>
             {/* Definition - Most Important */}
@@ -240,7 +243,20 @@ const WordPopup: React.FC<WordPopupProps> = ({
                 </p>
               </div>
             )}
-            {!definition && !explanation && (
+            {errorStatus && (
+              <div className="space-y-2">
+                <p className={cn('text-xs text-red-400 font-medium')}>
+                  {errorStatus.includes('429') ? 'Rate limit exceeded.' : 'Failed to fetch explanation.'}
+                </p>
+                <button 
+                  onClick={() => fetchExplanation()}
+                  className="text-[10px] px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-600 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+            {!definition && !explanation && !errorStatus && (
               <p className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>
                 Unable to explain word in this context.
               </p>
