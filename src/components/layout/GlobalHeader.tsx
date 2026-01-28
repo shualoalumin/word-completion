@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { useResponsiveNav } from './hooks/useResponsiveNav';
 import {
   LayoutDashboard,
-  GraduationCap,
+  PencilLine,
   Book,
   Bookmark,
   History,
@@ -49,8 +49,8 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
 
   const navItems = [
     { path: '/dashboard', label: t('dashboard.title'), icon: LayoutDashboard },
-    { path: '/practice', label: t('practiceSelection.title', 'Practice'), icon: GraduationCap },
-    { path: '/vocabulary', label: t('vocabulary.title'), icon: Book },
+    { path: '/practice', label: 'Practice', icon: PencilLine },
+    { path: '/vocabulary', label: 'My Vocab', icon: Book },
     { path: '/bookmarks', label: t('bookmarks.title'), icon: Bookmark },
     { path: '/history', label: t('history.title'), icon: History },
     { path: '/achievements', label: 'Achievements', icon: Trophy },
@@ -214,9 +214,9 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
 
         {/* Mobile Navigation - Also use More menu instead of scrollbar */}
         {isAuthenticated && (
-          <div className="md:hidden py-2 border-t border-zinc-200 dark:border-zinc-800 mt-0">
-            <nav className="flex items-center justify-between px-2">
-              <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pb-1">
+          <div className="md:hidden py-1 border-t border-zinc-200 dark:border-zinc-800 mt-0">
+            <nav className="flex items-center justify-between px-2 h-10 overflow-hidden">
+              <div className="flex items-center gap-1 flex-1 min-w-0 h-full overflow-x-auto no-scrollbar">
                 {navItems.slice(0, 3).map((item) => {
                   const active = isActive(item.path);
                   const Icon = item.icon;
@@ -225,18 +225,16 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                       key={item.path}
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        'flex flex-col items-center justify-center min-w-[64px] py-1 gap-1 text-[10px] font-medium transition-colors rounded-md',
+                        'flex items-center gap-1.5 px-3 h-full text-xs font-medium transition-colors border-b-2 whitespace-nowrap',
                         active
                           ? darkMode
-                            ? 'text-white bg-zinc-800'
-                            : 'text-gray-900 bg-gray-100'
-                          : darkMode
-                            ? 'text-zinc-500'
-                            : 'text-gray-500'
+                            ? 'text-white border-orange-500'
+                            : 'text-gray-900 border-orange-500'
+                          : 'border-transparent text-zinc-500 hover:text-zinc-300'
                       )}
                     >
-                      {Icon && <Icon className={cn("w-5 h-5", active ? "text-orange-500" : "text-zinc-400")} />}
-                      {item.label.split(' ')[0]}
+                      {Icon && <Icon className={cn("w-4 h-4", active ? "text-orange-500" : "text-zinc-400")} />}
+                      {item.label}
                     </button>
                   );
                 })}
@@ -246,11 +244,10 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                 <DropdownMenuTrigger asChild>
                   <button
                     className={cn(
-                      'flex flex-col items-center justify-center min-w-[64px] py-1 gap-1 text-[10px] font-medium transition-colors rounded-md',
-                      darkMode ? 'text-zinc-500' : 'text-gray-500'
+                      'flex items-center gap-1 px-3 h-full text-xs font-medium transition-colors border-b-2 border-transparent text-zinc-500 whitespace-nowrap ml-2',
                     )}
                   >
-                    <MoreHorizontal className="w-5 h-5" />
+                    <MoreHorizontal className="w-4 h-4 mr-1" />
                     More
                   </button>
                 </DropdownMenuTrigger>
@@ -260,7 +257,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                     'w-48',
                     darkMode
                       ? 'bg-zinc-900 border-zinc-800'
-                      : 'bg-white border-gray-200'
+                      : 'bg-white border-gray-200 shadow-lg px-1 py-1'
                   )}
                 >
                   {navItems.slice(3).map((item) => {
@@ -271,14 +268,14 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
                         key={item.path}
                         onClick={() => navigate(item.path)}
                         className={cn(
-                          'flex items-center gap-2 px-3 py-2 cursor-pointer',
+                          'flex items-center gap-2 px-3 py-2 cursor-pointer rounded-md transition-colors mb-0.5 last:mb-0',
                           active
                             ? darkMode
                               ? 'text-white bg-zinc-800'
                               : 'text-gray-900 bg-gray-100'
                             : darkMode
-                              ? 'text-zinc-400'
-                              : 'text-gray-600'
+                              ? 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                         )}
                       >
                         {Icon && <Icon className="w-4 h-4" />}
