@@ -1,24 +1,25 @@
 # 📊 프로젝트 상태 모니터링
 
-> **Last Updated**: 2026-01-18 (일요일, KST 기준)  
-> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ (완료) → Phase 2.5 🔧 (버그 수정 및 UI 개선)  
-> **전체 진행률**: 약 17% (스키마 기준) / 40% (기능 단위, 과대평가됨)  
+> **Last Updated**: 2026-01-18 (일요일, KST 기준)\
+> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ (완료) → Phase 2.5 🔧 (버그 수정 및
+> UI 개선)\
+> **전체 진행률**: 약 17% (스키마 기준) / 40% (기능 단위, 과대평가됨)\
 > **목적**: 프로젝트의 현재 위치와 다음 단계를 시각적으로 파악
 
 ---
 
 ## 📌 Quick Status (현재 상태 한눈에)
 
-| 항목 | 상태 | 비고 |
-|------|------|------|
-| **DB 구현률** | 8/46 테이블 (17.4%) | exercises, user_profiles, user_exercise_history, user_streaks, user_vocabulary (+ 3개 어휘 테이블) ✅ |
-| **Text Completion** | 100% ✅ | 기능 완료, Review 모드 버그 수정 완료 (2026-01-18) |
-| **Dashboard** | 100% ✅ | Recent Activity %, Review 링크, 난이도별 통계 ✅ |
-| **History** | 100% ✅ | 전체 기록 페이지 추가 (2026-01-18), 월별 그룹핑 |
-| **Vocabulary System** | 100% ✅ | 단어장 페이지, 복습 테스트 (3가지 모드), SM-2 알고리즘 |
-| **Exercises 캐시** | 55개 ✅ | 목표 20개 초과 달성 |
-| **Auth** | ✅ 완료 | Google OAuth 구현 완료 |
-| **Edge Function** | ✅ 배포 완료 | generate-passage, difficulty/topic_category 반환 ✅ |
+| 항목                  | 상태                | 비고                                                                                                  |
+| --------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
+| **DB 구현률**         | 8/46 테이블 (17.4%) | exercises, user_profiles, user_exercise_history, user_streaks, user_vocabulary (+ 3개 어휘 테이블) ✅ |
+| **Text Completion**   | 100% ✅             | 기능 완료, Review 모드 버그 수정 완료 (2026-01-18)                                                    |
+| **Dashboard**         | 100% ✅             | Recent Activity %, Review 링크, 난이도별 통계 ✅                                                      |
+| **History**           | 100% ✅             | 전체 기록 페이지 추가 (2026-01-18), 월별 그룹핑                                                       |
+| **Vocabulary System** | 100% ✅             | 단어장 페이지, 복습 테스트 (3가지 모드), SM-2 알고리즘                                                |
+| **Exercises 캐시**    | 55개 ✅             | 목표 20개 초과 달성                                                                                   |
+| **Auth**              | ✅ 완료             | Google OAuth 구현 완료                                                                                |
+| **Edge Function**     | ✅ 배포 완료        | generate-passage, difficulty/topic_category 반환 ✅                                                   |
 
 ---
 
@@ -192,30 +193,30 @@
 
 ### ✅ 구현된 테이블 (8/46)
 
-| 테이블 | 상태 | 용도 | 비고 |
-|--------|------|------|------|
-| `exercises` | ✅ | 문제 캐시 | 55개, difficulty/topic_category 포함 |
-| `user_profiles` | ✅ | 사용자 프로필 | Auth 트리거로 자동 생성 |
-| `user_exercise_history` | ✅ | 풀이 기록 | difficulty, topic_category 필드 추가 ✅ |
-| `user_streaks` | ✅ | 스트릭 계산 | 트리거로 자동 업데이트 |
-| `user_vocabulary` | ✅ | 개인 단어장 | SM-2 필드 포함 |
-| `user_vocabulary_reviews` | ✅ | 복습 기록 | 테스트 결과 저장 |
-| `user_vocabulary_metrics` | ✅ | 어휘 메트릭 | 주간/월간 집계 |
-| `user_vocabulary_growth` | ✅ | 어휘 성장 | 성장 지표 추적 |
+| 테이블                    | 상태 | 용도          | 비고                                    |
+| ------------------------- | ---- | ------------- | --------------------------------------- |
+| `exercises`               | ✅   | 문제 캐시     | 55개, difficulty/topic_category 포함    |
+| `user_profiles`           | ✅   | 사용자 프로필 | Auth 트리거로 자동 생성                 |
+| `user_exercise_history`   | ✅   | 풀이 기록     | difficulty, topic_category 필드 추가 ✅ |
+| `user_streaks`            | ✅   | 스트릭 계산   | 트리거로 자동 업데이트                  |
+| `user_vocabulary`         | ✅   | 개인 단어장   | SM-2 필드 포함                          |
+| `user_vocabulary_reviews` | ✅   | 복습 기록     | 테스트 결과 저장                        |
+| `user_vocabulary_metrics` | ✅   | 어휘 메트릭   | 주간/월간 집계                          |
+| `user_vocabulary_growth`  | ✅   | 어휘 성장     | 성장 지표 추적                          |
 
 ### 📋 다음 구현 테이블 (우선순위순)
 
-| 테이블 | 우선순위 | 용도 | Phase |
-|--------|---------|------|-------|
-| `user_skills` | **P1** | 스킬별 숙련도 | 3 |
-| `user_bookmarks` | **P1** | 문제 북마크 | 3 |
-| `user_learning_patterns` | P1 | 시간대별 패턴 | 3 |
-| `user_usage_limits` | P2 | 사용량 제한 | 4 |
-| `achievements` | P2 | 업적 정의 | 3 |
-| `user_achievements` | P2 | 업적 달성 | 3 |
-| `leaderboard_weekly` | P2 | 주간 랭킹 | 3 |
-| `user_follows` | P3 | 친구/팔로우 | 4 |
-| `subscriptions` | P3 | 구독 정보 | 5 |
+| 테이블                   | 우선순위 | 용도          | Phase |
+| ------------------------ | -------- | ------------- | ----- |
+| `user_skills`            | **P1**   | 스킬별 숙련도 | 3     |
+| `user_bookmarks`         | **P1**   | 문제 북마크   | 3     |
+| `user_learning_patterns` | P1       | 시간대별 패턴 | 3     |
+| `user_usage_limits`      | P2       | 사용량 제한   | 4     |
+| `achievements`           | P2       | 업적 정의     | 3     |
+| `user_achievements`      | P2       | 업적 달성     | 3     |
+| `leaderboard_weekly`     | P2       | 주간 랭킹     | 3     |
+| `user_follows`           | P3       | 친구/팔로우   | 4     |
+| `subscriptions`          | P3       | 구독 정보     | 5     |
 
 ### 📋 전체 스키마 진행률
 
@@ -234,7 +235,8 @@
 Total:                 ██░░░░  17.4% (8/46)
 ```
 
-**참고**: 전체 스키마는 `docs/architecture/database-schema.md`, 갭 분석은 `docs/architecture/schema-vs-fe-gap-analysis.md` 참조
+**참고**: 전체 스키마는 `docs/architecture/database-schema.md`, 갭 분석은
+`docs/architecture/schema-vs-fe-gap-analysis.md` 참조
 
 ---
 
@@ -304,6 +306,7 @@ Total:                 ██░░░░  17.4% (8/46)
 **목표**: 사용자가 문제를 완료하면 기록 저장
 
 **작업 리스트**:
+
 1. [x] `user_exercise_history` 테이블 존재 확인 (이미 생성됨)
 2. [x] RLS (Row Level Security) 정책 확인 (이미 설정됨)
 3. [x] `TextCompletion` 컴포넌트에 저장 로직 추가
@@ -313,8 +316,10 @@ Total:                 ██░░░░  17.4% (8/46)
 6. [x] Supabase Database 타입 생성 및 업데이트
 
 **구현 파일**:
+
 - `src/features/reading/text-completion/hooks/useTextCompletion.ts` ✅
-- `src/features/reading/text-completion/api.ts` ✅ (saveExerciseHistory, findExerciseId)
+- `src/features/reading/text-completion/api.ts` ✅ (saveExerciseHistory,
+  findExerciseId)
 - `src/integrations/supabase/types.ts` ✅ (타입 업데이트)
 
 **예상 소요 시간**: 2-3시간
@@ -326,6 +331,7 @@ Total:                 ██░░░░  17.4% (8/46)
 **목표**: 실제 데이터로 Dashboard 통계 표시
 
 **완료된 작업**:
+
 1. [x] ✅ `user_streaks` 테이블 생성 및 마이그레이션 적용
 2. [x] ✅ 스트릭 계산 함수 및 트리거 함수 생성 (자동 업데이트)
 3. [x] ✅ Dashboard API 함수들 생성:
@@ -341,6 +347,7 @@ Total:                 ██░░░░  17.4% (8/46)
 5. [x] ✅ Recent Activity 섹션 구현 (최근 5개 기록, 점수별 색상 구분)
 
 **생성된 파일**:
+
 - `src/pages/Dashboard.tsx` (업데이트)
 - `src/features/dashboard/api.ts` (신규)
 - `src/features/dashboard/hooks/useDashboardStats.ts` (신규)
@@ -354,7 +361,8 @@ Total:                 ██░░░░  17.4% (8/46)
 
 ### ⚠️ 진행률 재평가 (2026-01-16 갭 분석 결과)
 
-기존에 "Phase 1, 2 완료 = 40%"로 계산했으나, 46개 테이블 스키마 기준 재평가 결과:
+기존에 "Phase 1, 2 완료 = 40%"로 계산했으나, 46개 테이블 스키마 기준 재평가
+결과:
 
 ```
 📊 스키마 기반 진행률 (정확한 계산)
@@ -389,7 +397,8 @@ Phase 5 (Payments):   ░░░░░░░░░░░░   0% ⏳
 분석/알림/지원:       ░░░░░░░░░░░░  0%   (0/13 테이블)
 ```
 
-> **참고**: 자세한 갭 분석은 `docs/architecture/schema-vs-fe-gap-analysis.md` 참조
+> **참고**: 자세한 갭 분석은 `docs/architecture/schema-vs-fe-gap-analysis.md`
+> 참조
 
 ---
 
@@ -434,6 +443,7 @@ exercises
 ### flow-5 구현 완료 ✅
 
 **구현 내용**:
+
 - ✅ `saveExerciseHistory()` API 함수 생성
 - ✅ `findExerciseId()` 헬퍼 함수 (topic + blank count 매칭)
 - ✅ `checkAnswers()` 함수에 저장 로직 추가
@@ -444,6 +454,7 @@ exercises
 - ✅ Supabase Database 타입 생성 및 업데이트
 
 **핵심 로직**:
+
 1. 사용자가 "Check Answers" 클릭
 2. `checkAnswers()` 실행:
    - 소요 시간 계산 (시작 시간 기준)
@@ -455,6 +466,7 @@ exercises
 3. 결과 표시
 
 **주의사항**:
+
 - Edge Function이 `exercise_id`를 반환하지 않아 `findExerciseId()`로 조회
 - Topic + Blank Count 매칭 사용 (향후 Edge Function 수정 고려)
 - 비인증 사용자는 에러 없이 조용히 스킵 (Optional Auth Pattern)
@@ -462,6 +474,7 @@ exercises
 ### flow-6 구현 완료 ✅
 
 **구현 내용**:
+
 - ✅ `user_streaks` 테이블 생성 및 마이그레이션 적용
 - ✅ 스트릭 계산 함수 (`update_user_streak`) 생성
 - ✅ 트리거 함수 (`trigger_update_streak_on_exercise_complete`) 생성
@@ -481,6 +494,7 @@ exercises
   - 시간 표시 (time ago 함수)
 
 **핵심 로직**:
+
 1. 사용자가 문제를 완료하면 `user_exercise_history`에 저장됨
 2. 트리거가 자동으로 `update_user_streak()` 함수 호출
 3. 스트릭 계산 로직:
@@ -497,16 +511,22 @@ exercises
 
 - 📝 **TOEFL 2026 개편안 심층 분석**
   - ✅ `docs/algorithms/toefl-2026-format-summary.md` 생성 (개편 요약)
-  - ✅ `docs/algorithms/ets-build-sentence-algorithm.md` 생성 (Writing Task 1 상세 분석)
-  - 🎯 **핵심**: "Build a Sentence" 유형의 청킹(Chunking) 및 함정(Distractor) 알고리즘 정립
+  - ✅ `docs/algorithms/ets-build-sentence-algorithm.md` 생성 (Writing Task 1
+    상세 분석)
+  - 🎯 **핵심**: "Build a Sentence" 유형의 청킹(Chunking) 및 함정(Distractor)
+    알고리즘 정립
 
 - 🛠️ **시스템 안정화 및 개발 환경 동기화**
-  - ✅ `AGENTS.md`에 **Maintenance & Synchronization** 룰 추가 (로컬-서버 동기화 강제)
-  - ✅ `supabase/config.toml` 프로젝트 ID 동기화 및 보안 설정(`verify_jwt: false`) 조정
-  - ✅ 401 Unauthorized 에러 해결을 통해 비인증 사용자도 단어 설명 기능 사용 가능하도록 개선
+  - ✅ `AGENTS.md`에 **Maintenance & Synchronization** 룰 추가 (로컬-서버 동기화
+    강제)
+  - ✅ `supabase/config.toml` 프로젝트 ID 동기화 및 보안
+    설정(`verify_jwt: false`) 조정
+  - ✅ 401 Unauthorized 에러 해결을 통해 비인증 사용자도 단어 설명 기능 사용
+    가능하도록 개선
 
 - 🎨 **UI/UX 개선**
-  - ✅ 단어 설명(Word Explanation) 팝업 레이아웃 최적화 (AI 응답 길이 제한 프롬프트 적용)
+  - ✅ 단어 설명(Word Explanation) 팝업 레이아웃 최적화 (AI 응답 길이 제한
+    프롬프트 적용)
   - ✅ "English Mode" 키보드 입력 힌트 추가 (연습 화면)
   - ✅ 모바일 네비게이션 "App-like" 레이아웃으로 개선 및 아이콘 최적화
 
@@ -520,7 +540,8 @@ exercises
 
 - 📊 **아키텍처 중간점검 경과보고서 작성**
   - ✅ `docs/architecture/2026-01-18-architecture-midterm-review.md` 생성
-  - ✅ 배포된 사이트 (`word-completion.pages.dev`) 대비 아키텍처 원칙 준수 현황 분석
+  - ✅ 배포된 사이트 (`word-completion.pages.dev`) 대비 아키텍처 원칙 준수 현황
+    분석
   - ✅ 전체 점수: **52/70 (74%)**
   - ✅ 주요 문제점 5가지 식별 및 해결 방안 제시
   - ✅ 즉시 수정 필요 (P0) 및 중기 개선 (P1) 항목 정리
@@ -573,7 +594,8 @@ exercises
 
 - ✅ **cn import 버그 수정**
   - Dashboard에서 `cn` import 누락으로 렌더링 실패
-  - 근본 원인 분석: `docs/troubleshooting/2026-01-16-cn-import-missing-root-cause-analysis.md`
+  - 근본 원인 분석:
+    `docs/troubleshooting/2026-01-16-cn-import-missing-root-cause-analysis.md`
 
 - ✅ **UI 레이아웃 개선**
   - ExerciseLayout max-w 확장 (max-w-4xl → max-w-[1600px])
@@ -594,9 +616,11 @@ exercises
 ---
 
 ### 2026-01-11 (오후) - 어휘력 향상 시스템 구현 완료 ✅
+
 - ✅ **어휘력 향상 시스템 전체 구현 완료** (Phase 2+ 완료)
   - ✅ 데이터베이스 스키마 마이그레이션 적용
-    - `user_vocabulary` 테이블 생성 및 확장 (source_context, source_passage_id, added_from 등)
+    - `user_vocabulary` 테이블 생성 및 확장 (source_context, source_passage_id,
+      added_from 등)
     - `user_vocabulary_reviews` 테이블 생성 (복습 테스트 기록)
     - `user_vocabulary_metrics` 테이블 생성 (주간/월간 집계)
     - `user_vocabulary_growth` 테이블 생성 (성장 지표)
@@ -615,45 +639,56 @@ exercises
     - Flashcard 모드 (단어 → 정의 맞추기)
     - Fill in Blank 모드 (정의 → 단어 입력)
     - Multiple Choice 모드 (4지선다)
-    - SM-2 알고리즘 기본 구현 (mastery_level, retention_score, next_review_at 업데이트)
+    - SM-2 알고리즘 기본 구현 (mastery_level, retention_score, next_review_at
+      업데이트)
   - ✅ Dashboard 확장
     - 어휘력 통계 섹션 추가 (5개 통계 카드)
     - Quick Actions에 단어장 링크 추가
   - ✅ API 및 Hooks 구현
-    - `src/features/vocabulary/api.ts` (getVocabularyList, getVocabularyStats, deleteVocabularyWord)
+    - `src/features/vocabulary/api.ts` (getVocabularyList, getVocabularyStats,
+      deleteVocabularyWord)
     - `src/features/vocabulary/hooks/useVocabulary.ts` (React Query hooks)
-    - `src/features/vocabulary/review/api.ts` (getWordsForReview, submitReviewResult)
+    - `src/features/vocabulary/review/api.ts` (getWordsForReview,
+      submitReviewResult)
   - ✅ 라우트 추가 (`/vocabulary`, `/vocabulary/review`)
 - 📊 **DB 구현률 업데이트**: 4/46 (8.7%) → 8/46 (17.4%) (+4 테이블)
 - 📝 **dev-log 생성**: `docs/dev-logs/2026-01-11-vocabulary-learning-system.md`
 - 🎯 **다음**: 학습 패턴 분석, 소셜 기능, 비교 통계 (Phase 3)
 
 ### 2026-01-11 03:57 KST - 인증 플로우 개선
+
 - ✅ **자동 리디렉션 제거**
   - Landing 페이지에서 로그인된 사용자 자동 리디렉션 제거
   - 명시적 로그인 시에만 Dashboard로 이동
   - 로그인된 사용자는 "Go to Dashboard" 버튼 표시
 
 ### 2026-01-11 03:49 KST - Dashboard 통계 및 에러 처리 개선
+
 - ✅ **Dashboard 에러 처리 강화**
   - `averageScore` undefined/null 체크 추가
   - 로딩 상태 및 에러 상태 UI 개선
 
 ### 2026-01-11 03:24 KST - flow-6 구현 완료 ✅
+
 - ✅ **Dashboard 통계 연결 완료** (`flow-6`)
   - ✅ `user_streaks` 테이블 생성 및 마이그레이션 적용
   - ✅ 스트릭 계산 함수 및 트리거 함수 생성 (자동 업데이트)
   - ✅ 기존 데이터 스트릭 초기화 완료
-  - ✅ Dashboard API 함수들 생성 (getExercisesToday, getDayStreak, getAverageScore, getTotalExercises, getRecentActivity)
-  - ✅ Dashboard React Query Hook 생성 (`useDashboardStats`, `useRecentActivity`)
-  - ✅ Dashboard.tsx UI 업데이트 (실제 데이터 표시, 로딩 상태, Recent Activity 섹션)
+  - ✅ Dashboard API 함수들 생성 (getExercisesToday, getDayStreak,
+    getAverageScore, getTotalExercises, getRecentActivity)
+  - ✅ Dashboard React Query Hook 생성 (`useDashboardStats`,
+    `useRecentActivity`)
+  - ✅ Dashboard.tsx UI 업데이트 (실제 데이터 표시, 로딩 상태, Recent Activity
+    섹션)
 - 🎯 **다음**: 어휘력 향상 시스템 구현 (Phase 2, flow-6 후)
 
 ### 2026-01-11 03:11 KST - 전략 설계 완료
+
 - 📊 **통계 관리 스키마 전략 검토 및 문서화 완료**
   - ✅ 어휘력 향상 능동적 학습 시스템 설계 문서 생성
     - `docs/architecture/vocabulary-learning-system.md`
-    - 능동적 학습 플로우: 문제 풀이 → 해석/어휘 자동 추출 → 클릭 한 번 추가 → 복습 시스템
+    - 능동적 학습 플로우: 문제 풀이 → 해석/어휘 자동 추출 → 클릭 한 번 추가 →
+      복습 시스템
     - Spaced Repetition (SM-2) 알고리즘 연동
     - 어휘력 향상 지표 시각화 계획
   - ✅ TOEFL 점수 스케일 가이드 문서 생성
@@ -673,56 +708,69 @@ exercises
     - AI 기반 약점 분석 및 맞춤형 학습 경로 추천
 - 🗄️ **스키마 확장 계획 수립**
   - ✅ `database-schema.md` 메인 문서 업데이트 (새로운 테이블 추가)
-    - 어휘력 향상 관련: `user_vocabulary` 확장, `user_vocabulary_reviews`, `user_vocabulary_metrics`, `user_vocabulary_growth`
-    - 학습 패턴: `user_learning_patterns`, `user_topic_performance`, `user_growth_metrics`
-    - 소셜 기능: `user_active_sessions`, `study_group_activities`, `study_group_weekly_stats`
+    - 어휘력 향상 관련: `user_vocabulary` 확장, `user_vocabulary_reviews`,
+      `user_vocabulary_metrics`, `user_vocabulary_growth`
+    - 학습 패턴: `user_learning_patterns`, `user_topic_performance`,
+      `user_growth_metrics`
+    - 소셜 기능: `user_active_sessions`, `study_group_activities`,
+      `study_group_weekly_stats`
     - 비교 통계: `cohort_statistics`, `user_cohorts`, `cohort_aggregates`
     - AI 추천: `user_learning_recommendations`
     - 총 테이블 수: 41개 → 46개 (+5)
   - ✅ 마이그레이션 파일 생성
     - `docs/migrations/vocabulary-learning-schema.sql` (어휘력 향상 관련)
-    - `docs/migrations/learning-patterns-and-social-schema.sql` (학습 패턴 및 소셜 기능)
+    - `docs/migrations/learning-patterns-and-social-schema.sql` (학습 패턴 및
+      소셜 기능)
 - 📊 **핵심 논의 결과 정리**
   - 어휘력 향상: 수동적 학습 → 능동적 학습 전환 (문제 풀이 후 자동 어휘 추출)
   - 학습 과정 우상향 관리: 성장 곡선, 주제별 성과, 예측 점수 시각화
   - 구독 가치 강화: 프리미엄 기능으로 고급 분석 및 AI 추천 제공
   - Retention 극대화: 친구 기능, 스터디 그룹, 비교 통계를 통한 동기부여
-- 🎯 **다음 단계**: 어휘력 향상 시스템 구현 (Phase 2, vocabulary-learning-system.md 참고)
+- 🎯 **다음 단계**: 어휘력 향상 시스템 구현 (Phase 2,
+  vocabulary-learning-system.md 참고)
 
 ### 2026-01-11 02:01 KST - flow-5 구현 완료 ✅
+
 - ✅ **Flow-5 구현 완료** (`user_exercise_history` 저장)
   - ✅ API 함수: `saveExerciseHistory()`, `findExerciseId()`
   - ✅ `checkAnswers()` 함수에 저장 로직 추가
   - ✅ 시작 시간 추적 및 오답 정보 수집
   - ✅ Optional Auth Pattern 적용
   - ✅ Supabase Database 타입 생성 및 업데이트
-- 📝 문제 해결 문서: `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` (OAuth 팝업 인증 이슈 해결)
+- 📝 문제 해결 문서:
+  `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` (OAuth 팝업 인증
+  이슈 해결)
 
 ### 2026-01-11 01:48 KST - OAuth 콜백 및 세션 관리 개선
+
 - ✅ **AuthCallback 세션 관리 개선**
   - ✅ `onAuthStateChange` 이벤트 리스너 최적화
   - ✅ 중복 처리 방지 플래그 (`processed`) 추가
   - ✅ cleanup 함수로 리소스 정리
 
 ### 2026-01-11 00:57 KST - OAuth 콜백 처리 개선
+
 - ✅ **AuthCallback 개선**
   - ✅ `onAuthStateChange` 비동기 처리 강화
   - ✅ 사용자 취소 시나리오 처리 개선 (조용히 팝업 닫기)
   - ✅ 타임아웃 및 fallback 로직 추가
 
 ### 2026-01-11 00:25 KST - AuthModal 및 Landing 개선
+
 - ✅ **인증 플로우 개선**
   - ✅ AuthModal과 Landing 페이지 간 리디렉션 로직 최적화
   - ✅ 모달 상태 관리 개선
   - ✅ 사용자 경험 향상
 
 ### 2026-01-11 00:12 KST - AuthModal 콜백 처리 최적화
+
 - ✅ **AuthModal 최적화**
   - ✅ 메시지 리스너 로직 개선
   - ✅ 콜백 안정화 (`useRef`, `useCallback` 사용)
   - ✅ 무한 루프 방지 (의존성 배열 최적화)
 
 ### 2026-01-11 00:01 KST - OAuth 팝업 처리 구현
+
 - ✅ **Google OAuth 팝업 구현**
   - ✅ 팝업 창 방식으로 OAuth 플로우 전환 (전체 페이지 리디렉션 대신)
   - ✅ 팝업 상태 관리 (`googleLoading`, `popupRef`)
@@ -730,7 +778,18 @@ exercises
   - ✅ `window.postMessage` 통신 구현
   - ✅ 구독 기능 관련 UI 준비
 
+### 2026-01-28 (오후)
+
+- **문서 구조 최적화**: 루트 폴더 정리 및 `CHANGELOG.md` 이동, 통합 컨텍스트
+  관리 가이드(`unified-context-management.md`) 작성.
+- **시스템 안정화**: `explain-word-in-context` Edge Function 모델
+  고정(`gemini-1.5-flash`) 및 JSON 파싱 로직 강화.
+- **개발 자동화**: 유저 요청에 따른 `push` 자동화 및 단순 업데이트(MD, UI) 시
+  자동 push 규칙 `AGENTS.md` 반영.
+- **테스트 환경 개선**: `api.test.ts` 모킹 방식 개선 및 환경 변수 오류 수정.
+
 ### 2026-01-10 23:34 KST - Optional Auth Pattern 완료 및 문서화
+
 - ✅ **Optional Authentication Pattern 완료**
   - ✅ Edge Function 인증 헤더 처리 완료
   - ✅ Optional Authentication Pattern 채택 (아키텍처 결정)
@@ -739,6 +798,7 @@ exercises
 - 📝 아키텍처 결정사항: `docs/dev-logs/2026-01-10-optional-auth-pattern.md`
 
 ### 2026-01-10 23:22 KST - AuthModal UI 개선
+
 - ✅ **AuthModal UI 개선**
   - ✅ 모달 크기 축소 (`max-w-[360px]`)
   - ✅ Google 버튼 hover 효과 개선
@@ -746,32 +806,39 @@ exercises
   - ✅ 레이블 및 접근성 개선
 
 ### 2026-01-10 23:15 KST - 사용자 세션 데이터 처리 개선
+
 - ✅ **passage generation 세션 처리 개선**
   - ✅ 사용자 세션 데이터 처리 최적화
   - ✅ 에러 처리 강화
 
 ### 2026-01-10 23:14 KST - 사용자 세션 처리 개선
+
 - ✅ **passage generation 세션 처리 개선**
   - ✅ 인증된 사용자 세션 정보 로깅
   - ✅ Edge Function 인증 헤더 전달 확인
 
 ### 2026-01-10 21:48 KST - Edge Function 인증 지원 시작
+
 - ✅ **passage generation 인증 지원 구현** (오늘 작업 시작)
   - ✅ Edge Function에 인증 헤더 전달 로직 추가
   - ✅ 프론트엔드에서 `Authorization` 헤더 포함하여 Edge Function 호출
   - ✅ 인증된 사용자 정보 로깅 준비
 
 ### 2026-01-10 00:15 KST - OAuth 콜백 처리 구현
+
 - ✅ **OAuth 콜백 및 리디렉션 로직 구현**
   - ✅ `AuthCallback` 페이지 생성
   - ✅ OAuth 콜백 처리 및 Dashboard 리디렉션
 
 ### 2025-12-31
+
 - ✅ Clean In 아키텍처 전환 (self-healing)
 - ✅ Spacing 정규화 로직 구현
-- 📝 아키텍처 결정사항: `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md`
+- 📝 아키텍처 결정사항:
+  `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md`
 
 ### 2025-12-30
+
 - ✅ Phase 1 완료 (MVP 기반 구축)
 - ✅ Text Completion UI 완료
 - ✅ Dashboard UI 완료
@@ -787,9 +854,11 @@ exercises
 4. **DRY**: 모든 로직은 한 곳에만 (Feature-based 구조)
 5. **Long-term Scalability > Short-term Convenience**: 마이그레이션은 고통
 6. **능동적 학습**: 사용자가 별도로 노력하지 않아도 자연스럽게 학습 효과
-7. **우상향 관리**: 학습 과정이 체계적으로 관리되어 성장 체감 및 Retention 극대화
+7. **우상향 관리**: 학습 과정이 체계적으로 관리되어 성장 체감 및 Retention
+   극대화
 
 ### 🔧 기술 스택
+
 - **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
 - **Backend**: Supabase (Auth, DB, Realtime, Edge Functions)
 - **AI**: Gemini (via Edge Functions)
@@ -800,39 +869,56 @@ exercises
 ## 📚 관련 문서
 
 ### 핵심 문서
+
 - **전체 요약**: `docs/development-summary.md`
 - **DB 스키마**: `docs/architecture/database-schema.md` (46개 테이블)
 - **프로젝트 상태**: `docs/project-status.md` (현재 문서)
 
 ### 아키텍처 점검 (2026-01-16~18)
+
 - `docs/architecture/project-health-check-2026-01-16.md` - 코드 품질 점검 ⭐
 - `docs/architecture/schema-vs-fe-gap-analysis.md` - 스키마 vs FE 갭 분석 ⭐
-- `docs/architecture/2026-01-18-architecture-midterm-review.md` - 중간점검 경과보고서 ⭐⭐ (최신)
+- `docs/architecture/2026-01-18-architecture-midterm-review.md` - 중간점검
+  경과보고서 ⭐⭐ (최신)
 
 ### 아키텍처 결정 (dev-logs)
-- `docs/dev-logs/2026-01-11-vocabulary-learning-system.md` - 어휘력 향상 시스템 구현
-- `docs/dev-logs/2026-01-10-optional-auth-pattern.md` - Optional Authentication Pattern
-- `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md` - Clean In Philosophy
+
+- `docs/dev-logs/2026-01-11-vocabulary-learning-system.md` - 어휘력 향상 시스템
+  구현
+- `docs/dev-logs/2026-01-10-optional-auth-pattern.md` - Optional Authentication
+  Pattern
+- `docs/dev-logs/2025-12-31-architecture-shift-clean-in.md` - Clean In
+  Philosophy
 
 ### 전략 설계 문서 (architecture)
-- `docs/architecture/vocabulary-learning-system.md` - 어휘력 향상 능동적 학습 시스템
+
+- `docs/architecture/vocabulary-learning-system.md` - 어휘력 향상 능동적 학습
+  시스템
 - `docs/architecture/social-features-strategy.md` - 친구/소셜 기능 전략
 - `docs/architecture/comparative-analytics-strategy.md` - 비교 통계 전략
 
 ### 가이드 문서 (guides)
+
 - `docs/guides/toefl-score-scale.md` - TOEFL 점수 스케일 가이드
 - `docs/guides/supabase-setup.md` - Supabase 설정 가이드
 
 ### 마이그레이션 파일 (migrations)
-- `docs/migrations/vocabulary-learning-schema.sql` - 어휘력 향상 스키마 ✅ 적용 완료
+
+- `docs/migrations/vocabulary-learning-schema.sql` - 어휘력 향상 스키마 ✅ 적용
+  완료
 - `docs/migrations/user-streaks-schema.sql` - 스트릭 시스템 스키마 ✅ 적용 완료
-- `docs/migrations/learning-patterns-and-social-schema.sql` - 학습 패턴 및 소셜 기능 스키마 (미적용)
+- `docs/migrations/learning-patterns-and-social-schema.sql` - 학습 패턴 및 소셜
+  기능 스키마 (미적용)
 - `docs/migrations/subscription-model-ready.md` - 구독 모델 준비 (미적용)
 
 ### 문제 해결 (troubleshooting)
-- `docs/troubleshooting/2026-01-16-cn-import-missing-root-cause-analysis.md` - cn import 누락 근본 원인 ⭐
-- `docs/troubleshooting/2026-01-15-demo-mode-and-oauth-errors.md` - 데모 모드 및 OAuth 오류
-- `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` - OAuth 팝업 인증 이슈
+
+- `docs/troubleshooting/2026-01-16-cn-import-missing-root-cause-analysis.md` -
+  cn import 누락 근본 원인 ⭐
+- `docs/troubleshooting/2026-01-15-demo-mode-and-oauth-errors.md` - 데모 모드 및
+  OAuth 오류
+- `docs/troubleshooting/2026-01-11-oauth-popup-auth-issues.md` - OAuth 팝업 인증
+  이슈
 - `docs/troubleshooting/spacing-issues.md` - AI 생성 콘텐츠 spacing 이슈
 
 ---
@@ -842,6 +928,7 @@ exercises
 ### 📋 우선순위별 구현 계획 (갭 분석 기반)
 
 #### P0: 긴급 (프로덕션 전 필수)
+
 1. **보안 정책 수정**
    - `DROP POLICY "Service role can insert exercises" ON exercises;`
    - RLS 정책 재검토
@@ -851,6 +938,7 @@ exercises
    - Dashboard에 스킬 레이더 차트
 
 #### P1: 이번 주
+
 3. **학습 패턴 분석 구현** (Phase 3)
    - `user_learning_patterns` 테이블 생성
    - 시간대별 학습 히트맵 (GitHub 스타일)
@@ -867,6 +955,7 @@ exercises
    - 북마크 목록 페이지
 
 #### P2: 이번 달
+
 6. **게이미피케이션 강화** (Phase 3)
    - `achievements`, `user_achievements` 테이블 생성
    - 업적 해금 알림
@@ -878,6 +967,7 @@ exercises
    - 프리미엄 준비
 
 #### P3: 다음 달
+
 8. **소셜 기능 MVP** (Phase 4)
    - 친구 목록 (`user_follows`)
    - "지금 학습 중" 표시 (`user_active_sessions`)
@@ -899,4 +989,4 @@ P3 완료 후:      █████████████░░░░░░░
 
 ---
 
-*이 문서는 매 작업 후 업데이트되어 항상 최신 상태를 반영합니다.*
+_이 문서는 매 작업 후 업데이트되어 항상 최신 상태를 반영합니다._
