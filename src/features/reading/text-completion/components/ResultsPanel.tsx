@@ -132,6 +132,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
 
   // Fetch word explanation in context using AI
   useEffect(() => {
+    let cancelled = false;
     const fetchExplanation = async () => {
       if (!word || !context) return;
       setLoading(true);
@@ -139,6 +140,7 @@ const WordPopup: React.FC<WordPopupProps> = ({
       setExplanation(null);
       try {
         const result = await explainWordInContext({ word, context });
+        if (cancelled) return;
         if (result.error) {
           setDefinition(null);
           setExplanation(null);
@@ -147,13 +149,15 @@ const WordPopup: React.FC<WordPopupProps> = ({
           setExplanation(result.explanation);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error('Error fetching explanation:', err);
         setExplanation(null);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
     fetchExplanation();
+    return () => { cancelled = true; };
   }, [word, context]);
 
   useEffect(() => {
@@ -454,6 +458,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
       return (
         <span
           key={index}
+          onMouseDown={isClickable ? (e) => e.stopPropagation() : undefined}
           onClick={isClickable ? (e) => handleWordClick(e, segment) : undefined}
           className={cn(
             isClickable && 'cursor-pointer hover:bg-blue-500/20 hover:text-blue-400 rounded px-0.5 transition-colors',
