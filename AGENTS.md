@@ -74,11 +74,12 @@
 
 ### 🚀 Supabase Edge Function Deployment
 
-- **Command**: Always use `--use-api` flag to deploy without Docker:
+- **Rule**: Always use `--use-api` so deploy succeeds without Docker. Apply in `package.json` scripts and `.github/workflows/deploy-edge-functions.yml`.
+- **Command**:
   ```bash
-  npx supabase functions deploy <function-name> --no-verify-jwt --use-api
+  npx supabase functions deploy <function-name> --no-verify-jwt --use-api --project-ref qnqfarulquicshnwfaxi
   ```
-- **Reason**: Docker is not required; server-side bundling is faster and simpler.
+- **Reason**: Docker is not required; server-side bundling via API is reliable across environments.
 
 ---
 
