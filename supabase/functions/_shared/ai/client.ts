@@ -34,14 +34,14 @@ export class AIClient {
     }
   }
 
-  async generate(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<any> {
+  async generate(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<unknown> {
     const models = [
       Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash",
       "gemini-1.5-flash",
-      "gemini-1.5-flash-8b"
+      "gemini-1.5-flash-002"
     ];
     
-    let lastError: any = null;
+    let lastError: Error | null = null;
     const apiKey = Deno.env.get("GEMINI_API_KEY") || Deno.env.get("GOOGLE_API_KEY");
 
     for (const model of models) {
@@ -56,7 +56,7 @@ export class AIClient {
 
         if (jsonMode) {
           try {
-            const cleanedText = resultText.replace(/```json\n?|\n?```/g, '').trim();
+            const cleanedText = (resultText as string).replace(/```json\n?|\n?```/g, '').trim();
             return JSON.parse(cleanedText);
           } catch (parseError) {
             console.error(`AIClient: JSON parse error for model ${model}:`, parseError);
@@ -66,9 +66,10 @@ export class AIClient {
         }
 
         return resultText;
-      } catch (error: any) {
-        lastError = error;
-        console.warn(`AIClient: Model ${model} failed. Error:`, error.message);
+      } catch (error: unknown) {
+        const err = error as Error;
+        lastError = err;
+        console.warn(`AIClient: Model ${model} failed. Error:`, err.message);
         
         // If this wasn't the last model, try the next one
         if (model !== models[models.length - 1]) {

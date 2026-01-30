@@ -197,7 +197,7 @@ export async function saveExerciseHistory(
 
     const { data, error } = await supabase
       .from('user_exercise_history')
-      .upsert({
+      .insert({
         user_id: session.user.id,
         exercise_id: exerciseId,
         score: params.score,
@@ -206,11 +206,8 @@ export async function saveExerciseHistory(
         time_spent_seconds: params.timeSpentSeconds,
         answers: params.answers,
         mistakes: params.mistakes,
-        // New fields for complete tracking
         difficulty: params.difficulty || passage.difficulty || 'intermediate',
         topic_category: params.topicCategory || passage.topic_category,
-      }, {
-        onConflict: 'user_id, exercise_id'
       })
       .select('id')
       .single();

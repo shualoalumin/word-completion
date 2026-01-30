@@ -16,15 +16,12 @@ export class GeminiProvider implements AIProvider {
 
     while (attempt < maxRetries) {
       try {
-        // Models like 2.0-flash are v1beta only. 1.5-flash-8b works better on v1 in some regions.
-        // We will try v1beta first as it's the most common for these models, and fallback to v1 on 404.
+        // Try v1beta first (standard for most Gemini models in late 2025/2026)
         let apiVersion = "v1beta";
-        
-        // standard prefix check
         const modelPath = this.model.startsWith("models/") ? this.model : `models/${this.model}`;
         
-        const fetchWithVersion = async (v: string) => {
-          const url = `https://generativelanguage.googleapis.com/${v}/${modelPath}:generateContent?key=${this.apiKey}`;
+        const callApi = async (version: string) => {
+          const url = `https://generativelanguage.googleapis.com/${version}/${modelPath}:generateContent?key=${this.apiKey}`;
           return await fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -42,13 +39,13 @@ export class GeminiProvider implements AIProvider {
         };
 
         console.log(`Calling Gemini API (${this.model}), Attempt ${attempt + 1}...`);
-        let response = await fetchWithVersion(apiVersion);
+        let response = await callApi(apiVersion);
 
-        // Handle 404 by trying v1
-        if (response.status === 404 && apiVersion === "v1beta") {
-          console.warn(`Model ${this.model} not found in v1beta. Trying v1...`);
+        // If 404, the model might only be available on v1
+        if (response.status === 404) {
+          console.warn(`Model ${this.model} not found in v1beta. Falling back to v1...`);
           apiVersion = "v1";
-          response = await fetchWithVersion(apiVersion);
+          response = await callApi(apiVersion);
         }
 
         if (response.status === 429) {
@@ -80,9 +77,10 @@ export class GeminiProvider implements AIProvider {
         }
 
         return data.candidates[0].content.parts[0].text;
-      } catch (err: any) {
-        lastError = err as Error;
-        console.error(`Attempt ${attempt + 1} failed:`, err?.message || 'Unknown error');
+      } catch (error: unknown) {
+        const err = error as Error;
+        lastError = err;
+        console.warn(`AIClient: Model ${this.model} failed. Error:`, err.message || 'Unknown error');
         attempt++;
         if (attempt < maxRetries) {
           await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
