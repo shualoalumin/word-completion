@@ -38,6 +38,7 @@ export const TextCompletion: React.FC = () => {
     loadNewPassage,
     loadSpecificExercise,
     loadHistoryReview,
+    retryCurrentExercise,
     updateAnswer,
     checkAnswers,
     setInputRef,
@@ -277,6 +278,7 @@ export const TextCompletion: React.FC = () => {
       showResults={showResults}
       onCheckAnswers={handleCheckAnswers}
       onNextExercise={handleNextExercise}
+      onRetry={retryCurrentExercise}
       score={score}
       totalQuestions={10}
       renderResults={() => (

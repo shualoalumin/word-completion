@@ -11,7 +11,8 @@
     "next": "Next",
     "previous": "Previous",
     "submit": "Submit",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "retry": "Retry"
   },
   "auth": {
     "signIn": "Sign In",

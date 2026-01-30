@@ -18,6 +18,7 @@ export interface ExerciseLayoutProps {
   showResults: boolean;
   onCheckAnswers: () => void;
   onNextExercise: () => void;
+  onRetry?: () => void;
   score?: number;
   totalQuestions?: number;
   renderResults?: () => React.ReactNode;
@@ -33,6 +34,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   showResults,
   onCheckAnswers,
   onNextExercise,
+  onRetry,
   renderResults,
   className,
 }) => {
@@ -102,15 +104,30 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
               <Check className="w-4 h-4" /> {t('practice.checkAnswers')}
             </button>
           ) : (
-            <button
-              onClick={onNextExercise}
-              className={cn(
-                'px-5 py-2.5 text-sm font-semibold transition-colors rounded-lg flex items-center gap-2',
-                'bg-blue-600 text-white hover:bg-blue-700'
+            <div className="flex items-center gap-3">
+              {onRetry && (
+                <button
+                  onClick={onRetry}
+                  className={cn(
+                    'px-5 py-2.5 text-sm font-semibold transition-colors rounded-lg flex items-center gap-2',
+                    darkMode
+                      ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                  )}
+                >
+                  <RotateCcw className="w-4 h-4" /> {t('common.retry')}
+                </button>
               )}
-            >
-              <RotateCcw className="w-4 h-4" /> {t('practice.nextExercise')}
-            </button>
+              <button
+                onClick={onNextExercise}
+                className={cn(
+                  'px-5 py-2.5 text-sm font-semibold transition-colors rounded-lg flex items-center gap-2',
+                  'bg-blue-600 text-white hover:bg-blue-700'
+                )}
+              >
+                <RotateCcw className="w-4 h-4" /> {t('practice.nextExercise')}
+              </button>
+            </div>
           )}
         </div>
 

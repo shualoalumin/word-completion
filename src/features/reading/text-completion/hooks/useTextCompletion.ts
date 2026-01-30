@@ -70,6 +70,7 @@ export interface UseTextCompletionReturn {
   loadNewPassage: () => Promise<void>;
   loadSpecificExercise: (exerciseId: string) => Promise<void>;
   loadHistoryReview: (historyId: string) => Promise<void>;
+  retryCurrentExercise: () => void;
   updateAnswer: (wordId: number, answer: string) => void;
   checkAnswers: () => Promise<void>;
   
@@ -231,6 +232,14 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setExerciseId(exercise_id);
 
     setLoading(false);
+  }, []);
+
+  // Retry current exercise (clear results and answers)
+  const retryCurrentExercise = useCallback(() => {
+    setUserAnswers({});
+    setShowResults(false);
+    setHistoryTimeSpent(null);
+    startTimeRef.current = Date.now();
   }, []);
 
   // Update answer
@@ -440,6 +449,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     loadNewPassage,
     loadSpecificExercise,
     loadHistoryReview,
+    retryCurrentExercise,
     updateAnswer,
     checkAnswers,
     inputRefs,
