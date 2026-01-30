@@ -51,13 +51,13 @@ export async function loadExerciseById(exerciseId: string): Promise<LoadExercise
 }
 
 export interface SaveExerciseHistoryParams {
-  exerciseId: string;
+  exerciseId?: string;
   score: number;
   maxScore: number;
   scorePercent: number;
   timeSpentSeconds: number;
   answers: Record<number, string>;
-  mistakes: Record<number, string>;
+  mistakes: any[];
   // New fields for complete tracking
   difficulty?: 'easy' | 'intermediate' | 'hard';
   topicCategory?: string;
@@ -658,6 +658,24 @@ export async function getExerciseHistoryById(exerciseId: string): Promise<{ data
       .eq('user_id', session.user.id)
       .eq('exercise_id', exerciseId)
       .order('completed_at', { ascending: true });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err : new Error('Unknown error') };
+  }
+}
+
+/**
+ * Load a specific history record by ID
+ */
+export async function loadHistoryRecordById(historyId: string): Promise<{ data: any | null, error: Error | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('*')
+      .eq('id', historyId)
+      .single();
 
     if (error) throw error;
     return { data, error: null };

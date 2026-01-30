@@ -265,7 +265,7 @@ export default function History() {
                     return (
                       <div
                         key={record.id}
-                        onClick={() => navigate(`/practice/text-completion?review=${record.exerciseId}`)}
+                        onClick={() => navigate(`/practice/text-completion?review=${record.exerciseId}&historyId=${record.id}`)}
                         className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-blue-600/50 hover:bg-zinc-900/60 transition-all cursor-pointer group"
                       >
                         <div className="flex items-center justify-between">

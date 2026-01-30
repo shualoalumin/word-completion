@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
-import { generatePassage, saveExerciseHistory, findExerciseId, loadExerciseById } from '../api';
+import { generatePassage, saveExerciseHistory, findExerciseId, loadExerciseById, loadHistoryRecordById } from '../api';
 import { UI_CONFIG } from '@/core/constants';
 
 /**
@@ -58,6 +58,7 @@ export interface UseTextCompletionReturn {
   showResults: boolean;
   error: string | null;
   isReviewMode: boolean;
+  historyTimeSpent: number | null;
   
   // Computed
   blanks: TextCompletionBlank[];
@@ -68,6 +69,7 @@ export interface UseTextCompletionReturn {
   // Actions
   loadNewPassage: () => Promise<void>;
   loadSpecificExercise: (exerciseId: string) => Promise<void>;
+  loadHistoryReview: (historyId: string) => Promise<void>;
   updateAnswer: (wordId: number, answer: string) => void;
   checkAnswers: () => Promise<void>;
   
@@ -92,6 +94,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
   const [error, setError] = useState<string | null>(null);
   const [exerciseId, setExerciseId] = useState<string | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
+  const [historyTimeSpent, setHistoryTimeSpent] = useState<number | null>(null);
   
   // Focus management refs
   const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
@@ -125,6 +128,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setShowResults(false);
     setError(null);
     setIsReviewMode(false);
+    setHistoryTimeSpent(null);
     inputRefs.current.clear();
     blankOrderRef.current = [];
     startTimeRef.current = null; // Reset start time
@@ -164,6 +168,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setShowResults(false);
     setError(null);
     setIsReviewMode(true);
+    setHistoryTimeSpent(null);
     inputRefs.current.clear();
     blankOrderRef.current = [];
     startTimeRef.current = null;
@@ -181,6 +186,49 @@ export function useTextCompletion(): UseTextCompletionReturn {
       startTimeRef.current = Date.now();
       setExerciseId(targetExerciseId);
     }
+
+    setLoading(false);
+  }, []);
+
+  // Load specific history record (to see "Check Answer" results)
+  const loadHistoryReview = useCallback(async (historyId: string) => {
+    setLoading(true);
+    setPassage(null);
+    setUserAnswers({});
+    setShowResults(false);
+    setError(null);
+    setIsReviewMode(true);
+    inputRefs.current.clear();
+    blankOrderRef.current = [];
+    startTimeRef.current = null;
+
+    // 1. Fetch history record
+    const historyResult = await loadHistoryRecordById(historyId);
+    if (historyResult.error || !historyResult.data) {
+      setError('Failed to load history record.');
+      setLoading(false);
+      return;
+    }
+
+    const { exercise_id, answers } = historyResult.data;
+
+    // 2. Fetch exercise content
+    const exerciseResult = await loadExerciseById(exercise_id);
+    if (exerciseResult.error || !exerciseResult.data) {
+      setError('Failed to load exercise content.');
+      setLoading(false);
+      return;
+    }
+
+    // 3. Set state
+    const normalizedPassage = normalizeSpacing(exerciseResult.data);
+    const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
+    blankOrderRef.current = newBlanks.map((b) => b.id);
+    setPassage(normalizedPassage);
+    setUserAnswers(answers || {});
+    setShowResults(true);
+    setHistoryTimeSpent(historyResult.data.time_spent_seconds || null); // Load historic time
+    setExerciseId(exercise_id);
 
     setLoading(false);
   }, []);
@@ -384,12 +432,14 @@ export function useTextCompletion(): UseTextCompletionReturn {
     showResults,
     error,
     isReviewMode,
+    historyTimeSpent,
     blanks,
     blankOrder,
     score,
     exerciseId,
     loadNewPassage,
     loadSpecificExercise,
+    loadHistoryReview,
     updateAnswer,
     checkAnswers,
     inputRefs,

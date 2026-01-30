@@ -15,7 +15,9 @@ export const TextCompletion: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const reviewExerciseId = searchParams.get('review');
+  const historyId = searchParams.get('historyId');
   const prevReviewIdRef = useRef<string | null | undefined>(undefined);
+  const prevHistoryIdRef = useRef<string | null | undefined>(undefined);
 
   const timer = useTimer({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
@@ -32,8 +34,10 @@ export const TextCompletion: React.FC = () => {
     score,
     exerciseId,
     isReviewMode,
+    historyTimeSpent,
     loadNewPassage,
     loadSpecificExercise,
+    loadHistoryReview,
     updateAnswer,
     checkAnswers,
     setInputRef,
@@ -45,16 +49,19 @@ export const TextCompletion: React.FC = () => {
 
   // Load initial passage or specific exercise for review
   useEffect(() => {
-    // Only run if reviewExerciseId has actually changed
-    if (prevReviewIdRef.current === reviewExerciseId) return;
+    // Only run if params have actually changed
+    if (prevReviewIdRef.current === reviewExerciseId && prevHistoryIdRef.current === historyId) return;
     prevReviewIdRef.current = reviewExerciseId;
+    prevHistoryIdRef.current = historyId;
 
-    if (reviewExerciseId) {
+    if (historyId) {
+      loadHistoryReview(historyId);
+    } else if (reviewExerciseId) {
       loadSpecificExercise(reviewExerciseId);
     } else {
       loadNewPassage();
     }
-  }, [reviewExerciseId, loadSpecificExercise, loadNewPassage]);
+  }, [reviewExerciseId, historyId, loadSpecificExercise, loadHistoryReview, loadNewPassage]);
 
   // Start timer when passage loads
   useEffect(() => {
@@ -278,7 +285,7 @@ export const TextCompletion: React.FC = () => {
           userAnswers={userAnswers}
           darkMode={darkMode}
           topic={passage?.topic}
-          elapsedTime={timer.elapsed}
+          elapsedTime={historyTimeSpent !== null ? historyTimeSpent : timer.elapsed}
           passage={passage}
           exerciseId={exerciseId || undefined}
         />
