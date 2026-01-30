@@ -1,5 +1,14 @@
 # 단어정의(explain-word-in-context) 이슈: 반성과 사전조사 기반 해결
 
+## 핵심 원인·해결 (요약)
+
+- **증상**: Full Passage에서 단어 클릭 시 "Failed to fetch explanation" / 404.
+- **원인**: Edge Function이 **deprecated된 Gemini 모델**(`gemini-1.5-flash-002` 등)을 사용 → Google AI API 404 (`models/gemini-1.5-flash-002 is not found for API version v1`).
+- **해결**: `supabase/functions/_shared/ai/client.ts`, `gemini.ts`에서 **공식 문서 기준 현재 지원 모델만** 사용(`gemini-2.5-flash` 등), `gemini-1.5-flash*` 계열 제거 후 Edge Function 재배포.
+- **검증**: 앱에서 단어 클릭 시 뜻/설명 정상 표시 확인.
+
+---
+
 ## 왜 troubleshooting을 제대로 하지 못했는가
 
 ### 1. 런타임 증거 없이 수정했다

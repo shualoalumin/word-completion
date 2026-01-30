@@ -587,12 +587,9 @@ export interface ExplainWordInContextResult {
 export async function explainWordInContext(
   params: ExplainWordInContextParams
 ): Promise<ExplainWordInContextResult> {
-  // #region agent log
   const supabaseUrlRaw = import.meta.env.VITE_SUPABASE_URL;
   const supabaseUrl = supabaseUrlRaw || "https://qnqfarulquicshnwfaxi.supabase.co";
   const url = `${supabaseUrl}/functions/v1/explain-word-in-context`;
-  fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:explainWordInContext',message:'entry',data:{word:params.word,hasSupabaseUrl:!!supabaseUrlRaw,urlPreview:url.slice(0,50)+'...'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   console.log('[API] explainWordInContext called for:', params.word);
   try {
     const {
@@ -624,16 +621,10 @@ export async function explainWordInContext(
       }
     );
 
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:afterFetch',message:'response',data:{status:response.status,ok:response.ok},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-    // #endregion
     console.log('[API] Response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:!response.ok',message:'errorBody',data:{errorBodyPreview:(errorText||'').slice(0,200)},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H3'})}).catch(()=>{});
-      // #endregion
       console.error('[API] Error response:', errorText);
       throw new Error(`Failed to explain word: ${errorText}`);
     }
@@ -642,9 +633,6 @@ export async function explainWordInContext(
     try {
       result = await response.json();
     } catch (parseErr) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:response.json',message:'jsonParseFailed',data:{message:(parseErr as Error)?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H4'})}).catch(()=>{});
-      // #endregion
       throw parseErr;
     }
     console.log('[API] Success result:', result);
@@ -655,10 +643,6 @@ export async function explainWordInContext(
       error: null,
     };
   } catch (err) {
-    // #region agent log
-    const e = err instanceof Error ? err : new Error('Unknown error');
-    fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api.ts:catch',message:'catch',data:{name:e.name,message:e.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H2,H3,H4,H5'})}).catch(()=>{});
-    // #endregion
     console.error('[API] Catch error:', err);
     return {
       definition: null,
