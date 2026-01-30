@@ -31,32 +31,7 @@ interface WordPopupProps {
 // Translation helper function - Improved quality with DeepL-like API fallback
 const translateToKorean = async (text: string): Promise<string | null> => {
   try {
-    // Try LibreTranslate first (better quality, free)
-    try {
-      const libreResponse = await fetch('https://libretranslate.com/translate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: text,
-          source: 'en',
-          target: 'ko',
-          format: 'text',
-        }),
-      });
-
-      if (libreResponse.ok) {
-        const data = await libreResponse.json();
-        if (data.translatedText) {
-          return data.translatedText;
-        }
-      }
-    } catch {
-      // Fallback to MyMemory
-    }
-
-    // Fallback: MyMemory (split long texts)
+    // Try MyMemory first (more reliable for free use)
     const maxLength = 450;
     if (text.length <= maxLength) {
       const response = await fetch(
@@ -66,8 +41,22 @@ const translateToKorean = async (text: string): Promise<string | null> => {
       if (data.responseStatus === 200 && data.responseData?.translatedText) {
         return data.responseData.translatedText;
       }
-      return null;
+    } else {
+      // Split logic remains the same (see below)
     }
+
+    // Attempt LibreTranslate ONLY as secondary fallback
+    try {
+      const libreResponse = await fetch('https://libretranslate.com/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, source: 'en', target: 'ko', format: 'text' }),
+      });
+      if (libreResponse.ok) {
+        const data = await libreResponse.json();
+        if (data.translatedText) return data.translatedText;
+      }
+    } catch { /* silent */ }
 
     // For longer texts, split by sentences
     const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
