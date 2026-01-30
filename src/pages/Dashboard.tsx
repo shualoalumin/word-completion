@@ -479,6 +479,11 @@ export default function Dashboard() {
                             }`} />
                           <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
                             {activity.topic || 'Text Completion'}
+                            {activity.attemptNumber && (
+                              <span className="ml-1.5 text-zinc-500 text-[10px] font-normal">
+                                (Attempt #{activity.attemptNumber})
+                              </span>
+                            )}
                           </h3>
                           {activity.difficulty && (
                             <span className={cn(

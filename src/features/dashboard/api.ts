@@ -30,6 +30,7 @@ export interface RecentActivity {
   topic?: string;
   difficulty?: string;
   topicCategory?: string;
+  attemptNumber?: number;
 }
 
 /**
@@ -291,6 +292,22 @@ export async function getRecentActivity(userId: string, limit: number = 5): Prom
       }
     }
 
+    // To get the correct attempt number, we need the full history context for these exercises
+    const { data: allUserHistory } = await supabase
+      .from('user_exercise_history')
+      .select('id, exercise_id, completed_at')
+      .eq('user_id', userId)
+      .order('completed_at', { ascending: true });
+
+    const attemptMap: Record<string, number> = {};
+    if (allUserHistory) {
+      const counters: Record<string, number> = {};
+      allUserHistory.forEach(h => {
+        counters[h.exercise_id] = (counters[h.exercise_id] || 0) + 1;
+        attemptMap[h.id] = counters[h.exercise_id];
+      });
+    }
+
     // Transform data to match RecentActivity interface
     return historyData.map((record: any) => ({
       id: record.id,
@@ -304,6 +321,7 @@ export async function getRecentActivity(userId: string, limit: number = 5): Prom
       topic: topicsMap[record.exercise_id] || undefined,
       difficulty: record.difficulty || undefined,
       topicCategory: record.topic_category || undefined,
+      attemptNumber: attemptMap[record.id]
     }));
   } catch (error) {
     console.error('Unexpected error fetching recent activity:', error);

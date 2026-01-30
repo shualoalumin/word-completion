@@ -18,6 +18,7 @@ interface HistoryRecord {
   difficulty?: string;
   topicCategory?: string;
   timeSpentSeconds?: number;
+  attemptNumber?: number;
 }
 
 interface GroupedHistory {
@@ -87,7 +88,7 @@ export default function History() {
         }
       }
 
-      return (history || []).map((record: any): HistoryRecord => ({
+      const mappedHistory = (history || []).map((record: any): HistoryRecord => ({
         id: record.id,
         exerciseId: record.exercise_id,
         score: record.score || 0,
@@ -100,6 +101,24 @@ export default function History() {
         difficulty: record.difficulty,
         topicCategory: record.topic_category,
         timeSpentSeconds: record.time_spent_seconds,
+      }));
+
+      // Calculate attempt numbers (oldest = #1)
+      const exerciseCounters: Record<string, number> = {};
+      // Iterate from oldest to newest to assign numbers
+      const sortedOldestFirst = [...mappedHistory].sort((a, b) => 
+        new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+      );
+      
+      const attemptMap: Record<string, number> = {}; // historyRecordId -> attemptNumber
+      sortedOldestFirst.forEach(h => {
+        exerciseCounters[h.exerciseId] = (exerciseCounters[h.exerciseId] || 0) + 1;
+        attemptMap[h.id] = exerciseCounters[h.exerciseId];
+      });
+
+      return mappedHistory.map(h => ({
+        ...h,
+        attemptNumber: attemptMap[h.id]
       }));
     },
     enabled: !!user?.id,
@@ -260,6 +279,11 @@ export default function History() {
                                 }`} />
                               <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">
                                 {record.topic || 'Text Completion'}
+                                {record.attemptNumber && (
+                                  <span className="ml-2 text-zinc-500 text-xs font-normal">
+                                    (Attempt #{record.attemptNumber})
+                                  </span>
+                                )}
                               </h3>
                               {difficultyConfig && (
                                 <span className={cn(

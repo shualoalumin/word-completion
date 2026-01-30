@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TextCompletionBlank, TextCompletionPassage, isTextPart } from '../types';
 import { cn } from '@/lib/utils';
-import { addWordToVocabulary, bookmarkExercise, unbookmarkExercise, checkBookmark, explainWordInContext } from '../api';
+import { addWordToVocabulary, bookmarkExercise, unbookmarkExercise, checkBookmark, explainWordInContext, getExerciseHistoryById } from '../api';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -312,6 +312,17 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     position: { x: number; y: number };
     context: string;
   } | null>(null);
+  const [pastAttempts, setPastAttempts] = useState<{ score_percent: number; completed_at: string }[]>([]);
+
+  // Fetch past attempts for this exercise
+  useEffect(() => {
+    if (!exerciseId) return;
+    const fetchHistory = async () => {
+      const { data } = await getExerciseHistoryById(exerciseId);
+      if (data) setPastAttempts(data);
+    };
+    fetchHistory();
+  }, [exerciseId]);
 
   // Extract full passage text
   const fullPassageText = useMemo(() => {
@@ -569,6 +580,49 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
               </span>
             )}
           </div>
+          
+          {/* Score Progress / Attempts Trend */}
+          {pastAttempts.length > 0 && (
+            <div className={cn(
+              "mt-2 pt-4 border-t",
+              darkMode ? "border-zinc-800/50" : "border-gray-200/50"
+            )}>
+              <div className="flex items-center justify-between mb-3">
+                <span className={cn("text-xs font-bold", darkMode ? "text-zinc-400" : "text-gray-500 uppercase tracking-wider")}>
+                  {t('results.progressTrend')} ({pastAttempts.length} {t('results.attempts')})
+                </span>
+                {pastAttempts.length > 1 && (
+                  <span className={cn(
+                    "text-[10px] px-2 py-0.5 rounded-full font-bold",
+                    pastAttempts[pastAttempts.length-1].score_percent >= (pastAttempts[pastAttempts.length-2]?.score_percent || 0)
+                      ? "bg-emerald-500/10 text-emerald-500"
+                      : "bg-red-500/10 text-red-500"
+                  )}>
+                    {pastAttempts[pastAttempts.length-1].score_percent >= (pastAttempts[pastAttempts.length-2]?.score_percent || 0) ? '↑ Improving' : '↓ Lower than last'}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-end gap-1.5 h-12">
+                {pastAttempts.slice(-10).map((attempt, i) => (
+                  <div 
+                    key={i} 
+                    className="flex-1 group relative flex flex-col items-center gap-1"
+                  >
+                    <div 
+                      className={cn(
+                        "w-full rounded-t-sm transition-all duration-500 ease-out",
+                        i === pastAttempts.length - 1 ? "bg-blue-500" : "bg-zinc-500/30 group-hover:bg-zinc-500/50"
+                      )}
+                      style={{ height: `${Math.max(attempt.score_percent, 10)}%` }}
+                    />
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap bg-zinc-800 text-white text-[10px] px-1.5 py-0.5 rounded pointer-events-none z-10">
+                      {Math.round(attempt.score_percent)}% - {new Date(attempt.completed_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Bookmark Button - Minimal & Elegant */}
           {exerciseId && (

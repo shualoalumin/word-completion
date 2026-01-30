@@ -644,4 +644,24 @@ export async function explainWordInContext(
     };
   }
 }
+/**
+ * Get history for a specific exercise (to show progress)
+ */
+export async function getExerciseHistoryById(exerciseId: string): Promise<{ data: any[] | null, error: Error | null }> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return { data: null, error: new Error('Auth required') };
 
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('score_percent, completed_at')
+      .eq('user_id', session.user.id)
+      .eq('exercise_id', exerciseId)
+      .order('completed_at', { ascending: true });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err : new Error('Unknown error') };
+  }
+}
