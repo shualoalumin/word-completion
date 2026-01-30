@@ -14,8 +14,8 @@ export class AIClient {
         if (!apiKey) {
           throw new Error("GEMINI_API_KEY is not configured");
         }
-        // Use gemini-2.0-flash (1.5-flash deprecated in v1beta)
-        const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash";
+        // Official docs (ai.google.dev/gemini-api/docs/models): use stable text generateContent models only
+        const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
         this.provider = new GeminiProvider(apiKey, model);
         break;
       }
@@ -35,10 +35,13 @@ export class AIClient {
   }
 
   async generate(systemPrompt: string, userPrompt: string, jsonMode: boolean = true): Promise<unknown> {
+    // Fallback order from official docs (models + deprecations). No 1.5-flash* (removed/404).
     const models = [
-      Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-flash-001"
+      Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-001",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash-lite"
     ];
     
     let lastError: Error | null = null;

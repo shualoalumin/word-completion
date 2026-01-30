@@ -41,6 +41,7 @@
   with a space").
 - **Spacing**: AI treats spaces as separators. Always verify `Text` <-> `Blank`
   boundaries.
+- **Gemini models**: Use only models listed in [Gemini models](https://ai.google.dev/gemini-api/docs/models) and [Deprecations](https://ai.google.dev/gemini-api/docs/deprecations). Do not hardcode deprecated/removed model IDs (e.g. `gemini-1.5-flash-002`). Check docs before changing `_shared/ai` model lists.
 
 ### Database
 
