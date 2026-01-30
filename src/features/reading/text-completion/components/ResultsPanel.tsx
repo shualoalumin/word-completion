@@ -143,15 +143,22 @@ const WordPopup: React.FC<WordPopupProps> = ({
         });
         
         if (result.error) {
-          setErrorStatus(result.error.message);
+          const msg = result.error.message;
+          setErrorStatus(msg);
+          try { sessionStorage.setItem('wordExplainLastError', msg); } catch (_) {}
         } else {
           setDefinition(result.definition);
           setExplanation(result.explanation);
         }
       } catch (err: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/d19934ff-dbc5-4904-8dfc-2b9c2bbdc78d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ResultsPanel.tsx:WordPopup catch',message:'fetchError',data:{name:err?.name,message:err?.message},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'H5'})}).catch(()=>{});
+        // #endregion
         if (err.name === 'AbortError') return;
+        const msg = err.message || 'Unknown network error';
         console.error('[WordPopup] Fetch error:', err);
-        setErrorStatus(err.message || 'Unknown network error');
+        setErrorStatus(msg);
+        try { sessionStorage.setItem('wordExplainLastError', msg); } catch (_) {}
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -241,6 +248,9 @@ const WordPopup: React.FC<WordPopupProps> = ({
               <div className="space-y-2">
                 <p className={cn('text-xs text-red-400 font-medium')}>
                   {errorStatus.includes('429') ? 'Rate limit exceeded.' : 'Failed to fetch explanation.'}
+                </p>
+                <p className={cn('text-[10px] break-all max-h-16 overflow-y-auto', darkMode ? 'text-zinc-500' : 'text-gray-500')} title="Copy for debugging">
+                  {errorStatus.length > 200 ? errorStatus.slice(0, 200) + '…' : errorStatus}
                 </p>
                 <button 
                   onClick={() => setRetryKey(prev => prev + 1)}

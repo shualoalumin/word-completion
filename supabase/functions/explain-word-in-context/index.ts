@@ -1,15 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { AIClient } from "../_shared/ai/client.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+const corsHeadersBase = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '*';
+  return { ...corsHeadersBase, 'Access-Control-Allow-Origin': origin };
+}
+
 serve(async (req) => {
+  const headers = corsHeaders(req);
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+    return new Response(null, { status: 204, headers });
   }
 
   try {
@@ -18,7 +23,7 @@ serve(async (req) => {
     if (!word || !context) {
       return new Response(
         JSON.stringify({ error: 'word and context are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...headers, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -46,13 +51,13 @@ Return JSON:
         definition: result.definition || null,
         explanation: result.explanation || null,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...headers, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error('Error explaining word:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'Failed to explain word' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...headers, 'Content-Type': 'application/json' } }
     );
   }
 });
