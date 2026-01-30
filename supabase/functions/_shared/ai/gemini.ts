@@ -16,26 +16,40 @@ export class GeminiProvider implements AIProvider {
 
     while (attempt < maxRetries) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+        // Models like 2.0-flash are v1beta only. 1.5-flash-8b works better on v1 in some regions.
+        // We will try v1beta first as it's the most common for these models, and fallback to v1 on 404.
+        let apiVersion = "v1beta";
         
-        const body = {
-          contents: [{
-            role: "user",
-            parts: [{ text: request.systemPrompt + "\n\n" + request.userPrompt }]
-          }],
-          generationConfig: {
-            // REMOVED responseMimeType to prevent 400 errors on incompatible models/versions
-            temperature: 0.1, 
-            maxOutputTokens: 1000,
-          }
+        // standard prefix check
+        const modelPath = this.model.startsWith("models/") ? this.model : `models/${this.model}`;
+        
+        const fetchWithVersion = async (v: string) => {
+          const url = `https://generativelanguage.googleapis.com/${v}/${modelPath}:generateContent?key=${this.apiKey}`;
+          return await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{
+                role: "user",
+                parts: [{ text: request.systemPrompt + "\n\n" + request.userPrompt }]
+              }],
+              generationConfig: {
+                temperature: 0.1, 
+                maxOutputTokens: 1000,
+              }
+            }),
+          });
         };
 
         console.log(`Calling Gemini API (${this.model}), Attempt ${attempt + 1}...`);
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        });
+        let response = await fetchWithVersion(apiVersion);
+
+        // Handle 404 by trying v1
+        if (response.status === 404 && apiVersion === "v1beta") {
+          console.warn(`Model ${this.model} not found in v1beta. Trying v1...`);
+          apiVersion = "v1";
+          response = await fetchWithVersion(apiVersion);
+        }
 
         if (response.status === 429) {
           const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
