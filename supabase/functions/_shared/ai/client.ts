@@ -38,7 +38,7 @@ export class AIClient {
     const models = [
       Deno.env.get("GEMINI_MODEL") || "gemini-2.0-flash",
       "gemini-1.5-flash",
-      "gemini-1.5-flash-002"
+      "gemini-1.5-flash-001"
     ];
     
     let lastError: Error | null = null;
