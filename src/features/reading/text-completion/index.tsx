@@ -9,7 +9,8 @@ import { TIMER_CONFIG, TIMER_TARGET_BY_DIFFICULTY } from '@/core/constants';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTextCompletion } from './hooks';
-import { PassageDisplay, ResultsPanel } from './components';
+import { PassageDisplay } from './components/PassageDisplay';
+import { ResultsPanel } from './components/ResultsPanel';
 
 export const TextCompletion: React.FC = () => {
   const { t } = useTranslation();
@@ -28,23 +29,17 @@ export const TextCompletion: React.FC = () => {
   const [countdownComplete, setCountdownComplete] = useState(false);
   const hasShownGetReadyRef = useRef(false);
 
-  // Calculate target time based on difficulty
-  const getTargetTime = (difficulty?: string) => {
-    switch (difficulty) {
-      case 'easy':
-        return TIMER_TARGET_BY_DIFFICULTY.easy;
-      case 'intermediate':
-        return TIMER_TARGET_BY_DIFFICULTY.intermediate;
-      case 'hard':
-        return TIMER_TARGET_BY_DIFFICULTY.hard;
-      default:
-        return TIMER_TARGET_BY_DIFFICULTY.intermediate; // Default to medium
-    }
-  };
+  // Single ref to avoid minifier TDZ ("Cannot access w before initialization") in prod
+  const tc = useTextCompletion();
 
+  const getTargetTime = useCallback((difficulty: 'easy' | 'intermediate' | 'hard' | undefined): number => {
+    return difficulty ? TIMER_TARGET_BY_DIFFICULTY[difficulty] : TIMER_TARGET_BY_DIFFICULTY.intermediate;
+  }, []);
+
+  // Use fixed targetTime on init so hooks never read tc.passage before it's ready (avoids "Cannot access before initialization" in prod bundle)
   const timer = useTimerWithWarnings({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
-    targetTime: getTargetTime(passage?.difficulty),
+    targetTime: TIMER_TARGET_BY_DIFFICULTY.intermediate,
     autoStart: false,
     callbacks: {
       onWarningThreshold: () => {
@@ -52,9 +47,7 @@ export const TextCompletion: React.FC = () => {
           duration: 3000,
         });
       },
-      onTargetReached: () => {
-        // Silent - user might still be finishing up
-      },
+      onTargetReached: () => {},
       onOvertimeStart: () => {
         toast.info("Taking a bit longer - that's okay! Keep going 📝", {
           duration: 3000,
@@ -63,31 +56,7 @@ export const TextCompletion: React.FC = () => {
     },
   });
 
-  const {
-    loading,
-    passage,
-    userAnswers,
-    showResults,
-    error,
-    blanks,
-    score,
-    exerciseId,
-    isReviewMode,
-    historyTimeSpent,
-    loadNewPassage,
-    loadSpecificExercise,
-    loadHistoryReview,
-    retryCurrentExercise,
-    updateAnswer,
-    checkAnswers,
-    setInputRef,
-    scheduleFocus,
-    getBlankLength,
-    getPrevBlank,
-    getNextBlank,
-  } = useTextCompletion();
-
-  // Load initial passage or specific exercise for review
+  // Load initial tc.passage or specific exercise for review
   useEffect(() => {
     // Only run if params have actually changed
     if (prevReviewIdRef.current === reviewExerciseId && prevHistoryIdRef.current === historyId) return;
@@ -95,33 +64,33 @@ export const TextCompletion: React.FC = () => {
     prevHistoryIdRef.current = historyId;
 
     if (historyId) {
-      loadHistoryReview(historyId);
+      tc.loadHistoryReview(historyId);
     } else if (reviewExerciseId) {
-      loadSpecificExercise(reviewExerciseId);
+      tc.loadSpecificExercise(reviewExerciseId);
     } else {
-      loadNewPassage();
+      tc.loadNewPassage();
       // Show Get Ready modal for new practice sessions (not review mode)
       if (!hasShownGetReadyRef.current) {
         setShowGetReadyModal(true);
         hasShownGetReadyRef.current = true;
       }
     }
-  }, [reviewExerciseId, historyId, loadSpecificExercise, loadHistoryReview, loadNewPassage]);
+  }, [reviewExerciseId, historyId, tc.loadSpecificExercise, tc.loadHistoryReview, tc.loadNewPassage]);
 
-  // Start timer when passage loads AND countdown is complete
+  // Start timer when tc.passage loads AND countdown is complete
   useEffect(() => {
-    if (passage && !showResults && countdownComplete) {
+    if (tc.passage && !tc.showResults && countdownComplete) {
       timer.reset();
       timer.start();
     }
-  }, [passage, showResults, countdownComplete]);
+  }, [tc.passage, tc.showResults, countdownComplete]);
 
   // Stop timer when showing results
   useEffect(() => {
-    if (showResults) {
+    if (tc.showResults) {
       timer.stop();
     }
-  }, [showResults, timer]);
+  }, [tc.showResults, timer]);
 
   // Countdown effect
   useEffect(() => {
@@ -146,16 +115,16 @@ export const TextCompletion: React.FC = () => {
     setCountdownValue(3); // Reset to 3
   }, []);
 
-  // Show error toast
+  // Show tc.error toast
   useEffect(() => {
-    if (error) {
+    if (tc.error) {
       toast({
         title: 'Error',
-        description: error,
+        description: tc.error,
         variant: 'destructive',
       });
     }
-  }, [error]);
+  }, [tc.error]);
 
   // Handle input action
   const handleInput = useCallback(
@@ -166,9 +135,9 @@ export const TextCompletion: React.FC = () => {
       action: 'type' | 'backspace' | 'delete' | 'left' | 'right' | 'up' | 'down' | 'home' | 'end' | 'tab' | 'shift-tab',
       char?: string
     ) => {
-      if (showResults) return;
+      if (tc.showResults) return;
 
-      const currentAnswer = userAnswers[wordId] || '';
+      const currentAnswer = tc.userAnswers[wordId] || '';
 
       switch (action) {
         case 'type': {
@@ -177,17 +146,17 @@ export const TextCompletion: React.FC = () => {
 
           const chars = currentAnswer.padEnd(expectedLength, ' ').split('');
           chars[charIndex] = englishChar;
-          updateAnswer(wordId, chars.join('').replace(/ /g, ''));
+          tc.updateAnswer(wordId, chars.join('').replace(/ /g, ''));
 
           if (englishChar) {
             if (charIndex < expectedLength - 1) {
-              scheduleFocus(wordId, charIndex + 1);
+              tc.scheduleFocus(wordId, charIndex + 1);
             } else {
-              const next = getNextBlank(wordId);
-              if (next) scheduleFocus(next.wordId, 0);
+              const next = tc.getNextBlank(wordId);
+              if (next) tc.scheduleFocus(next.wordId, 0);
             }
           } else {
-            scheduleFocus(wordId, charIndex);
+            tc.scheduleFocus(wordId, charIndex);
           }
           break;
         }
@@ -197,20 +166,20 @@ export const TextCompletion: React.FC = () => {
 
           if (chars[charIndex].trim()) {
             chars[charIndex] = ' ';
-            updateAnswer(wordId, chars.join('').replace(/ /g, ''));
-            scheduleFocus(wordId, charIndex);
+            tc.updateAnswer(wordId, chars.join('').replace(/ /g, ''));
+            tc.scheduleFocus(wordId, charIndex);
           } else if (charIndex > 0) {
             chars[charIndex - 1] = ' ';
-            updateAnswer(wordId, chars.join('').replace(/ /g, ''));
-            scheduleFocus(wordId, charIndex - 1);
+            tc.updateAnswer(wordId, chars.join('').replace(/ /g, ''));
+            tc.scheduleFocus(wordId, charIndex - 1);
           } else {
-            const prevBlank = getPrevBlank(wordId);
+            const prevBlank = tc.getPrevBlank(wordId);
             if (prevBlank && prevBlank.length > 0) {
-              const prevAnswer = userAnswers[prevBlank.wordId] || '';
+              const prevAnswer = tc.userAnswers[prevBlank.wordId] || '';
               const prevChars = prevAnswer.padEnd(prevBlank.length, ' ').split('');
               prevChars[prevBlank.length - 1] = ' ';
-              updateAnswer(prevBlank.wordId, prevChars.join('').replace(/ /g, ''));
-              scheduleFocus(prevBlank.wordId, prevBlank.length - 1);
+              tc.updateAnswer(prevBlank.wordId, prevChars.join('').replace(/ /g, ''));
+              tc.scheduleFocus(prevBlank.wordId, prevBlank.length - 1);
             }
           }
           break;
@@ -221,15 +190,15 @@ export const TextCompletion: React.FC = () => {
 
           if (chars[charIndex].trim()) {
             chars[charIndex] = ' ';
-            updateAnswer(wordId, chars.join('').replace(/ /g, ''));
-            scheduleFocus(wordId, charIndex);
+            tc.updateAnswer(wordId, chars.join('').replace(/ /g, ''));
+            tc.scheduleFocus(wordId, charIndex);
           } else {
             if (charIndex < expectedLength - 1) {
-              scheduleFocus(wordId, charIndex + 1);
+              tc.scheduleFocus(wordId, charIndex + 1);
             } else {
-              const next = getNextBlank(wordId);
-              if (next) scheduleFocus(next.wordId, 0);
-              else scheduleFocus(wordId, charIndex);
+              const next = tc.getNextBlank(wordId);
+              if (next) tc.scheduleFocus(next.wordId, 0);
+              else tc.scheduleFocus(wordId, charIndex);
             }
           }
           break;
@@ -237,89 +206,89 @@ export const TextCompletion: React.FC = () => {
 
         case 'left': {
           if (charIndex > 0) {
-            scheduleFocus(wordId, charIndex - 1);
+            tc.scheduleFocus(wordId, charIndex - 1);
           } else {
-            const prev = getPrevBlank(wordId);
-            if (prev) scheduleFocus(prev.wordId, prev.length - 1);
+            const prev = tc.getPrevBlank(wordId);
+            if (prev) tc.scheduleFocus(prev.wordId, prev.length - 1);
           }
           break;
         }
 
         case 'right': {
           if (charIndex < expectedLength - 1) {
-            scheduleFocus(wordId, charIndex + 1);
+            tc.scheduleFocus(wordId, charIndex + 1);
           } else {
-            const next = getNextBlank(wordId);
-            if (next) scheduleFocus(next.wordId, 0);
+            const next = tc.getNextBlank(wordId);
+            if (next) tc.scheduleFocus(next.wordId, 0);
           }
           break;
         }
 
         case 'up': {
-          const prev = getPrevBlank(wordId);
+          const prev = tc.getPrevBlank(wordId);
           if (prev) {
             const targetIdx = Math.min(charIndex, prev.length - 1);
-            scheduleFocus(prev.wordId, targetIdx);
+            tc.scheduleFocus(prev.wordId, targetIdx);
           }
           break;
         }
 
         case 'down': {
-          const next = getNextBlank(wordId);
+          const next = tc.getNextBlank(wordId);
           if (next) {
             const targetIdx = Math.min(charIndex, next.length - 1);
-            scheduleFocus(next.wordId, targetIdx);
+            tc.scheduleFocus(next.wordId, targetIdx);
           }
           break;
         }
 
         case 'home': {
-          scheduleFocus(wordId, 0);
+          tc.scheduleFocus(wordId, 0);
           break;
         }
 
         case 'end': {
-          scheduleFocus(wordId, expectedLength - 1);
+          tc.scheduleFocus(wordId, expectedLength - 1);
           break;
         }
 
         case 'tab': {
-          const next = getNextBlank(wordId);
-          if (next) scheduleFocus(next.wordId, 0);
+          const next = tc.getNextBlank(wordId);
+          if (next) tc.scheduleFocus(next.wordId, 0);
           break;
         }
 
         case 'shift-tab': {
-          const prev = getPrevBlank(wordId);
-          if (prev) scheduleFocus(prev.wordId, 0);
+          const prev = tc.getPrevBlank(wordId);
+          if (prev) tc.scheduleFocus(prev.wordId, 0);
           break;
         }
       }
     },
-    [showResults, userAnswers, updateAnswer, scheduleFocus, getPrevBlank, getNextBlank]
+    [tc.showResults, tc.userAnswers, tc.updateAnswer, tc.scheduleFocus, tc.getPrevBlank, tc.getNextBlank]
   );
 
   // Handle check answers
   const handleCheckAnswers = useCallback(async () => {
-    await checkAnswers();
+    await tc.checkAnswers();
     timer.stop();
-  }, [checkAnswers, timer]);
+  }, [tc.checkAnswers, timer]);
 
   // Handle next exercise
   const handleNextExercise = useCallback(() => {
     // For subsequent exercises, skip countdown - timer starts immediately
     setCountdownComplete(true);
 
-    if (isReviewMode) {
-      // Clear review param and load new passage
+    if (tc.isReviewMode) {
+      // Clear review param and load new tc.passage
       prevReviewIdRef.current = undefined;
       navigate('/practice/text-completion', { replace: true });
     } else {
-      loadNewPassage();
+      tc.loadNewPassage();
     }
-  }, [isReviewMode, navigate, loadNewPassage]);
+  }, [tc.isReviewMode, navigate, tc.loadNewPassage]);
 
-  // Get Ready Modal (shown while loading for first-time practice)
+  // Get Ready Modal (shown while tc.loading for first-time practice)
   if (showGetReadyModal) {
     return (
       <div className={cn(
@@ -412,8 +381,8 @@ export const TextCompletion: React.FC = () => {
     );
   }
 
-  // Loading state (fallback if passage not loaded yet)
-  if (loading || !passage) {
+  // Loading state (fallback if tc.passage not loaded yet)
+  if (tc.loading || !tc.passage) {
     return <LoadingSpinner message="Preparing passage..." darkMode={darkMode} />;
   }
 
@@ -430,34 +399,34 @@ export const TextCompletion: React.FC = () => {
             💡 {t('practice.englishModeHint')}
           </span>
           <span className="text-[11px] text-emerald-500/70 dark:text-emerald-400/60 font-medium mt-0.5">
-            🎯 Target: {Math.floor(getTargetTime(passage?.difficulty) / 60)}:{(getTargetTime(passage?.difficulty) % 60).toString().padStart(2, '0')}
+            🎯 Target: {Math.floor(getTargetTime(tc.passage?.difficulty) / 60)}:{(getTargetTime(tc.passage?.difficulty) % 60).toString().padStart(2, '0')}
           </span>
         </div>
       }
-      difficulty={passage?.difficulty}
-      topicCategory={passage?.topic_category}
-      showResults={showResults}
+      difficulty={tc.passage?.difficulty}
+      topicCategory={tc.passage?.topic_category}
+      showResults={tc.showResults}
       onCheckAnswers={handleCheckAnswers}
       onNextExercise={handleNextExercise}
-      onRetry={retryCurrentExercise}
-      score={score}
+      onRetry={tc.retryCurrentExercise}
+      score={tc.score}
       totalQuestions={10}
       useProgressBar={true}
       renderResults={() => (
         <ResultsPanel
-          blanks={blanks}
-          userAnswers={userAnswers}
+          blanks={tc.blanks}
+          userAnswers={tc.userAnswers}
           darkMode={darkMode}
-          topic={passage?.topic}
-          elapsedTime={historyTimeSpent !== null ? historyTimeSpent : timer.elapsed}
-          passage={passage}
-          exerciseId={exerciseId || undefined}
-          targetTime={getTargetTime(passage?.difficulty)}
+          topic={tc.passage?.topic}
+          elapsedTime={tc.historyTimeSpent !== null ? tc.historyTimeSpent : timer.elapsed}
+          passage={tc.passage}
+          exerciseId={tc.exerciseId || undefined}
+          targetTime={getTargetTime(tc.passage?.difficulty)}
         />
       )}
     >
       {/* Start encouragement message */}
-      {!showResults && passage && (
+      {!tc.showResults && tc.passage && (
         <div className={cn(
           "mb-4 px-4 py-2.5 rounded-lg border",
           darkMode
@@ -465,17 +434,17 @@ export const TextCompletion: React.FC = () => {
             : "bg-emerald-50 border-emerald-200 text-emerald-700"
         )}>
           <p className="text-sm font-medium">
-            🎯 Let's nail this! Aim for under {Math.floor(getTargetTime(passage.difficulty) / 60)}:{(getTargetTime(passage.difficulty) % 60).toString().padStart(2, '0')}
+            🎯 Let's nail this! Aim for under {Math.floor(getTargetTime(tc.passage.difficulty) / 60)}:{(getTargetTime(tc.passage.difficulty) % 60).toString().padStart(2, '0')}
           </p>
         </div>
       )}
 
       <PassageDisplay
-        passage={passage}
-        userAnswers={userAnswers}
-        showResults={showResults}
+        passage={tc.passage}
+        userAnswers={tc.userAnswers}
+        showResults={tc.showResults}
         darkMode={darkMode}
-        onSetRef={setInputRef}
+        onSetRef={tc.setInputRef}
         onInput={handleInput}
       />
     </ExerciseLayout>
