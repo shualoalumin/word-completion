@@ -1,8 +1,11 @@
+import { Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import TextCompletionExercise from '@/features/reading/text-completion';
 import { Button } from '@/components/ui/button';
+import { ErrorBoundary, LoadingSpinner } from '@/components/common';
+
+const TextCompletionExercise = lazy(() => import('@/features/reading/text-completion'));
 
 export default function Practice() {
   const { t } = useTranslation();
@@ -29,8 +32,12 @@ export default function Practice() {
         </div>
       )}
 
-      {/* Exercise component - Dashboard navigation is now inside ExerciseLayout */}
-      <TextCompletionExercise />
+      {/* Exercise component - lazy so text-completion chunk loads in isolation (avoids TDZ in prod) */}
+      <ErrorBoundary>
+        <Suspense fallback={<div className="flex justify-center p-12"><LoadingSpinner /></div>}>
+          <TextCompletionExercise />
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
