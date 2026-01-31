@@ -9,6 +9,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
 import Landing from "./pages/Landing";
+import LandingA from "./pages/LandingA";
+import LandingB from "./pages/LandingB";
+import LandingC from "./pages/LandingC";
 import Dashboard from "./pages/Dashboard";
 import Practice from './pages/Practice';
 import PracticeSelection from './pages/PracticeSelection';
@@ -62,6 +65,9 @@ const AppContent = () => {
     <Routes>
       {/* ?�딩 ?�이지 - ?�더 ?�음 */}
       <Route path="/" element={<Landing />} />
+      <Route path="/landing/a" element={<LandingA />} />
+      <Route path="/landing/b" element={<LandingB />} />
+      <Route path="/landing/c" element={<LandingC />} />
 
       {/* ?�증 콜백 - ?�더 ?�음 */}
       <Route path="/auth/callback" element={<AuthCallback />} />
