@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { AuthModal } from '@/features/auth/components/AuthModal';
@@ -10,12 +10,58 @@ export default function Landing() {
   const navigate = useNavigate();
   const [showAuth, setShowAuth] = useState(false);
 
+  // Hero demo card state (same logic as Landing C)
+  const [showModal, setShowModal] = useState(false);
+  const [demoChars, setDemoChars] = useState<string[]>(Array(8).fill(''));
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const demoAnswer = 'ynthesis';
+  const demoInput = demoChars.join('');
+  const demoCorrect = demoInput.toLowerCase() === demoAnswer.toLowerCase();
+  const demoAttempted = demoInput.length >= 5;
+
   const handleAuthSuccess = useCallback(() => {
     setShowAuth(false);
     setTimeout(() => {
       navigate('/dashboard', { replace: true });
     }, 100);
   }, [navigate]);
+
+  const handleDemoCharInput = (index: number, char: string) => {
+    const newChars = [...demoChars];
+    newChars[index] = char;
+    setDemoChars(newChars);
+    if (char && index < 7) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleDemoKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      setShowModal(true);
+      trackCTAClick('demo');
+      return;
+    }
+    if (e.key === 'Backspace' && !demoChars[index] && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault();
+      inputRefs.current[index - 1]?.focus();
+    }
+    if (e.key === 'ArrowRight' && index < 7) {
+      e.preventDefault();
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleModalConfirm = () => {
+    setShowModal(false);
+    trackCTAClick('demo');
+    trackDemoStart();
+    navigate('/practice/text-completion');
+  };
 
   const handleTryDemo = () => {
     trackCTAClick('demo');
@@ -119,6 +165,56 @@ export default function Landing() {
               Most test-takers lose points here — not because they don't know the word,
               but because they lack a system.
             </p>
+
+            {/* Hero demo card — same as Landing C (photosynthesis fill-in-the-blank) */}
+            <div className="max-w-xl mx-auto mb-12 p-6 sm:p-8 bg-zinc-900/80 border border-zinc-700 rounded-3xl shadow-xl shadow-black/20">
+              <p className="text-xs font-medium text-zinc-400 mb-4">
+                Fill in the missing letters in the paragraph.
+              </p>
+              <p className="text-[15px] leading-relaxed mb-5 text-zinc-300">
+                The process of <span className="text-emerald-400 font-semibold">photosynthesis</span> converts light energy into chemical
+                compounds. During this process, the{' '}
+                <span className="inline-flex items-baseline gap-[1px]">
+                  <span className="text-zinc-200">s</span>
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <input
+                      key={i}
+                      ref={(el) => { inputRefs.current[i] = el; }}
+                      type="text"
+                      inputMode="text"
+                      maxLength={1}
+                      value={demoChars[i]}
+                      onChange={(e) => {
+                        const char = e.target.value.slice(-1);
+                        if (!char || /^[a-zA-Z]$/.test(char)) {
+                          handleDemoCharInput(i, char);
+                        }
+                      }}
+                      onKeyDown={(e) => handleDemoKeyDown(i, e)}
+                      className={`w-[11px] h-[20px] text-center text-[17px] border-b-2 bg-transparent outline-none p-0 leading-tight caret-emerald-500 transition-colors ${
+                        demoAttempted
+                          ? demoCorrect
+                            ? 'border-emerald-500 text-emerald-400'
+                            : 'border-red-400 text-red-400'
+                          : 'border-zinc-500 text-zinc-200 focus:border-emerald-500'
+                      }`}
+                      style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
+                    />
+                  ))}
+                </span>{' '}
+                of organic molecules provides essential nutrients.
+              </p>
+              {demoAttempted && (
+                <div className={`text-sm rounded-xl px-4 py-3 mb-3 ${demoCorrect ? 'bg-emerald-900/30 text-emerald-300' : 'bg-red-900/30 text-red-300'}`}>
+                  {demoCorrect
+                    ? "Correct! That's how it feels to nail it under pressure."
+                    : 'Not quite — the answer is "synthesis". One letter off = zero credit on the real test.'}
+                </div>
+              )}
+              <p className="text-xs text-zinc-500">
+                {demoAttempted ? 'Press Enter to continue.' : 'Type the missing letters and press Enter.'}
+              </p>
+            </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
@@ -338,6 +434,40 @@ export default function Landing() {
           onSuccess={handleAuthSuccess}
           darkMode={true}
         />
+      )}
+
+      {/* Demo Completion Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">Nice work!</h3>
+              <p className="text-zinc-400">
+                Ready to practice with full passages? Try a complete exercise now.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 border-zinc-700 bg-zinc-800/50 hover:bg-zinc-800 text-white"
+                onClick={() => setShowModal(false)}
+              >
+                Maybe Later
+              </Button>
+              <Button
+                className="flex-1 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700"
+                onClick={handleModalConfirm}
+              >
+                I got it!
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
