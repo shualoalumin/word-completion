@@ -9,6 +9,7 @@ import { useLearningPatterns } from '@/features/learning-patterns';
 import { useTopicPerformance } from '@/features/topic-performance';
 import { SkillRadarChart } from '@/components/charts/SkillRadarChart';
 import { LearningHeatmap } from '@/components/charts/LearningHeatmap';
+import { PerformanceStats } from '@/features/reading/text-completion/components';
 import { cn } from '@/lib/utils';
 import {
   Book,
@@ -270,6 +271,11 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Time Performance Stats */}
+        <section className="mb-8">
+          <PerformanceStats darkMode={true} />
         </section>
 
         {/* Quick Actions */}

@@ -2,13 +2,15 @@ import React from 'react';
 import { Check, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Timer } from '@/components/common';
+import { TimerProgressBar } from '@/components/common/TimerProgressBar';
 import { UseTimerReturn } from '@/core/hooks';
+import { UseTimerWithWarningsReturn } from '@/core/hooks/useTimerWithWarnings';
 import { Difficulty } from '@/core/types/exercise';
 import { cn } from '@/lib/utils';
 
 export interface ExerciseLayoutProps {
   children: React.ReactNode;
-  timer: UseTimerReturn;
+  timer: UseTimerReturn | UseTimerWithWarningsReturn;
   darkMode: boolean;
   onDarkModeToggle: () => void;
   title: string;
@@ -22,6 +24,8 @@ export interface ExerciseLayoutProps {
   score?: number;
   totalQuestions?: number;
   renderResults?: () => React.ReactNode;
+  /** Use progress bar timer instead of text timer */
+  useProgressBar?: boolean;
   className?: string;
 }
 
@@ -36,9 +40,15 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   onNextExercise,
   onRetry,
   renderResults,
+  useProgressBar = false,
   className,
 }) => {
   const { t } = useTranslation();
+
+  // Type guard to check if timer has progress bar features
+  const hasProgressBar = (t: UseTimerReturn | UseTimerWithWarningsReturn): t is UseTimerWithWarningsReturn => {
+    return 'targetTime' in t && 'progressPercent' in t && 'colorZone' in t;
+  };
 
   return (
     <div
@@ -52,32 +62,47 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
 
       {/* Main Content - ETS style max-width for readability */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Title & Subtitle */}
         {/* Title & Subtitle & Timer */}
-        <div className="mb-4 flex items-start justify-between">
-          <div>
-            <h1 className={cn(
-              'text-lg font-bold',
-              darkMode ? 'text-gray-100' : 'text-gray-900'
-            )}>
-              {title}
-            </h1>
-            {subtitle && (
-              <p className={cn(
-                'text-sm',
-                darkMode ? 'text-zinc-400' : 'text-gray-600'
+        <div className="mb-4">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h1 className={cn(
+                'text-lg font-bold',
+                darkMode ? 'text-gray-100' : 'text-gray-900'
               )}>
-                {subtitle}
-              </p>
+                {title}
+              </h1>
+              {subtitle && (
+                <p className={cn(
+                  'text-sm',
+                  darkMode ? 'text-zinc-400' : 'text-gray-600'
+                )}>
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            {!useProgressBar && (
+              <Timer
+                remaining={timer.remaining}
+                overtime={timer.overtime}
+                isOvertime={timer.isOvertime}
+                darkMode={darkMode}
+                className="py-1 px-3 text-base"
+              />
             )}
           </div>
-          <Timer
-            remaining={timer.remaining}
-            overtime={timer.overtime}
-            isOvertime={timer.isOvertime}
-            darkMode={darkMode}
-            className="py-1 px-3 text-base"
-          />
+
+          {/* Progress Bar Timer */}
+          {useProgressBar && hasProgressBar(timer) && (
+            <TimerProgressBar
+              elapsed={timer.elapsed}
+              targetTime={timer.targetTime}
+              isActive={timer.isActive}
+              isOvertime={timer.isOvertime}
+              darkMode={darkMode}
+              className="max-w-md"
+            />
+          )}
         </div>
 
         {/* Exercise Content - Responsive max-width for better readability on wide screens */}

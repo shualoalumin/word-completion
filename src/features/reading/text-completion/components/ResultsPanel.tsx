@@ -14,6 +14,7 @@ export interface ResultsPanelProps {
   elapsedTime?: number;
   passage?: TextCompletionPassage;
   exerciseId?: string;
+  targetTime?: number; // Target completion time for encouragement messages
 }
 
 // Naver Dictionary style word popup
@@ -297,6 +298,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
   elapsedTime,
   passage,
   exerciseId,
+  targetTime,
 }) => {
   const { t } = useTranslation();
   const [addingWords, setAddingWords] = useState<Set<string>>(new Set());
@@ -478,6 +480,44 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
     return 'from-red-600/20 to-red-600/5';
   };
 
+  // Get encouragement message based on score and time
+  const getEncouragementMessage = () => {
+    const withinTarget = targetTime && elapsedTime ? elapsedTime <= targetTime : false;
+
+    // Perfect score (100%)
+    if (correctCount === totalCount) {
+      if (withinTarget) {
+        return { icon: '🔥', message: 'Flawless! Perfect score under target time!' };
+      }
+      return { icon: '🎯', message: 'Perfect! All 10 correct!' };
+    }
+
+    // Excellent (90%+)
+    if (percentage >= 90) {
+      if (withinTarget) {
+        return { icon: '⚡', message: 'Almost perfect! Fast and accurate!' };
+      }
+      return { icon: '✨', message: 'Excellent work! Just one small mistake!' };
+    }
+
+    // Good (80%+)
+    if (percentage >= 80) {
+      if (withinTarget) {
+        return { icon: '👏', message: 'Great job! On track with timing!' };
+      }
+      return { icon: '💪', message: 'Good work! Keep practicing!' };
+    }
+
+    // Decent (70%+)
+    if (percentage >= 70) {
+      return { icon: '📝', message: 'Solid effort! Review the mistakes!' };
+    }
+
+    // Needs work (<70%)
+    return { icon: '🎯', message: 'Keep practicing! You\'ll get there!' };
+  };
+
+  const encouragement = getEncouragementMessage();
   const difficultyConfig = passage?.difficulty ? DIFFICULTY_CONFIG[passage.difficulty] : null;
 
   const renderClickablePassage = () => {
@@ -537,10 +577,13 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({
             </div>
             <div>
               <p className={cn("font-bold text-lg", getScoreColor())}>
-                {percentage >= 90 ? t('results.excellent') : percentage >= 70 ? t('results.goodJob') : percentage >= 50 ? t('results.keepGoing') : t('results.practiceMore')}
+                {encouragement.icon} {encouragement.message}
               </p>
               <p className={cn("text-sm", darkMode ? "text-zinc-400" : "text-gray-600")}>
                 {correctCount}/{totalCount} {t('results.correct')}
+                {targetTime && elapsedTime && elapsedTime <= targetTime && (
+                  <span className="ml-2 text-emerald-500">⚡ Under target!</span>
+                )}
               </p>
             </div>
           </div>

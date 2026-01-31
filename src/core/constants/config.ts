@@ -6,6 +6,13 @@ export const TIMER_CONFIG = {
   DEFAULT: 180,
 } as const;
 
+// Target completion times by difficulty (in seconds)
+export const TIMER_TARGET_BY_DIFFICULTY = {
+  easy: 60,           // 1 minute
+  intermediate: 90,   // 1.5 minutes
+  hard: 120,          // 2 minutes
+} as const;
+
 export const EXERCISE_CONFIG = {
   TEXT_COMPLETION: {
     QUESTIONS_PER_PASSAGE: 10,

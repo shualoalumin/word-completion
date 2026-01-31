@@ -1,11 +1,13 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ExerciseLayout } from '@/components/layout';
 import { LoadingSpinner } from '@/components/common';
-import { useTimer, useDarkMode } from '@/core/hooks';
-import { TIMER_CONFIG } from '@/core/constants';
-import { toast } from '@/hooks/use-toast';
+import { useDarkMode } from '@/core/hooks';
+import { useTimerWithWarnings } from '@/core/hooks/useTimerWithWarnings';
+import { TIMER_CONFIG, TIMER_TARGET_BY_DIFFICULTY } from '@/core/constants';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useTextCompletion } from './hooks';
 import { PassageDisplay, ResultsPanel } from './components';
 
@@ -19,9 +21,46 @@ export const TextCompletion: React.FC = () => {
   const prevReviewIdRef = useRef<string | null | undefined>(undefined);
   const prevHistoryIdRef = useRef<string | null | undefined>(undefined);
 
-  const timer = useTimer({
+  // Get Ready modal and countdown states
+  const [showGetReadyModal, setShowGetReadyModal] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdownValue, setCountdownValue] = useState(3);
+  const [countdownComplete, setCountdownComplete] = useState(false);
+  const hasShownGetReadyRef = useRef(false);
+
+  // Calculate target time based on difficulty
+  const getTargetTime = (difficulty?: string) => {
+    switch (difficulty) {
+      case 'easy':
+        return TIMER_TARGET_BY_DIFFICULTY.easy;
+      case 'intermediate':
+        return TIMER_TARGET_BY_DIFFICULTY.intermediate;
+      case 'hard':
+        return TIMER_TARGET_BY_DIFFICULTY.hard;
+      default:
+        return TIMER_TARGET_BY_DIFFICULTY.intermediate; // Default to medium
+    }
+  };
+
+  const timer = useTimerWithWarnings({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
+    targetTime: getTargetTime(passage?.difficulty),
     autoStart: false,
+    callbacks: {
+      onWarningThreshold: () => {
+        toast.warning('30 seconds left - you got this! 💪', {
+          duration: 3000,
+        });
+      },
+      onTargetReached: () => {
+        // Silent - user might still be finishing up
+      },
+      onOvertimeStart: () => {
+        toast.info("Taking a bit longer - that's okay! Keep going 📝", {
+          duration: 3000,
+        });
+      },
+    },
   });
 
   const {
@@ -61,16 +100,21 @@ export const TextCompletion: React.FC = () => {
       loadSpecificExercise(reviewExerciseId);
     } else {
       loadNewPassage();
+      // Show Get Ready modal for new practice sessions (not review mode)
+      if (!hasShownGetReadyRef.current) {
+        setShowGetReadyModal(true);
+        hasShownGetReadyRef.current = true;
+      }
     }
   }, [reviewExerciseId, historyId, loadSpecificExercise, loadHistoryReview, loadNewPassage]);
 
-  // Start timer when passage loads
+  // Start timer when passage loads AND countdown is complete
   useEffect(() => {
-    if (passage && !showResults) {
+    if (passage && !showResults && countdownComplete) {
       timer.reset();
       timer.start();
     }
-  }, [passage, showResults]);
+  }, [passage, showResults, countdownComplete]);
 
   // Stop timer when showing results
   useEffect(() => {
@@ -78,6 +122,29 @@ export const TextCompletion: React.FC = () => {
       timer.stop();
     }
   }, [showResults, timer]);
+
+  // Countdown effect
+  useEffect(() => {
+    if (!showCountdown) return;
+
+    if (countdownValue > 0) {
+      const timeout = setTimeout(() => {
+        setCountdownValue(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timeout);
+    } else {
+      // Countdown finished
+      setShowCountdown(false);
+      setCountdownComplete(true);
+    }
+  }, [showCountdown, countdownValue]);
+
+  // Handle "I got it" button click
+  const handleGetReadyConfirm = useCallback(() => {
+    setShowGetReadyModal(false);
+    setShowCountdown(true);
+    setCountdownValue(3); // Reset to 3
+  }, []);
 
   // Show error toast
   useEffect(() => {
@@ -240,6 +307,9 @@ export const TextCompletion: React.FC = () => {
 
   // Handle next exercise
   const handleNextExercise = useCallback(() => {
+    // For subsequent exercises, skip countdown - timer starts immediately
+    setCountdownComplete(true);
+
     if (isReviewMode) {
       // Clear review param and load new passage
       prevReviewIdRef.current = undefined;
@@ -249,14 +319,102 @@ export const TextCompletion: React.FC = () => {
     }
   }, [isReviewMode, navigate, loadNewPassage]);
 
-  // Loading state
-  if (loading) {
-    return <LoadingSpinner message="Preparing passage..." darkMode={darkMode} />;
+  // Get Ready Modal (shown while loading for first-time practice)
+  if (showGetReadyModal) {
+    return (
+      <div className={cn(
+        "min-h-screen flex items-center justify-center transition-colors",
+        darkMode ? "bg-zinc-950" : "bg-gray-50"
+      )}>
+        <div className={cn(
+          "max-w-md mx-4 p-8 rounded-2xl border shadow-2xl animate-in zoom-in-95 duration-300",
+          darkMode
+            ? "bg-zinc-900 border-zinc-800"
+            : "bg-white border-gray-200"
+        )}>
+          <div className="text-center">
+            <div className={cn(
+              "w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center",
+              darkMode ? "bg-emerald-500/10" : "bg-emerald-50"
+            )}>
+              <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <h3 className={cn(
+              "text-2xl font-bold mb-3",
+              darkMode ? "text-gray-100" : "text-gray-900"
+            )}>
+              Ready to start?
+            </h3>
+            <div className={cn(
+              "text-left space-y-3 mb-8 p-4 rounded-xl",
+              darkMode ? "bg-zinc-800/50" : "bg-gray-50"
+            )}>
+              <p className={cn(
+                "text-sm flex items-start gap-2",
+                darkMode ? "text-gray-300" : "text-gray-700"
+              )}>
+                <span className="text-emerald-500 font-bold">⏱️</span>
+                <span>Time limits vary by difficulty level</span>
+              </p>
+              <p className={cn(
+                "text-sm flex items-start gap-2",
+                darkMode ? "text-gray-300" : "text-gray-700"
+              )}>
+                <span className="text-amber-500 font-bold">🔔</span>
+                <span>Watch for timer color changes and warnings</span>
+              </p>
+              <p className={cn(
+                "text-sm flex items-start gap-2",
+                darkMode ? "text-gray-300" : "text-gray-700"
+              )}>
+                <span className="text-blue-500 font-bold">🎯</span>
+                <span>Aim to finish before the target time!</span>
+              </p>
+            </div>
+            <button
+              onClick={handleGetReadyConfirm}
+              className="w-full h-12 px-6 text-[15px] font-semibold bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+            >
+              I got it!
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  // No passage
-  if (!passage) {
-    return null;
+  // Countdown Overlay (shown after "I got it" click, before exercise starts)
+  if (showCountdown) {
+    return (
+      <div className={cn(
+        "min-h-screen flex items-center justify-center transition-colors",
+        darkMode ? "bg-zinc-950" : "bg-gray-50"
+      )}>
+        <div className="text-center animate-in zoom-in-50 duration-300">
+          <div className={cn(
+            "text-[120px] font-black tabular-nums leading-none mb-4",
+            countdownValue === 3 && "text-emerald-500",
+            countdownValue === 2 && "text-amber-500",
+            countdownValue === 1 && "text-red-500"
+          )}>
+            {countdownValue}
+          </div>
+          <p className={cn(
+            "text-xl font-semibold",
+            darkMode ? "text-gray-400" : "text-gray-600"
+          )}>
+            Get ready...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state (fallback if passage not loaded yet)
+  if (loading || !passage) {
+    return <LoadingSpinner message="Preparing passage..." darkMode={darkMode} />;
   }
 
   return (
@@ -271,6 +429,9 @@ export const TextCompletion: React.FC = () => {
           <span className="text-[11px] text-blue-500/80 dark:text-blue-400/60 font-medium">
             💡 {t('practice.englishModeHint')}
           </span>
+          <span className="text-[11px] text-emerald-500/70 dark:text-emerald-400/60 font-medium mt-0.5">
+            🎯 Target: {Math.floor(getTargetTime(passage?.difficulty) / 60)}:{(getTargetTime(passage?.difficulty) % 60).toString().padStart(2, '0')}
+          </span>
         </div>
       }
       difficulty={passage?.difficulty}
@@ -281,6 +442,7 @@ export const TextCompletion: React.FC = () => {
       onRetry={retryCurrentExercise}
       score={score}
       totalQuestions={10}
+      useProgressBar={true}
       renderResults={() => (
         <ResultsPanel
           blanks={blanks}
@@ -290,9 +452,24 @@ export const TextCompletion: React.FC = () => {
           elapsedTime={historyTimeSpent !== null ? historyTimeSpent : timer.elapsed}
           passage={passage}
           exerciseId={exerciseId || undefined}
+          targetTime={getTargetTime(passage?.difficulty)}
         />
       )}
     >
+      {/* Start encouragement message */}
+      {!showResults && passage && (
+        <div className={cn(
+          "mb-4 px-4 py-2.5 rounded-lg border",
+          darkMode
+            ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-400"
+            : "bg-emerald-50 border-emerald-200 text-emerald-700"
+        )}>
+          <p className="text-sm font-medium">
+            🎯 Let's nail this! Aim for under {Math.floor(getTargetTime(passage.difficulty) / 60)}:{(getTargetTime(passage.difficulty) % 60).toString().padStart(2, '0')}
+          </p>
+        </div>
+      )}
+
       <PassageDisplay
         passage={passage}
         userAnswers={userAnswers}

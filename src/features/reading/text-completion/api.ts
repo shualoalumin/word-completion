@@ -690,3 +690,99 @@ export async function loadHistoryRecordById(historyId: string): Promise<{ data: 
     return { data: null, error: err instanceof Error ? err : new Error('Unknown error') };
   }
 }
+
+/**
+ * Performance statistics by difficulty level
+ */
+export interface PerformanceStatsByDifficulty {
+  difficulty: 'easy' | 'intermediate' | 'hard';
+  avgTime: number; // Average time in seconds
+  bestTime: number; // Best (minimum) time in seconds
+  attempts: number; // Number of attempts
+}
+
+export interface GetPerformanceStatsResult {
+  data: PerformanceStatsByDifficulty[] | null;
+  error: Error | null;
+}
+
+/**
+ * Get user performance statistics grouped by difficulty level
+ * Returns average time, best time, and attempt count for each difficulty
+ */
+export async function getUserPerformanceStats(): Promise<GetPerformanceStatsResult> {
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session) {
+      return {
+        data: null,
+        error: new Error('Authentication required'),
+      };
+    }
+
+    // Get all completed exercises for this user
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('difficulty, time_spent_seconds')
+      .eq('user_id', session.user.id)
+      .not('difficulty', 'is', null)
+      .order('completed_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        data: [],
+        error: null,
+      };
+    }
+
+    // Group by difficulty and calculate stats
+    const statsByDifficulty = new Map<
+      'easy' | 'intermediate' | 'hard',
+      { times: number[]; count: number }
+    >();
+
+    data.forEach((record) => {
+      const diff = record.difficulty as 'easy' | 'intermediate' | 'hard';
+      if (!statsByDifficulty.has(diff)) {
+        statsByDifficulty.set(diff, { times: [], count: 0 });
+      }
+      const stats = statsByDifficulty.get(diff)!;
+      stats.times.push(record.time_spent_seconds);
+      stats.count++;
+    });
+
+    // Calculate averages and minimums
+    const results: PerformanceStatsByDifficulty[] = [];
+    statsByDifficulty.forEach((stats, difficulty) => {
+      const avgTime = stats.times.reduce((a, b) => a + b, 0) / stats.times.length;
+      const bestTime = Math.min(...stats.times);
+      results.push({
+        difficulty,
+        avgTime: Math.round(avgTime),
+        bestTime,
+        attempts: stats.count,
+      });
+    });
+
+    // Sort by difficulty: easy, intermediate, hard
+    const difficultyOrder = { easy: 1, intermediate: 2, hard: 3 };
+    results.sort((a, b) => difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]);
+
+    return {
+      data: results,
+      error: null,
+    };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
