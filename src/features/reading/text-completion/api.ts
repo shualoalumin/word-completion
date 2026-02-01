@@ -198,7 +198,7 @@ export async function saveExerciseHistory(
       };
     }
 
-    const payload: Record<string, unknown> = {
+    const basePayload: Record<string, unknown> = {
       user_id: session.user.id,
       exercise_id: exerciseId,
       score: params.score,
@@ -210,24 +210,29 @@ export async function saveExerciseHistory(
       difficulty: params.difficulty || passage.difficulty || 'intermediate',
       topic_category: params.topicCategory || passage.topic_category,
     };
-    if (params.targetTimeSeconds != null) {
-      payload.target_time_seconds = params.targetTimeSeconds;
-    }
+
+    // Try with target_time_seconds first; if DB doesn't have the column yet, retry without it
+    const payloads: Record<string, unknown>[] = [
+      { ...basePayload, ...(params.targetTimeSeconds != null && { target_time_seconds: params.targetTimeSeconds }) },
+      basePayload,
+    ];
 
     let lastError: Error | null = null;
-    for (let attempt = 0; attempt <= SAVE_HISTORY_RETRIES; attempt++) {
-      const { data, error } = await supabase
-        .from('user_exercise_history')
-        .insert(payload)
-        .select('id')
-        .single();
+    for (const payload of payloads) {
+      for (let attempt = 0; attempt <= SAVE_HISTORY_RETRIES; attempt++) {
+        const { data, error } = await supabase
+          .from('user_exercise_history')
+          .insert(payload)
+          .select('id')
+          .single();
 
-      if (!error) {
-        return { success: true, error: null, historyId: data.id };
-      }
-      lastError = error;
-      if (attempt < SAVE_HISTORY_RETRIES) {
-        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        if (!error) {
+          return { success: true, error: null, historyId: data.id };
+        }
+        lastError = error;
+        if (attempt < SAVE_HISTORY_RETRIES) {
+          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+        }
       }
     }
 
