@@ -228,12 +228,22 @@ export function useTextCompletion(): UseTextCompletionReturn {
       return;
     }
 
+    // Normalize answers: DB/JSON stores keys as strings; we use number keys for userAnswers
+    const normalizedAnswers: UserAnswers = {};
+    const raw = answers || {};
+    Object.keys(raw).forEach((k) => {
+      const numKey = Number(k);
+      if (!Number.isNaN(numKey) && typeof raw[k] === 'string') {
+        normalizedAnswers[numKey] = raw[k];
+      }
+    });
+
     // 3. Set state
     const normalizedPassage = normalizeSpacing(exerciseResult.data);
     const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
     blankOrderRef.current = newBlanks.map((b) => b.id);
     setPassage(normalizedPassage);
-    setUserAnswers(answers || {});
+    setUserAnswers(normalizedAnswers);
     setShowResults(true);
     setHistoryTimeSpent(historyResult.data.time_spent_seconds || null); // Load historic time
     setExerciseId(exercise_id);
@@ -317,9 +327,10 @@ export function useTextCompletion(): UseTextCompletionReturn {
       if (result.error) {
         console.error('Failed to save exercise history:', result.error);
         toast.error('Progress could not be saved. Please try again.');
-      } else if (result.success) {
+      } else       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ['recent-activity'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        queryClient.invalidateQueries({ queryKey: ['exercise-history'] });
       }
     } catch (err) {
       console.error('Unexpected error saving exercise history:', err);
