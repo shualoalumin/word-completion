@@ -92,6 +92,13 @@ export const TextCompletion: React.FC = () => {
     }
   }, [tc.showResults, timer]);
 
+  // Blur any focused element when countdown starts so no caret blinks next to the number
+  useEffect(() => {
+    if (showCountdown && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [showCountdown]);
+
   // Countdown effect
   useEffect(() => {
     if (!showCountdown) return;
@@ -357,13 +364,16 @@ export const TextCompletion: React.FC = () => {
   // Countdown Overlay (shown after "I got it" click, before exercise starts)
   if (showCountdown) {
     return (
-      <div className={cn(
-        "min-h-screen flex items-center justify-center transition-colors",
-        darkMode ? "bg-zinc-950" : "bg-gray-50"
-      )}>
-        <div className="text-center animate-in zoom-in-50 duration-300">
+      <div
+        className={cn(
+          "min-h-screen flex items-center justify-center transition-colors select-none",
+          darkMode ? "bg-zinc-950" : "bg-gray-50"
+        )}
+        style={{ caretColor: 'transparent' }}
+      >
+        <div className="text-center animate-in zoom-in-50 duration-300 [caret-color:transparent]">
           <div className={cn(
-            "text-[120px] font-black tabular-nums leading-none mb-4",
+            "text-[120px] font-black tabular-nums leading-none mb-4 outline-none",
             countdownValue === 3 && "text-emerald-500",
             countdownValue === 2 && "text-amber-500",
             countdownValue === 1 && "text-red-500"
