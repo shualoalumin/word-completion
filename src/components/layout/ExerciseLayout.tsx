@@ -26,6 +26,8 @@ export interface ExerciseLayoutProps {
   renderResults?: () => React.ReactNode;
   /** Use progress bar timer instead of text timer */
   useProgressBar?: boolean;
+  /** Total bar length in seconds (e.g. 150 for 2:30). Used with useProgressBar. */
+  timerTotalDuration?: number;
   className?: string;
 }
 
@@ -41,14 +43,16 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   onRetry,
   renderResults,
   useProgressBar = false,
+  timerTotalDuration = 150,
   className,
 }) => {
   const { t } = useTranslation();
 
-  // Type guard to check if timer has progress bar features
   const hasProgressBar = (t: UseTimerReturn | UseTimerWithWarningsReturn): t is UseTimerWithWarningsReturn => {
     return 'targetTime' in t && 'progressPercent' in t && 'colorZone' in t;
   };
+
+  const passageCardInner = 'max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto';
 
   return (
     <div
@@ -58,11 +62,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
         className
       )}
     >
-
-
-      {/* Main Content - ETS style max-width for readability */}
       <main className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Title & Subtitle & Timer */}
         <div className="mb-4">
           <div className="flex items-start justify-between mb-3">
             <div>
@@ -92,26 +92,27 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
             )}
           </div>
 
-          {/* Progress Bar Timer */}
+          {/* Progress Bar Timer - same width as passage card below */}
           {useProgressBar && hasProgressBar(timer) && (
-            <TimerProgressBar
-              elapsed={timer.elapsed}
-              targetTime={timer.targetTime}
-              isActive={timer.isActive}
-              isOvertime={timer.isOvertime}
-              darkMode={darkMode}
-              className="max-w-md"
-            />
+            <div className={cn('w-full', passageCardInner)}>
+              <TimerProgressBar
+                elapsed={timer.elapsed}
+                overtime={timer.overtime}
+                totalDuration={timerTotalDuration}
+                targetTime={timer.targetTime}
+                isActive={timer.isActive}
+                darkMode={darkMode}
+                className="w-full"
+              />
+            </div>
           )}
         </div>
 
-        {/* Exercise Content - Responsive max-width for better readability on wide screens */}
         <div className={cn(
           'rounded-xl border p-4 sm:p-6',
           darkMode ? 'bg-zinc-900/50 border-zinc-800' : 'bg-white border-gray-200'
         )}>
-          <div className="max-w-4xl lg:max-w-5xl xl:max-w-6xl mx-auto">
-
+          <div className={passageCardInner}>
             {children}
           </div>
         </div>

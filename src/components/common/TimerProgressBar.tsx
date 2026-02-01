@@ -4,103 +4,76 @@ import { cn } from '@/lib/utils';
 export interface TimerProgressBarProps {
   /** Current elapsed time in seconds */
   elapsed: number;
-  /** Target completion time in seconds */
+  /** Overtime in seconds (after totalDuration) */
+  overtime: number;
+  /** Total bar length in seconds (fixed, e.g. 2:30 = 150) */
+  totalDuration: number;
+  /** Target completion time by difficulty (e.g. 60/90/120) */
   targetTime: number;
   /** Whether timer is active */
   isActive: boolean;
-  /** Whether in overtime (exceeded target) */
-  isOvertime: boolean;
   /** Dark mode styling */
   darkMode?: boolean;
-  /** Optional className for container */
+  /** Optional className for container (use w-full to match passage card width) */
   className?: string;
 }
 
 export function TimerProgressBar({
   elapsed,
+  overtime,
+  totalDuration,
   targetTime,
   isActive,
-  isOvertime,
   darkMode = false,
   className,
 }: TimerProgressBarProps) {
-  // Calculate progress percentage (0-100+)
-  const progressPercent = useMemo(() => {
-    if (targetTime === 0) return 0;
-    return Math.min((elapsed / targetTime) * 100, 100);
-  }, [elapsed, targetTime]);
+  const warningSeconds = useMemo(
+    () => Math.floor(targetTime * 0.67),
+    [targetTime]
+  );
 
-  // Determine color zone
-  const colorZone = useMemo(() => {
-    if (isOvertime || progressPercent >= 100) return 'red';
-    if (progressPercent >= 67) return 'yellow';
-    return 'green';
-  }, [isOvertime, progressPercent]);
+  // Fill: 0–100% of totalDuration; cap at 100% so bar doesn't grow past 2:30 (overtime still counts)
+  const fillPercent = useMemo(() => {
+    if (totalDuration <= 0) return 0;
+    return Math.min((elapsed / totalDuration) * 100, 100);
+  }, [elapsed, totalDuration]);
 
-  // Format time as MM:SS
+  // Segment boundaries as % of total bar (0–100%)
+  const greenEnd = totalDuration > 0 ? (warningSeconds / totalDuration) * 100 : 0;
+  const yellowEnd = totalDuration > 0 ? (targetTime / totalDuration) * 100 : 0;
+  // red: yellowEnd to 100%
+
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Get color classes based on zone
-  const getBarColor = () => {
-    if (darkMode) {
-      switch (colorZone) {
-        case 'green':
-          return 'bg-emerald-500';
-        case 'yellow':
-          return 'bg-amber-500';
-        case 'red':
-          return 'bg-red-500';
-      }
-    } else {
-      switch (colorZone) {
-        case 'green':
-          return 'bg-emerald-500';
-        case 'yellow':
-          return 'bg-amber-500';
-        case 'red':
-          return 'bg-red-500';
-      }
-    }
-  };
+  const trackBg = darkMode ? 'bg-zinc-800' : 'bg-slate-200';
+  const fillColor = useMemo(() => {
+    if (elapsed >= targetTime) return 'bg-red-500';
+    if (elapsed >= warningSeconds) return 'bg-amber-500';
+    return 'bg-emerald-500';
+  }, [elapsed, targetTime, warningSeconds]);
 
-  const getTextColor = () => {
-    if (darkMode) {
-      switch (colorZone) {
-        case 'green':
-          return 'text-emerald-400';
-        case 'yellow':
-          return 'text-amber-400';
-        case 'red':
-          return 'text-red-400';
-      }
-    } else {
-      switch (colorZone) {
-        case 'green':
-          return 'text-emerald-600';
-        case 'yellow':
-          return 'text-amber-600';
-        case 'red':
-          return 'text-red-600';
-      }
-    }
-  };
+  const textColor = useMemo(() => {
+    if (elapsed >= targetTime) return darkMode ? 'text-red-400' : 'text-red-600';
+    if (elapsed >= warningSeconds) return darkMode ? 'text-amber-400' : 'text-amber-600';
+    return darkMode ? 'text-emerald-400' : 'text-emerald-600';
+  }, [elapsed, targetTime, warningSeconds, darkMode]);
 
   return (
-    <div className={cn('space-y-2', className)}>
-      {/* Time display */}
+    <div className={cn('space-y-2 w-full', className)}>
       <div className="flex items-center justify-between text-sm">
-        <span className={cn('font-mono font-medium', getTextColor())}>
-          {isOvertime ? (
+        <span className={cn('font-mono font-medium', textColor)}>
+          {overtime > 0 ? (
             <>
-              <span className="opacity-70">Overtime:</span> +{formatTime(elapsed - targetTime)}
+              <span className="opacity-70">{formatTime(totalDuration)}</span>
+              <span className="ml-1">+{formatTime(overtime)}</span>
             </>
           ) : (
             <>
-              {formatTime(elapsed)} / {formatTime(targetTime)}
+              {formatTime(elapsed)} / {formatTime(totalDuration)}
             </>
           )}
         </span>
@@ -109,38 +82,31 @@ export function TimerProgressBar({
         </span>
       </div>
 
-      {/* Progress bar */}
-      <div className="relative">
-        {/* Background track */}
-        <div
-          className={cn(
-            'h-2 rounded-full overflow-hidden',
-            darkMode ? 'bg-zinc-800' : 'bg-slate-200'
-          )}
-        >
-          {/* Filled portion */}
+      {/* Bar: total = totalDuration; background shows green / yellow / red segments */}
+      <div className="relative h-2 rounded-full overflow-hidden">
+        {/* Background segments (full width) */}
+        <div className={cn('absolute inset-0 flex', trackBg)}>
           <div
-            className={cn(
-              'h-full transition-all duration-300 ease-linear',
-              getBarColor(),
-              !isActive && 'opacity-60'
-            )}
-            style={{
-              width: `${progressPercent}%`,
-            }}
+            className="h-full bg-emerald-500/30"
+            style={{ width: `${greenEnd}%` }}
+          />
+          <div
+            className="h-full bg-amber-500/30"
+            style={{ width: `${yellowEnd - greenEnd}%` }}
+          />
+          <div
+            className="h-full flex-1 bg-red-500/30"
           />
         </div>
-
-        {/* Zone markers (subtle lines at 67% and 100%) */}
-        <div className="absolute top-0 left-[67%] w-px h-2 bg-white/30" />
-        <div className="absolute top-0 right-0 w-px h-2 bg-white/40" />
-      </div>
-
-      {/* Zone labels (optional, very subtle) */}
-      <div className="flex justify-between text-[10px] opacity-50">
-        <span className={darkMode ? 'text-zinc-600' : 'text-slate-400'}>Safe</span>
-        <span className={darkMode ? 'text-zinc-600' : 'text-slate-400'}>Warning</span>
-        <span className={darkMode ? 'text-zinc-600' : 'text-slate-400'}>Overtime</span>
+        {/* Filled portion (elapsed) */}
+        <div
+          className={cn(
+            'absolute inset-y-0 left-0 h-full transition-all duration-300 ease-linear rounded-full',
+            fillColor,
+            !isActive && 'opacity-60'
+          )}
+          style={{ width: `${fillPercent}%` }}
+        />
       </div>
     </div>
   );

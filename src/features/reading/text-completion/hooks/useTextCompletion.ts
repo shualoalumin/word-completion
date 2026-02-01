@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
 import { generatePassage, saveExerciseHistory, findExerciseId, loadExerciseById, loadHistoryRecordById } from '../api';
-import { UI_CONFIG } from '@/core/constants';
+import { UI_CONFIG, TIMER_TARGET_BY_DIFFICULTY } from '@/core/constants';
+import { toast } from 'sonner';
 
 /**
  * 공백 정규화 함수 (Fallback)
@@ -84,6 +85,8 @@ export interface UseTextCompletionReturn {
   getBlankLength: (wordId: number) => number;
   getPrevBlank: (wordId: number) => { wordId: number; length: number } | null;
   getNextBlank: (wordId: number) => { wordId: number; length: number } | null;
+  /** Start timing (call when countdown completes so saved time excludes Get Ready + countdown) */
+  startTiming: () => void;
 }
 
 export function useTextCompletion(): UseTextCompletionReturn {
@@ -121,6 +124,11 @@ export function useTextCompletion(): UseTextCompletionReturn {
     return acc + (userSuffix.toLowerCase() === suffix.toLowerCase() ? 1 : 0);
   }, 0);
 
+  /** Start timing (called when timer starts / countdown completes so saved time = actual solving time only) */
+  const startTiming = useCallback(() => {
+    startTimeRef.current = Date.now();
+  }, []);
+
   // Load new passage (generate new)
   const loadNewPassage = useCallback(async () => {
     setLoading(true);
@@ -144,8 +152,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
       const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
       blankOrderRef.current = newBlanks.map((b) => b.id);
       setPassage(normalizedPassage);
-      // Record start time when passage loads
-      startTimeRef.current = Date.now();
+      // startTimeRef set when countdown completes (startTiming) so saved time excludes Get Ready + countdown
       
       // Use exercise_id from Edge Function response (if available)
       // Otherwise fallback to findExerciseId
@@ -172,7 +179,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setHistoryTimeSpent(null);
     inputRefs.current.clear();
     blankOrderRef.current = [];
-    startTimeRef.current = null;
+    startTimeRef.current = null; // Set when countdown completes via startTiming()
 
     const result = await loadExerciseById(targetExerciseId);
 
@@ -184,7 +191,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
       const newBlanks = normalizedPassage.content_parts.filter(isBlankPart) as TextCompletionBlank[];
       blankOrderRef.current = newBlanks.map((b) => b.id);
       setPassage(normalizedPassage);
-      startTimeRef.current = Date.now();
+      // startTimeRef set when timer starts (startTiming) in index
       setExerciseId(targetExerciseId);
     }
 
@@ -239,7 +246,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     setUserAnswers({});
     setShowResults(false);
     setHistoryTimeSpent(null);
-    startTimeRef.current = Date.now();
+    // startTimeRef set when timer starts (startTiming) in index
   }, []);
 
   // Update answer
@@ -290,33 +297,35 @@ export function useTextCompletion(): UseTextCompletionReturn {
     
     console.log(`[checkAnswers] Score: ${correctCount}/${totalQuestions} = ${scorePercent}%`);
     
-    // Save history (only if authenticated)
+    const targetTimeSeconds = passage.difficulty
+      ? TIMER_TARGET_BY_DIFFICULTY[passage.difficulty]
+      : TIMER_TARGET_BY_DIFFICULTY.intermediate;
+
     try {
       const result = await saveExerciseHistory(passage, {
         score: correctCount,
         maxScore: totalQuestions,
         scorePercent,
         timeSpentSeconds,
+        targetTimeSeconds,
         answers: userAnswers,
         mistakes,
         difficulty: passage.difficulty,
         topicCategory: passage.topic_category,
       });
-      
+
       if (result.error) {
-        // Silently log error - don't disrupt user experience
         console.error('Failed to save exercise history:', result.error);
+        toast.error('Progress could not be saved. Please try again.');
       } else if (result.success) {
-        console.log('Exercise history saved successfully:', result.historyId);
-        // Invalidate queries to refresh Recent Activity and Dashboard stats
         queryClient.invalidateQueries({ queryKey: ['recent-activity'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       }
     } catch (err) {
-      // Silently handle errors - optional auth pattern
       console.error('Unexpected error saving exercise history:', err);
+      toast.error('Progress could not be saved.');
     }
-  }, [passage, showResults, blanks, userAnswers]);
+  }, [passage, showResults, blanks, userAnswers, queryClient]);
 
   // Focus management
   const setInputRef = useCallback((key: string, el: HTMLInputElement | null) => {
@@ -461,6 +470,7 @@ export function useTextCompletion(): UseTextCompletionReturn {
     getBlankLength,
     getPrevBlank,
     getNextBlank,
+    startTiming,
   };
 }
 

@@ -36,10 +36,9 @@ export const TextCompletion: React.FC = () => {
     return difficulty ? TIMER_TARGET_BY_DIFFICULTY[difficulty] : TIMER_TARGET_BY_DIFFICULTY.intermediate;
   }, []);
 
-  // Use fixed targetTime on init so hooks never read tc.passage before it's ready (avoids "Cannot access before initialization" in prod bundle)
   const timer = useTimerWithWarnings({
     duration: TIMER_CONFIG.TEXT_COMPLETION,
-    targetTime: TIMER_TARGET_BY_DIFFICULTY.intermediate,
+    targetTime: getTargetTime(tc.passage?.difficulty),
     autoStart: false,
     callbacks: {
       onWarningThreshold: () => {
@@ -77,13 +76,14 @@ export const TextCompletion: React.FC = () => {
     }
   }, [reviewExerciseId, historyId, tc.loadSpecificExercise, tc.loadHistoryReview, tc.loadNewPassage]);
 
-  // Start timer when tc.passage loads AND countdown is complete
+  // Start timer when tc.passage loads AND countdown is complete; record start time for saved time (excludes Get Ready + countdown)
   useEffect(() => {
     if (tc.passage && !tc.showResults && countdownComplete) {
       timer.reset();
       timer.start();
+      tc.startTiming();
     }
-  }, [tc.passage, tc.showResults, countdownComplete]);
+  }, [tc.passage, tc.showResults, countdownComplete, tc.startTiming]);
 
   // Stop timer when showing results
   useEffect(() => {
@@ -422,13 +422,14 @@ export const TextCompletion: React.FC = () => {
       score={tc.score}
       totalQuestions={10}
       useProgressBar={true}
+      timerTotalDuration={TIMER_CONFIG.TEXT_COMPLETION}
       renderResults={() => (
         <ResultsPanel
           blanks={tc.blanks}
           userAnswers={tc.userAnswers}
           darkMode={darkMode}
           topic={tc.passage?.topic}
-          elapsedTime={tc.historyTimeSpent !== null ? tc.historyTimeSpent : timer.elapsed}
+          elapsedTime={tc.historyTimeSpent !== null ? tc.historyTimeSpent : timer.totalElapsed}
           passage={tc.passage}
           exerciseId={tc.exerciseId || undefined}
           targetTime={getTargetTime(tc.passage?.difficulty)}

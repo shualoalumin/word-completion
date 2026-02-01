@@ -55,10 +55,12 @@ export interface SaveExerciseHistoryParams {
   score: number;
   maxScore: number;
   scorePercent: number;
+  /** Time spent in seconds (includes overtime; recorded from timer start to submit) */
   timeSpentSeconds: number;
+  /** Target time for this difficulty (for analytics) */
+  targetTimeSeconds?: number;
   answers: Record<number, string>;
   mistakes: any[];
-  // New fields for complete tracking
   difficulty?: 'easy' | 'intermediate' | 'hard';
   topicCategory?: string;
 }
@@ -165,9 +167,11 @@ export async function findExerciseId(passage: TextCompletionPassage): Promise<st
   }
 }
 
+const SAVE_HISTORY_RETRIES = 2;
+
 /**
- * Save exercise history to database
- * Only saves if user is authenticated
+ * Save exercise history to database (with retries).
+ * Only saves if user is authenticated. Time includes overtime.
  */
 export async function saveExerciseHistory(
   passage: TextCompletionPassage,
@@ -185,7 +189,6 @@ export async function saveExerciseHistory(
       };
     }
 
-    // Use exercise_id from passage if available, otherwise find it
     const exerciseId = passage.exercise_id || await findExerciseId(passage);
     if (!exerciseId) {
       console.warn('Could not find exercise_id, skipping history save');
@@ -195,31 +198,42 @@ export async function saveExerciseHistory(
       };
     }
 
-    const { data, error } = await supabase
-      .from('user_exercise_history')
-      .insert({
-        user_id: session.user.id,
-        exercise_id: exerciseId,
-        score: params.score,
-        max_score: params.maxScore,
-        score_percent: params.scorePercent,
-        time_spent_seconds: params.timeSpentSeconds,
-        answers: params.answers,
-        mistakes: params.mistakes,
-        difficulty: params.difficulty || passage.difficulty || 'intermediate',
-        topic_category: params.topicCategory || passage.topic_category,
-      })
-      .select('id')
-      .single();
+    const payload: Record<string, unknown> = {
+      user_id: session.user.id,
+      exercise_id: exerciseId,
+      score: params.score,
+      max_score: params.maxScore,
+      score_percent: params.scorePercent,
+      time_spent_seconds: params.timeSpentSeconds,
+      answers: params.answers,
+      mistakes: params.mistakes,
+      difficulty: params.difficulty || passage.difficulty || 'intermediate',
+      topic_category: params.topicCategory || passage.topic_category,
+    };
+    if (params.targetTimeSeconds != null) {
+      payload.target_time_seconds = params.targetTimeSeconds;
+    }
 
-    if (error) {
-      throw error;
+    let lastError: Error | null = null;
+    for (let attempt = 0; attempt <= SAVE_HISTORY_RETRIES; attempt++) {
+      const { data, error } = await supabase
+        .from('user_exercise_history')
+        .insert(payload)
+        .select('id')
+        .single();
+
+      if (!error) {
+        return { success: true, error: null, historyId: data.id };
+      }
+      lastError = error;
+      if (attempt < SAVE_HISTORY_RETRIES) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+      }
     }
 
     return {
-      success: true,
-      error: null,
-      historyId: data.id,
+      success: false,
+      error: lastError ?? new Error('Unknown error'),
     };
   } catch (err) {
     return {
