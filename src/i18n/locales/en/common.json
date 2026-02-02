@@ -176,6 +176,22 @@
     "sentences": "sentences",
     "questions": "questions"
   },
+  "buildSentence": {
+    "title": "Make an appropriate sentence.",
+    "getReady": "Build a Sentence",
+    "getReadyDots": "Get ready...",
+    "iGotIt": "I got it!",
+    "loading": "Preparing questions...",
+    "instruction1": "Read the conversation and build a reply",
+    "instruction2": "Click or drag words into the correct order",
+    "instruction3": "Watch out for distractor words in hard mode!",
+    "timeWarning": "30 seconds left!",
+    "overtime": "Taking longer - that's okay!",
+    "correct": "Correct!",
+    "incorrect": "Not quite.",
+    "correctAnswer": "Correct",
+    "answerReview": "Answer Review"
+  },
   "mastery": {
     "new": "New",
     "learning": "Learning",

@@ -176,6 +176,22 @@
     "sentences": "개 문장",
     "questions": "문제"
   },
+  "buildSentence": {
+    "title": "적절한 문장을 만드세요.",
+    "getReady": "문장 만들기",
+    "getReadyDots": "준비하세요...",
+    "iGotIt": "준비 완료!",
+    "loading": "문제 준비 중...",
+    "instruction1": "대화를 읽고 응답 문장을 만드세요",
+    "instruction2": "단어를 클릭하거나 드래그하여 올바른 순서로 배치하세요",
+    "instruction3": "어려운 모드에서는 함정 단어를 조심하세요!",
+    "timeWarning": "30초 남았습니다!",
+    "overtime": "시간이 좀 걸려도 괜찮아요!",
+    "correct": "정답!",
+    "incorrect": "아쉬워요.",
+    "correctAnswer": "정답",
+    "answerReview": "답안 리뷰"
+  },
   "mastery": {
     "new": "신규",
     "learning": "학습 중",
