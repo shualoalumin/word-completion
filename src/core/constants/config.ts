@@ -2,7 +2,7 @@
 
 export const TIMER_CONFIG = {
   TEXT_COMPLETION: 150,      // 2 minutes 30 seconds
-  BUILD_SENTENCE: 120,       // 2 minutes
+  BUILD_SENTENCE: 330,       // 5 minutes 30 seconds
   DEFAULT: 180,
 } as const;
 
@@ -20,7 +20,7 @@ export const EXERCISE_CONFIG = {
     WORD_COUNT_MAX: 90,
   },
   BUILD_SENTENCE: {
-    QUESTIONS_PER_SET: 5,
+    QUESTIONS_PER_SET: 10,
   },
 } as const;
 

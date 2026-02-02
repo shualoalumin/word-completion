@@ -13,7 +13,7 @@ The "Build a Sentence" task evaluates a test-taker's ability to construct gramma
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  TASK STRUCTURE                                             │
-│  (Writing Task 1, ~10 questions, ~23 mins total)            │
+│  (Writing Task 1, 10 questions, 5:30 time limit)            │
 ├─────────────────────────────────────────────────────────────┤
 │  [Context]   User A (Avatar): Trigger Sentence              │
 │  [Response]  User B (Avatar): Target Sentence Structure     │
