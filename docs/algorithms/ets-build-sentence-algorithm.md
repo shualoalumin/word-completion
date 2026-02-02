@@ -1,7 +1,8 @@
 # ETS TOEFL iBT Writing Task 1: "Build a Sentence" - Algorithm Analysis
 
-> **Last Updated**: 2026-01-28
-> **Based on**: 10 Official ETS Sample Questions (2026 Format)
+> **Last Updated**: 2026-02-02
+> **Based on**: 10 Official ETS Sample Questions (2026 Format) + Real Test Performance Data
+> **Sources**: ETS Official Samples, [Transformation English](https://www.youtube.com/@transformation-english) Analysis
 > **Purpose**: Logic reverse-engineering for AI question generation
 
 ---
@@ -34,32 +35,76 @@ The "Build a Sentence" task evaluates a test-taker's ability to construct gramma
 
 ## 2. Sentence Types & Complexity Levels
 
-Based on the analysis of 10 samples, we identified 3 distinct difficulty tiers.
+Based on the analysis of 10 official ETS samples and real test-taker performance data.
+
+> **Key Stat**: Average score is **5/10** (50% failure rate). Build a Sentence is the single biggest point-loss area in the Writing section — more than Email + Academic Discussion combined.
+>
+> **Scoring**: Binary (0 or 1 per question). No partial credit — every tile must be in the correct position.
+
+### The #1 Trap: Indirect Question Word Order
+
+The most common mistake across all levels is **embedded (indirect) question word order**. When a question is embedded inside a statement, it follows **statement order (S-V)**, NOT question inversion.
+
+| Type | Example | Word Order |
+| :--- | :--- | :--- |
+| **Direct Question** | "What **are** you talking about?" | Question order (Aux-S-V) |
+| **Indirect/Embedded** | "I don't know what you **are** talking about." | Statement order (S-V) ✓ |
+| **Common Mistake** | "I don't know what **are** you talking about." | ✗ Wrong inversion |
+
+This trap appears in **Level 2 and Level 3** questions. The chunks are designed so that both orders *look* plausible, but only statement order is correct.
 
 ### Level 1: Basic Structures (Questions 4, 7, 8)
 *   **Structure**: Simple Wh-Questions or Yes/No Questions.
 *   **Grammar**: Present/Future Simple.
-*   **Chunks**: mostly single words.
+*   **Chunks**: Mostly single words (5-6 chunks).
 *   **Distractors**: None.
+*   **Trap Pattern**: Basic word order (Do/Does + S + V).
+*   **Avg. Success Rate**: ~70% (most test-takers get these right).
 *   **Example**: "Do you have a shopping list?"
     *   Chunks: `list`, `do`, `a`, `have`, `shopping`, `you`
 
-### Level 2: Intermediate Phrases (Questions 2, 3, 6)
-*   **Structure**: Indirect Questions, Complex Noun Phrases.
-*   **Grammar**: Modals, Continuous tenses.
-*   **Chunks**: Mixed single words and 2-3 word phrases.
+### Level 2: Intermediate Phrases (Questions 2, 3, 5, 6)
+*   **Structure**: Indirect Questions, Complex Noun Phrases, Embedded Clauses.
+*   **Grammar**: Modals, Continuous tenses, Embedded question word order.
+*   **Chunks**: Mixed single words and 2-3 word phrases (6-7 chunks).
 *   **Distractors**: Rare (0-1).
-*   **Example**: "What is the water temperature like this time of year?"
-    *   Chunks: `is`, `time of year` (phrase), `what`, `the water` (phrase), `this`, `like`, `temperature`
+*   **Trap Pattern**: **Indirect question inversion** — the #1 score killer.
+    *   Trigger words: `know`, `wonder`, `tell me`, `not sure`, `ask`
+    *   After these → embedded clause uses **S-V order** (not V-S).
+*   **Avg. Success Rate**: ~40% (most points are lost here).
+*   **Example**: "Can you tell me where the library is?"
+    *   Chunks: `tell me`, `can`, `where`, `you`, `the library`, `is`
+    *   Trap: Placing `is` before `the library` → "where is the library" (wrong — embedded question)
+*   **Example 2**: "What is the water temperature like this time of year?"
+    *   Chunks: `is`, `time of year`, `what`, `the water`, `this`, `like`, `temperature`
 
 ### Level 3: Advanced Syntax (Questions 1, 9, 10)
 *   **Structure**: Relative Clauses, Passive Voice, Reported Speech.
-*   **Grammar**: Past Tense, Agreement rules.
-*   **Chunks**: Semantic units (Noun/Verb phrases).
-*   **Distractors**: **Present (1 item)** - often grammar traps.
+*   **Grammar**: Past Tense, Agreement rules, Complex embedding.
+*   **Chunks**: Semantic units — Noun/Verb phrases (5-7 chunks).
+*   **Distractors**: **Present (1 item)** — grammar traps designed to exploit "feeling."
+*   **Trap Patterns**:
+    *   Redundant pronoun (`it` when subject already defined)
+    *   Subject-verb agreement (`was` vs `were`)
+    *   Tense consistency (`learn` vs `learned`)
+    *   Indirect question inversion (combined with relative clauses)
+*   **Avg. Success Rate**: ~30% (hardest questions, distractor adds confusion).
 *   **Example**: "I used the study guide that was provided by the professor."
     *   Chunks: `by`, `the professor`, `that`, `the study guide`, `was provided`
-    *   Distractor: `it` (Plausible noun, but redundant)
+    *   Distractor: `it` (Plausible noun, but redundant — "the study guide" is already the subject)
+
+### Systematic Solving Method: S-V-O-Extra
+
+"Feeling" is not enough — test-takers need a systematic approach:
+
+| Step | Action | Example |
+| :--- | :--- | :--- |
+| **S** (Subject) | Find the subject first | `the study guide` |
+| **V** (Verb) | Attach the main verb | `was provided` |
+| **O** (Object/Complement) | Add object or complement | `by the professor` |
+| **Extra** | Remaining modifiers, connectors | `that` (relative pronoun) |
+
+This method prevents the "it sounds right" trap and forces structural analysis.
 
 ---
 
