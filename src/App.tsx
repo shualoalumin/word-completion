@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "./components/layout/AppLayout";
-import Landing from "./pages/Landing";
+import Landing from "./pages/LandingC";
 import LandingA from "./pages/LandingA";
 import LandingB from "./pages/LandingB";
 import LandingC from "./pages/LandingC";

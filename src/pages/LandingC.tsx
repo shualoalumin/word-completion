@@ -108,7 +108,7 @@ export default function LandingC() {
               </button>
             )}
             <button
-              onClick={() => { trackCTAClick('primary'); navigate(isAuthenticated ? '/dashboard' : '/practice/text-completion'); }}
+              onClick={() => { trackCTAClick('primary'); navigate(isAuthenticated ? '/dashboard' : '/practice'); }}
               className="h-9 px-4 text-sm font-semibold bg-teal-500 text-white rounded-xl hover:bg-teal-600 shadow-sm shadow-teal-500/20 transition-all"
             >
               Start Practicing
@@ -118,7 +118,13 @@ export default function LandingC() {
       </nav>
 
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-6 pt-16 pb-12">
+      <section className="relative max-w-5xl mx-auto px-6 pt-16 pb-12 overflow-hidden">
+        {/* Background Glows */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] pointer-events-none overflow-hidden -z-10">
+          <div className="absolute top-[-10%] left-[10%] w-[40%] h-[60%] bg-teal-500/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute top-[10%] right-[10%] w-[40%] h-[60%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse delay-1000" />
+        </div>
+
         {/* Badge */}
         <div className="text-center mb-8">
           <div className={cn(
@@ -132,20 +138,20 @@ export default function LandingC() {
 
         {/* Headline — centered */}
         <h1 className={cn(
-          'text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.1] mb-8 text-center',
+          'text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-[1.1] mb-8 text-center',
           darkMode ? 'text-white' : 'text-slate-800'
         )}>
-          The first section that trips you up?
+          New TOEFL Reading & Writing?
           <br />
-          <span className="text-teal-500">Nail it before test day.</span>
+          <span className="bg-gradient-to-r from-teal-500 to-blue-500 bg-clip-text text-transparent">Master the new format now.</span>
         </h1>
 
         {/* Interactive card — front and center */}
         <div className={cn(
-          'max-w-xl mx-auto mb-10 rounded-3xl shadow-xl p-6 sm:p-8 border',
-          darkMode ? 'bg-zinc-900/80 border-zinc-700 shadow-black/20' : 'bg-white border-amber-100 shadow-amber-900/[0.04]'
+          'max-w-xl mx-auto mb-10 rounded-3xl p-6 sm:p-8 border animate-float glass-card',
+          darkMode ? 'shadow-black/20' : 'shadow-amber-900/[0.04]'
         )}>
-          <p className={cn('text-xs font-medium mb-4', darkMode ? 'text-zinc-400' : 'text-slate-500')}>Fill in the missing letters in the paragraph.</p>
+          <p className={cn('text-[10px] uppercase tracking-widest font-bold mb-4 opacity-60', darkMode ? 'text-teal-400' : 'text-teal-600')}>Interactive Demo</p>
 
           <p className={cn('text-[15px] leading-relaxed mb-5', darkMode ? 'text-zinc-300' : 'text-slate-600')}>
             The process of <span className="text-teal-500 font-semibold">photosynthesis</span> converts light energy into chemical
@@ -231,10 +237,19 @@ export default function LandingC() {
         {/* CTA */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
           <button
-            onClick={() => { trackCTAClick('demo'); trackDemoStart(); navigate('/practice/text-completion'); }}
+            onClick={() => { trackCTAClick('choice'); navigate('/practice'); }}
             className="h-12 px-8 text-[15px] font-semibold bg-teal-500 text-white rounded-2xl hover:bg-teal-600 shadow-md shadow-teal-500/20 transition-all active:scale-[0.98]"
           >
-            Start Free Practice
+            Choose Exercise
+          </button>
+          <button
+            onClick={() => { trackCTAClick('demo'); trackDemoStart(); navigate('/practice/text-completion'); }}
+            className={cn(
+              "h-12 px-8 text-[15px] font-semibold rounded-2xl transition-all border",
+              darkMode ? "bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700" : "bg-white border-amber-200 text-slate-600 hover:bg-slate-50"
+            )}
+          >
+            Try Demo Section
           </button>
         </div>
       </section>
@@ -243,10 +258,11 @@ export default function LandingC() {
       <div className="max-w-3xl mx-auto px-6 pb-16">
         <div className="flex flex-wrap justify-center gap-3">
           {[
-            { label: '55+ exercises', icon: '&#9998;' },
-            { label: '3 difficulty levels', icon: '&#9650;' },
-            { label: 'SM-2 spaced repetition', icon: '&#8635;' },
-            { label: 'Free forever', icon: '&#10003;' },
+            { label: 'Reading: Complete the Words', icon: '&#128214;' },
+            { label: 'Writing: Build a Sentence', icon: '&#9997;' },
+            { label: 'AI Powered Feedback', icon: '&#10024;' },
+            { label: '3 Difficulty Levels', icon: '&#9650;' },
+            { label: 'Free Forever', icon: '&#10003;' },
           ].map((s) => (
             <div
               key={s.label}
@@ -289,10 +305,10 @@ export default function LandingC() {
         <h2 className={cn('text-2xl font-bold text-center mb-12', darkMode ? 'text-white' : 'text-slate-800')}>What you get</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           {[
-            { title: 'Complete the Words', desc: 'AI passages with 10 blanks. Easy, medium, hard.', emoji: '\u270F\uFE0F', bg: darkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
-            { title: 'Smart Vocabulary', desc: 'Save words. Flashcards + fill-in-blank review.', emoji: '\uD83D\uDCD6', bg: darkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
-            { title: 'Progress Tracking', desc: 'Streaks, scores, difficulty breakdown.', emoji: '\uD83D\uDCC8', bg: darkMode ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
-            { title: 'Visual Timer Guidance', desc: 'Smart progress bar. Easy: 1min, Medium: 1.5min, Hard: 2min.', emoji: '\u23F1\uFE0F', bg: darkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
+            { title: 'Reading: Complete the Words', desc: 'AI passages with 10 blanks. Master the context-based word prediction.', emoji: '\u270F\uFE0F', bg: darkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
+            { title: 'Writing: Build a Sentence', desc: 'Drag and drop chunks to form logical sentences with grammar insights.', emoji: '\u270A', bg: darkMode ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
+            { title: 'Smart Vocabulary', desc: 'Save words from exercises. Flashcards + fill-in-blank review.', emoji: '\uD83D\uDCD6', bg: darkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
+            { title: 'AI Tutor Analysis', desc: 'Get detailed explanations of trap answers and grammar tips for every exercise.', emoji: '\u2728', bg: darkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
           ].map((f) => (
             <div key={f.title} className={cn('p-5 rounded-2xl border', f.bg)}>
               <span className="text-2xl mb-3 block">{f.emoji}</span>

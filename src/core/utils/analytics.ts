@@ -34,7 +34,7 @@ export function trackEvent({ action, category, label, value, ...rest }: GTagEven
 // ── Pre-defined events ──
 
 /** Landing page CTA button clicked */
-export function trackCTAClick(variant: 'primary' | 'demo' | 'sign_in') {
+export function trackCTAClick(variant: 'primary' | 'demo' | 'sign_in' | 'choice') {
   trackEvent({ action: 'cta_click', category: 'landing', label: variant });
 }
 
