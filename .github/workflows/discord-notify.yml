@@ -15,173 +15,107 @@ jobs:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
     steps:
-      - name: Wait for Cloudflare to start build
+      - name: Verify and Sanitize
         run: |
-          echo "⏳ Waiting 30 seconds for Cloudflare to pick up the changes..."
-          sleep 30
+          # Remove whitespace and re-export (crucial for clean API calls)
+          echo "CF_ACCOUNT_ID=$(echo "$CF_ACCOUNT_ID" | xargs)" >> $GITHUB_ENV
+          echo "CF_PROJECT=$(echo "$CF_PROJECT" | xargs)" >> $GITHUB_ENV
+          echo "CF_TOKEN=$(echo "$CF_TOKEN" | xargs)" >> $GITHUB_ENV
+          echo "DISCORD_WEBHOOK=$(echo "$DISCORD_WEBHOOK" | xargs)" >> $GITHUB_ENV
 
-      - name: Poll Deployment Status (Robust)
+      - name: Token Diagnostics
+        run: |
+          echo "🔍 Checking Cloudflare Token validity..."
+          VERIFY=$(curl -s -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+            -H "Authorization: Bearer $CF_TOKEN" \
+            -H "Content-Type: application/json")
+
+          echo "Response: $VERIFY"
+          if [[ $VERIFY != *"\"status\":\"active\""* ]]; then
+            echo "❌ Token is INACTIVE or INVALID! Please check your token in Cloudflare dashboard."
+            exit 1
+          fi
+          echo "✅ Token is active."
+
+      - name: Wait for Cloudflare to pick up changes
+        run: sleep 30
+
+      - name: Poll Deployment Status
         id: poll
         shell: bash
         run: |
-          # Disable immediate exit to handle errors manually
           set +e
-
-          # 🛡️ SANITIZE INPUTS (Trim whitespace/newlines)
-          # This fixes common copy-paste errors where secrets have hidden spaces
-          CF_ACCOUNT_ID=$(echo "$CF_ACCOUNT_ID" | xargs)
-          CF_PROJECT=$(echo "$CF_PROJECT" | xargs)
-          CF_TOKEN=$(echo "$CF_TOKEN" | xargs)
-          DISCORD_WEBHOOK=$(echo "$DISCORD_WEBHOOK" | xargs)
-
-          # Helper function for API calls
-          call_cf_api() {
-            local url="$1"
-            local method="${2:-GET}"
-            
-            # Request with HTTP code at the end
-            RESPONSE=$(curl -s -w "\n%{http_code}" -X "$method" \
-              -H "Authorization: Bearer ${CF_TOKEN}" \
-              -H "Content-Type: application/json" \
-              "$url")
-            
-            # Extract Body and Status Code
-            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-            BODY=$(echo "$RESPONSE" | sed '$d')
-            
-            # Log for debugging (Masking sensitive tokens if any appeared, though they shouldn't)
-            echo "URL: $url"
-            echo "HTTP Code: $HTTP_CODE"
-            
-            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-               echo "$BODY"
-               return 0
-            else
-               echo "❌ API Error Response:"
-               echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
-               return 1
-            fi
-          }
-
           API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
 
-          # 1. Health Check & Project Verification
-          echo "🔍 Verifying credentials and project..."
-          PROJECT_INFO=$(call_cf_api "$API_BASE")
-          if [ $? -ne 0 ]; then
-            echo "🚨 Critical Error: Failed to access Cloudflare Pages Project."
-            echo "Check your CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_PAGES_PROJECT_NAME, and API Token permission."
+          echo "🔍 Attempting to access project: $CF_PROJECT"
+          DETAILS=$(curl -s -X GET "$API_BASE/deployments?per_page=1" \
+            -H "Authorization: Bearer $CF_TOKEN")
+
+          if [[ $DETAILS == *"\"success\":false"* ]]; then
+            echo "❌ Access Denied (403 Forbidden) or Project Not Found!"
+            echo "API Response: $DETAILS"
             exit 1
           fi
-          echo "✅ Project found: $(echo "$PROJECT_INFO" | jq -r '.result.name')"
 
-          # 2. Get Latest Deployment
-          echo "🔍 Fetching latest deployment..."
-          DEPLOYMENTS=$(call_cf_api "$API_BASE/deployments?sort_by=created_on&sort_order=desc&per_page=1")
-          if [ $? -ne 0 ]; then
-             echo "🚨 Failed to list deployments."
-             exit 1
+          DEPLOY_ID=$(echo "$DETAILS" | jq -r '.result[0].id')
+          if [ "$DEPLOY_ID" == "null" ]; then
+            echo "❌ No deployments found for this project."
+            exit 1
           fi
+          echo "📌 Tracking Deployment ID: $DEPLOY_ID"
 
-          DEPLOYMENT_ID=$(echo "$DEPLOYMENTS" | jq -r '.result[0].id')
-          if [ "$DEPLOYMENT_ID" == "null" ] || [ -z "$DEPLOYMENT_ID" ]; then
-             echo "❌ Error: API returned no deployments. Is this a new project?"
-             exit 1
-          fi
-          echo "📌 Tracking Deployment ID: $DEPLOYMENT_ID"
-
-          # 3. Poll Loop
-          MAX_RETRIES=40  # 40 * 10s = 400s (approx 6.5 mins)
-          COUNT=0
-          FINAL_STATUS="unknown"
-          FINAL_URL=""
-
-          while [ $COUNT -lt $MAX_RETRIES ]; do
-            echo "🔄 Polling status [$COUNT/$MAX_RETRIES]..."
+          # Poll for 5 minutes (30 * 10s)
+          for i in {1..30}; do
+            STATUS_RESP=$(curl -s -X GET "$API_BASE/deployments/$DEPLOY_ID" -H "Authorization: Bearer $CF_TOKEN")
+            STATUS=$(echo "$STATUS_RESP" | jq -r '.result.latest_stage.status')
+            URL=$(echo "$STATUS_RESP" | jq -r '.result.url')
+            echo "   Current Status ($i/30): $STATUS"
             
-            DETAILS=$(call_cf_api "$API_BASE/deployments/$DEPLOYMENT_ID")
-            if [ $? -ne 0 ]; then
-               echo "⚠️ Transient API error, retrying..."
-               sleep 5
-               continue
+            if [[ "$STATUS" == "success" || "$STATUS" == "failure" ]]; then
+              echo "STATUS=$STATUS" >> $GITHUB_ENV
+              echo "DEPLOY_URL=$URL" >> $GITHUB_ENV
+              exit 0
             fi
-
-            STATUS=$(echo "$DETAILS" | jq -r '.result.latest_stage.status')
-            FINAL_URL=$(echo "$DETAILS" | jq -r '.result.url // ""')
-            
-            echo "   Current Status: $STATUS"
-
-            if [ "$STATUS" == "success" ] || [ "$STATUS" == "failure" ] || [ "$STATUS" == "error" ]; then
-              FINAL_STATUS="$STATUS"
-              break
-            fi
-            
             sleep 10
-            COUNT=$((COUNT+1))
           done
-
-          if [ "$FINAL_STATUS" == "unknown" ]; then
-            echo "⚠️ Timeout reached. Assuming unknown status."
-          fi
-
-          # Output to GitHub Env
-          echo "STATUS=$FINAL_STATUS" >> $GITHUB_ENV
-          echo "DEPLOY_URL=$FINAL_URL" >> $GITHUB_ENV
-
-          # Explicitly exit 0 to proceed to notification step
-          exit 0
+          echo "STATUS=timeout" >> $GITHUB_ENV
 
       - name: Send Discord Notification
-        if: always() # Run even if polling had issues, to report failures
+        if: always()
         run: |
-          # If STATUS is missing (script crashed early), set to error
-          if [ -z "$STATUS" ]; then STATUS="script_error"; fi
-
-          if [ "$STATUS" == "success" ]; then
-            COLOR=5763719  # Green
-            TITLE="✅ Deployment Successful"
-            DESC="New version is live!"
-          elif [ "$STATUS" == "script_error" ]; then
-             COLOR=15105570 # Orange
-             TITLE="⚠️ Notification Script Error"
-             DESC="Check GitHub Actions logs. Cloudflare API might be unreachable."
-          else
-            COLOR=15548997 # Red
-            TITLE="❌ Deployment Failed"
-            DESC="Build failed on Cloudflare."
-          fi
-
           # Metadata
           REPO="${{ github.repository }}"
           ACTOR="${{ github.actor }}"
-          COMMIT_MSG="${{ github.event.head_commit.message }}"
-          COMMIT_MSG="${COMMIT_MSG//\"/\\\"}"
-          COMMIT_MSG=$(echo "$COMMIT_MSG" | head -n 1)
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA=${COMMIT_SHA:0:7}
 
-          if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://github.com/$REPO/actions"; fi
+          # Handle missing environment variables
+          [ -z "$STATUS" ] && STATUS="error"
+          [ -z "$DEPLOY_URL" ] && DEPLOY_URL="https://github.com/$REPO/actions"
 
-          if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://github.com/$REPO/actions"; fi
-
-          # Use Python for reliable JSON generation (avoids shell/jq escaping issues)
+          # Generate JSON payload using Python
           JSON_STRING=$(python3 -c '
           import os, json
+
+          status = os.environ.get("STATUS", "error")
+          color = 5763719 if status == "success" else 15548997
+          title = "✅ Deployment Successful" if status == "success" else "❌ Deployment Failed/Issue"
 
           payload = {
               "username": "Cloudflare Pages",
               "avatar_url": "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
               "embeds": [{
-                  "title": os.environ.get("TITLE"),
-                  "description": os.environ.get("DESC"),
-                  "color": int(os.environ.get("COLOR") or 0),
+                  "title": title,
+                  "color": color,
                   "url": os.environ.get("DEPLOY_URL"),
                   "fields": [
-                      { "name": "Project", "value": os.environ.get("REPO"), "inline": True },
-                      { "name": "Commit", "value": os.environ.get("COMMIT_MSG"), "inline": True },
-                      { "name": "Author", "value": os.environ.get("ACTOR"), "inline": True },
-                      { "name": "Link", "value": f"[Visit]({os.environ.get("DEPLOY_URL")})", "inline": False }
+                      {"name": "Project", "value": os.environ.get("CF_PROJECT", "N/A"), "inline": True},
+                      {"name": "Status", "value": status, "inline": True},
+                      {"name": "Author", "value": "'$ACTOR'", "inline": True},
+                      {"name": "Commit", "value": "'$SHORT_SHA'", "inline": True},
+                      {"name": "Link", "value": f"[Visit]({os.environ.get("DEPLOY_URL")})", "inline": False}
                   ],
-                  "footer": { "text": "Via GitHub Actions (Robust Polling)" },
-                  "timestamp": os.environ.get("TIMESTAMP")
+                  "footer": {"text": "Via GitHub Actions (Diagnostic Polling)"}
               }]
           }
           print(json.dumps(payload))
