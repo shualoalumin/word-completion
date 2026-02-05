@@ -191,7 +191,18 @@
     "correct": "정답!",
     "incorrect": "아쉬워요.",
     "correctAnswer": "정답",
-    "answerReview": "답안 리뷰"
+    "answerReview": "답안 리뷰",
+    "modeTitle": "연습 모드 선택",
+    "modeUntimed": "무제한 연습",
+    "modeUntimedDesc": "타이머 없이 편한 속도로 연습하세요.",
+    "modeTimed": "제한 시간 연습",
+    "modeTimedDesc": "타이머 있음, 초과 시간 허용.",
+    "modeTest": "테스트 모드",
+    "modeTestDesc": "5분 30초 엄수. 시간 종료 시 즉시 결과 표시.",
+    "testModeNoticeTitle": "테스트 모드",
+    "testModeNotice1": "총 5분 30초가 주어집니다. 시간이 끝나면 세션이 종료되고 점수가 표시됩니다.",
+    "testModeNotice2": "문제별 정답/오답은 마지막에 한 번에 확인합니다.",
+    "testModeNoticeConfirm": "테스트 시작"
   },
   "mastery": {
     "new": "신규",

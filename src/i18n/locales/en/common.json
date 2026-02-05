@@ -191,7 +191,18 @@
     "correct": "Correct!",
     "incorrect": "Not quite.",
     "correctAnswer": "Correct",
-    "answerReview": "Answer Review"
+    "answerReview": "Answer Review",
+    "modeTitle": "Choose practice mode",
+    "modeUntimed": "Untimed practice",
+    "modeUntimedDesc": "No timer. Practice at your own pace.",
+    "modeTimed": "Timed practice",
+    "modeTimedDesc": "Timer with overtime allowed. Same as current.",
+    "modeTest": "Test mode",
+    "modeTestDesc": "Strict 5:30. Time's up = session ends, results shown.",
+    "testModeNoticeTitle": "Test mode",
+    "testModeNotice1": "You have 5 minutes 30 seconds total. When time runs out, the session ends and you'll see your score.",
+    "testModeNotice2": "You won't see correct/incorrect per question until the end.",
+    "testModeNoticeConfirm": "Start test"
   },
   "mastery": {
     "new": "New",

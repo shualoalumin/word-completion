@@ -88,6 +88,8 @@ export async function generateSessionQuestions(
 // History Saving Functions
 // ============================================
 
+export type BuildSentencePracticeMode = 'untimed' | 'timed' | 'test';
+
 export interface SaveBuildSentenceHistoryParams {
   exerciseId?: string;
   score: number;
@@ -95,6 +97,7 @@ export interface SaveBuildSentenceHistoryParams {
   scorePercent: number;
   timeSpentSeconds: number;
   targetTimeSeconds?: number;
+  practiceMode?: BuildSentencePracticeMode;
   answers: { 
     questionIndex: number; 
     userOrder: string[]; 
@@ -153,6 +156,7 @@ export async function saveBuildSentenceHistory(
           score_percent: params.scorePercent,
           time_spent_seconds: params.timeSpentSeconds,
           target_time_seconds: params.targetTimeSeconds || null,
+          practice_mode: params.practiceMode ?? 'timed',
           answers: params.answers,
           mistakes: params.mistakes,
           difficulty: mappedDifficulty,
@@ -208,6 +212,60 @@ export async function getBuildSentenceHistory(
     if (error) throw error;
 
     return { data, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
+
+export interface BuildSentenceModeStats {
+  practiceMode: BuildSentencePracticeMode;
+  avgTimeSeconds: number;
+  avgScorePercent: number;
+  count: number;
+}
+
+/**
+ * Get average time and score per practice mode for the current user
+ */
+export async function getBuildSentenceModeStats(): Promise<{
+  data: BuildSentenceModeStats[] | null;
+  error: Error | null;
+}> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: new Error('Not authenticated') };
+
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('practice_mode, time_spent_seconds, score_percent')
+      .eq('user_id', user.id)
+      .eq('exercise_type', 'build-sentence')
+      .not('practice_mode', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(200);
+
+    if (error) throw error;
+    if (!data?.length) return { data: [], error: null };
+
+    const byMode: Record<string, { times: number[]; scores: number[] }> = {};
+    data.forEach((row: { practice_mode: string; time_spent_seconds: number | null; score_percent: number | null }) => {
+      const mode = row.practice_mode || 'timed';
+      if (!byMode[mode]) byMode[mode] = { times: [], scores: [] };
+      if (typeof row.time_spent_seconds === 'number') byMode[mode].times.push(row.time_spent_seconds);
+      if (typeof row.score_percent === 'number') byMode[mode].scores.push(row.score_percent);
+    });
+
+    const result: BuildSentenceModeStats[] = (['untimed', 'timed', 'test'] as const).map((practiceMode) => {
+      const arr = byMode[practiceMode];
+      const count = arr ? arr.times.length : 0;
+      const avgTimeSeconds = count && arr?.times.length ? arr.times.reduce((a, b) => a + b, 0) / arr.times.length : 0;
+      const avgScorePercent = count && arr?.scores.length ? arr.scores.reduce((a, b) => a + b, 0) / arr.scores.length : 0;
+      return { practiceMode, avgTimeSeconds, avgScorePercent, count };
+    });
+    return { data: result, error: null };
   } catch (err) {
     return {
       data: null,
