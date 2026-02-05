@@ -90,6 +90,8 @@ jobs:
 
       - name: Send Discord Notification
         if: always()
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           # Safe Metadata
           COMMIT_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
@@ -101,6 +103,10 @@ jobs:
           color = 5763719 if status == "success" else 15548997
           title = "✅ 배포 성공" if status == "success" else "❌ 배포 실패/오류"
 
+          # Get commit message and truncate to first line
+          commit_msg = os.environ.get("COMMIT_MSG") or "Manual Trigger / Dispatch"
+          commit_msg_first_line = commit_msg.split("\n")[0][:100] # Max 100 chars for safety
+
           payload = {
               "username": "Cloudflare Pages",
               "avatar_url": "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
@@ -110,9 +116,10 @@ jobs:
                   "url": os.environ.get("DEPLOY_URL", ""),
                   "fields": [
                       {"name": "Project", "value": os.environ.get("CF_PROJECT", "N/A"), "inline": True},
-                      {"name": "Commit", "value": "'$COMMIT_SHORT'", "inline": True},
+                      {"name": "Status", "value": status, "inline": True},
                       {"name": "Author", "value": "${{ github.actor }}", "inline": True},
-                      {"name": "Status", "value": status, "inline": True}
+                      {"name": "Commit", "value": f"[`{COMMIT_SHORT}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})", "inline": True},
+                      {"name": "Message", "value": commit_msg_first_line, "inline": False}
                   ],
                   "footer": {"text": "Via GitHub Actions (Multi-Auth Support)"}
               }]
