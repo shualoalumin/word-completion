@@ -24,4 +24,8 @@ bun.lockb
 *.sln
 *.sw?
 .env
+# Cloudflare Workers
+.wrangler
+.dev.vars
+dist-worker
 supabase/.temp/
