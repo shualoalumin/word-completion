@@ -12,7 +12,7 @@ jobs:
       CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CF_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
       CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
     steps:
       - name: Wait for Cloudflare to start build
@@ -26,6 +26,13 @@ jobs:
         run: |
           # Disable immediate exit to handle errors manually
           set +e
+
+          # 🛡️ SANITIZE INPUTS (Trim whitespace/newlines)
+          # This fixes common copy-paste errors where secrets have hidden spaces
+          CF_ACCOUNT_ID=$(echo "$CF_ACCOUNT_ID" | xargs)
+          CF_PROJECT=$(echo "$CF_PROJECT" | xargs)
+          CF_TOKEN=$(echo "$CF_TOKEN" | xargs)
+          DISCORD_WEBHOOK=$(echo "$DISCORD_WEBHOOK" | xargs)
 
           # Helper function for API calls
           call_cf_api() {
