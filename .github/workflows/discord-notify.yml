@@ -1,0 +1,65 @@
+name: Discord Notification
+
+on:
+  deployment_status:
+
+jobs:
+  notify:
+    # Only run when deployment is 'success' or 'failure'
+    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Discord Webhook
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          STATUS: ${{ github.event.deployment_status.state }}
+          DEPLOY_URL: ${{ github.event.deployment_status.target_url }}
+          REPO: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          COMMIT_MSG: ${{ github.event.deployment.description }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "Error: DISCORD_WEBHOOK secret is missing!"
+            echo "Please add it in Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+
+          if [ "$STATUS" == "success" ]; then
+            COLOR=5763719  # Green (0x57F287)
+            TITLE="✅ Deployment Successful"
+          else
+            COLOR=15548997 # Red (0xED4245)
+            TITLE="❌ Deployment Failed"
+          fi
+
+          # Escape quotes in string variables to prevent JSON errors
+          REPO="${REPO//\"/\\\"}"
+          ACTOR="${ACTOR//\"/\\\"}"
+          DEPLOY_URL="${DEPLOY_URL//\"/\\\"}"
+
+          # Construct JSON payload
+          # Note: We use a heredoc for cleaner JSON construction
+          PAYLOAD=$(cat <<EOF
+          {
+            "username": "Cloudflare Pages",
+            "avatar_url": "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
+            "embeds": [{
+              "title": "$TITLE",
+              "color": $COLOR,
+              "url": "$DEPLOY_URL",
+              "fields": [
+                { "name": "Project", "value": "$REPO", "inline": true },
+                { "name": "Triggered By", "value": "$ACTOR", "inline": true },
+                { "name": "Visit Preview", "value": "[Click Here]($DEPLOY_URL)", "inline": false }
+              ],
+              "footer": {
+                "text": "Via GitHub Actions"
+              },
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            }]
+          }
+          EOF
+          )
+
+          # Send to Discord
+          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
