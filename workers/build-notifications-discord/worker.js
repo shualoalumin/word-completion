@@ -28,35 +28,6 @@ export default {
       }
     }
   },
-  // Temporary fetch handler for testing
-  async fetch(req, env, ctx) {
-    const url = new URL(req.url);
-    if (url.pathname === '/test') {
-       const mockData = {
-        type: "test",
-        payload: {
-          project: { name: "Test Project" },
-          deployment: { url: "https://example.com" },
-          buildOutcome: "success",
-          files: { count: 123 },
-          size: 1024
-        }
-      };
-      
-      // Simulate queue batch
-      const mockBatch = {
-        messages: [{
-          body: JSON.stringify(mockData),
-          ack: () => console.log('Acked'),
-          retry: () => console.log('Retried')
-        }]
-      };
-
-      await this.queue(mockBatch, env, ctx);
-      return new Response("Test message sent to Discord!");
-    }
-    return new Response("Worker is running. Go to /test to trigger a notification.");
-  },
 };
 
 function buildDiscordPayload(data) {
