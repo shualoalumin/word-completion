@@ -29,17 +29,37 @@ jobs:
       - name: Wait for Pages to start build
         run: sleep 60
 
+      - name: Debug API and secrets
+        run: |
+          echo "CF_ACCOUNT_ID length: ${#CF_ACCOUNT_ID}"
+          echo "CF_PROJECT: $CF_PROJECT"
+          echo "CF_TOKEN length: ${#CF_TOKEN}"
+          echo "DISCORD_WEBHOOK length: ${#DISCORD_WEBHOOK}"
+          API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
+          RESP=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json" "${API}?per_page=5")
+          HTTP_CODE=$(echo "$RESP" | tail -n1)
+          BODY=$(echo "$RESP" | sed '$d')
+          echo "List deployments HTTP: $HTTP_CODE"
+          echo "success: $(echo "$BODY" | jq -r '.success')"
+          echo "errors: $(echo "$BODY" | jq -r '.errors // []')"
+          echo "result type: $(echo "$BODY" | jq -r 'if .result | type == "array" then "array length=" + (.result | length | tostring) else .result | type end')"
+
       - name: Poll deployment and notify Discord
         run: |
           set -e
           API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
           HEADERS=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json")
 
-          # Optional: find deployment for this commit (list returns newest first)
           LIST=$(curl -s "${HEADERS[@]}" "${API}?per_page=5")
           DEPLOYMENT_ID=$(echo "$LIST" | jq -r '.result[0].id // empty')
           if [ -z "$DEPLOYMENT_ID" ]; then
-            echo "No deployment found"
+            echo "No deployment found - sending Discord alert anyway"
+            if [ -n "$DISCORD_WEBHOOK" ]; then
+              ALERT=$(jq -n '{ content: "Pages notify: No deployment found. Check CLOUDFLARE_PAGES_PROJECT_NAME and CLOUDFLARE_API_TOKEN." }')
+              HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$DISCORD_WEBHOOK" -H "Content-Type: application/json" -d "$ALERT")
+              echo "Discord response: $HTTP"
+              [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ] || exit 1
+            fi
             exit 0
           fi
 
@@ -78,16 +98,26 @@ jobs:
           COMMIT=$(echo "$DEPLOY" | jq -r '.result.deployment_trigger.metadata.commit_hash // ""')
           COMMIT_MSG=$(echo "$DEPLOY" | jq -r '.result.deployment_trigger.metadata.commit_message // ""')
           ENV_NAME=$(echo "$DEPLOY" | jq -r '.result.environment // "preview"')
+          COMMIT_SHORT="${COMMIT:0:7}"
 
           BODY=$(jq -n \
             --arg t "$TITLE" \
-            --arg d "**Branch:** $BRANCH\n**Commit:** \`${COMMIT:0:7}\`\n**Env:** $ENV_NAME\n**Message:** $COMMIT_MSG" \
+            --arg branch "$BRANCH" \
+            --arg commit_short "$COMMIT_SHORT" \
+            --arg env_name "$ENV_NAME" \
+            --arg msg "$COMMIT_MSG" \
             --arg u "$URL" \
             --argjson c "$COLOR" \
-            '{ embeds: [{ title: $t, description: $d, color: $c, timestamp: (now | todateiso8601), fields: (if $u != "" then [{ name: "URL", value: $u, inline: false }] else [] end) }] }')
+            '{ embeds: [{ title: $t, description: ("**Branch:** " + $branch + "\n**Commit:** `" + $commit_short + "`\n**Env:** " + $env_name + "\n**Message:** " + $msg), color: $c, timestamp: (now | todateiso8601), fields: (if $u != "" then [{ name: "URL", value: $u, inline: false }] else [] end) }] }')
 
           if [ -n "$DISCORD_WEBHOOK" ]; then
-            curl -s -X POST "$DISCORD_WEBHOOK" -H "Content-Type: application/json" -d "$BODY"
+            HTTP=$(curl -s -o /tmp/discord_resp.txt -w "%{http_code}" -X POST "$DISCORD_WEBHOOK" -H "Content-Type: application/json" -d "$BODY")
+            echo "Discord response: $HTTP"
+            cat /tmp/discord_resp.txt
+            if [ "$HTTP" -lt 200 ] || [ "$HTTP" -ge 300 ]; then
+              echo "Discord webhook failed (check URL / regenerate webhook)"
+              exit 1
+            fi
             echo "Discord notification sent."
           else
             echo "DISCORD_WEBHOOK not set, skip."
