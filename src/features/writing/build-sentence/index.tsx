@@ -33,18 +33,19 @@ export const BuildSentenceExercise: React.FC = () => {
   const { t } = useTranslation();
   const { darkMode, toggle: toggleDarkMode } = useDarkMode();
 
-  // Get Ready modal & countdown
-  const [showGetReadyModal, setShowGetReadyModal] = useState(true);
+  const [searchParams] = useSearchParams();
+  const reviewId = searchParams.get('review');
+  const isReviewMode = !!reviewId;
+
+  // Get Ready modal & countdown - initialize based on whether it's a new session
+  const isNewSession = !isReviewMode;
+  const [showGetReadyModal, setShowGetReadyModal] = useState(isNewSession);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
   const [countdownComplete, setCountdownComplete] = useState(false);
 
   // DnD overlay state
   const [activeChunkId, setActiveChunkId] = useState<string | null>(null);
-  
-  const [searchParams] = useSearchParams();
-  const reviewId = searchParams.get('review');
-  const isReviewMode = !!reviewId;
 
   const bs = useBuildSentence();
 

@@ -23,11 +23,12 @@ export const TextCompletion: React.FC = () => {
   const prevHistoryIdRef = useRef<string | null | undefined>(undefined);
 
   // Get Ready modal and countdown states
-  const [showGetReadyModal, setShowGetReadyModal] = useState(false);
+  // Initialize showGetReadyModal to true for new sessions (not review) to prevent white flash
+  const isNewSession = !reviewExerciseId && !historyId;
+  const [showGetReadyModal, setShowGetReadyModal] = useState(isNewSession);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
   const [countdownComplete, setCountdownComplete] = useState(false);
-  const hasShownGetReadyRef = useRef(false);
 
   // Single ref to avoid minifier TDZ ("Cannot access w before initialization") in prod
   const tc = useTextCompletion();
@@ -68,11 +69,7 @@ export const TextCompletion: React.FC = () => {
       tc.loadSpecificExercise(reviewExerciseId);
     } else {
       tc.loadNewPassage();
-      // Show Get Ready modal for new practice sessions (not review mode)
-      if (!hasShownGetReadyRef.current) {
-        setShowGetReadyModal(true);
-        hasShownGetReadyRef.current = true;
-      }
+      // Get Ready modal is shown via initial state (isNewSession)
     }
   }, [reviewExerciseId, historyId, tc.loadSpecificExercise, tc.loadHistoryReview, tc.loadNewPassage]);
 
