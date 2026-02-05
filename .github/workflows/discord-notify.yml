@@ -17,8 +17,8 @@ jobs:
     steps:
       - name: Wait for Cloudflare Check
         run: |
-          echo "Waiting 30 seconds for Cloudflare to register the build..."
-          sleep 30
+          echo "Waiting 45 seconds for Cloudflare to initiate the build..."
+          sleep 45
 
       - name: Poll Deployment Status
         id: poll
@@ -27,54 +27,45 @@ jobs:
           API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
           HEADERS=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json")
 
-          # 1. Find the deployment triggered by this commit
-          echo "Looking for deployment with commit SHA: ${{ github.sha }}"
+          # 1. Get the very latest deployment
+          echo "Fetching latest deployment..."
+          LIST=$(curl -s "${HEADERS[@]}" "${API}?sort_by=created_on&sort_order=desc&per_page=1")
+          DEPLOYMENT_ID=$(echo "$LIST" | jq -r '.result[0].id')
 
-          FOUND=0
-          ATTEMPTS=0
-          MAX_RETRIES=10
-
-          while [ $FOUND -eq 0 ] && [ $ATTEMPTS -lt $MAX_RETRIES ]; do
-            LIST=$(curl -s "${HEADERS[@]}" "${API}?sort_by=created_on&sort_order=desc&per_page=5")
-            # Filter by Commit Hash (first 7 chars usually enough, but we check full/partial match)
-            # Cloudflare might not strictly sync the SHA instantly, so we just take the LATEST one if it matches branch 'main'
-            # To be precise, let's look for the one matching github.sha
-            
-            DEPLOYMENT_ID=$(echo "$LIST" | jq -r --arg sha "${{ github.sha }}" '.result[] | select(.deployment_trigger.metadata.commit_hash == $sha) | .id' | head -n 1)
-            
-            if [ -n "$DEPLOYMENT_ID" ]; then
-              echo "Found deployment: $DEPLOYMENT_ID"
-              FOUND=1
-            else
-              echo "Deployment not found yet... retrying ($ATTEMPTS/$MAX_RETRIES)"
-              ATTEMPTS=$((ATTEMPTS+1))
-              sleep 10
-            fi
-          done
-
-          if [ -z "$DEPLOYMENT_ID" ]; then
-             echo "⚠️ Could not find exact deployment for this commit. Falling back to the latest deployment."
-             DEPLOYMENT_ID=$(echo "$LIST" | jq -r '.result[0].id')
+          if [ "$DEPLOYMENT_ID" == "null" ] || [ -z "$DEPLOYMENT_ID" ]; then
+             echo "❌ Error: No deployments found at all."
+             exit 1
           fi
+
+          echo "Found latest deployment: $DEPLOYMENT_ID"
 
           # 2. Poll for completion
           echo "Polling status for deployment: $DEPLOYMENT_ID"
 
+          MAX_RETRIES=30 # 30 * 10s = 300s (5 mins max wait)
+          COUNT=0
           STATUS="unknown"
-          while true; do
+
+          while [ $COUNT -lt $MAX_RETRIES ]; do
             DEPLOY=$(curl -s "${HEADERS[@]}" "${API}/${DEPLOYMENT_ID}")
             STATUS=$(echo "$DEPLOY" | jq -r '.result.latest_stage.status')
             URL=$(echo "$DEPLOY" | jq -r '.result.url // ""')
             
-            echo "Current status: $STATUS"
+            echo "[$COUNT] Current status: $STATUS"
 
             if [ "$STATUS" == "success" ] || [ "$STATUS" == "failure" ] || [ "$STATUS" == "error" ]; then
               break
             fi
             
-            echo "Build in progress... waiting 20s"
-            sleep 20
+            echo "Build in progress... waiting 10s"
+            sleep 10
+            COUNT=$((COUNT+1))
           done
+
+          if [ "$STATUS" != "success" ] && [ "$STATUS" != "failure" ] && [ "$STATUS" != "error" ]; then
+             echo "⚠️ Timeout waiting for build. Marking as unknown."
+             STATUS="timeout"
+          fi
 
           # Export variables for the next step
           echo "STATUS=$STATUS" >> $GITHUB_ENV
