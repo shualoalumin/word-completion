@@ -20,47 +20,46 @@ jobs:
         run: |
           import os
 
-          # GitHub Secrets에서 값을 가져와 앞뒤 공백/줄바꿈 완벽 제거
           def clean(val):
               return val.strip() if val else ""
 
-          secrets = {
-              "CF_ACCOUNT_ID": clean("""${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"""),
-              "CF_PROJECT": clean("""${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}"""),
-              "CF_TOKEN": clean("""${{ secrets.CLOUDFLARE_API_TOKEN }}"""),
-              "DISCORD_WEBHOOK": clean("""${{ secrets.DISCORD_WEBHOOK_URL }}""")
-          }
+          cf_id = clean("""${{ secrets.CLOUDFLARE_ACCOUNT_ID }}""")
+          cf_proj = clean("""${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}""")
+          cf_token = clean("""${{ secrets.CLOUDFLARE_API_TOKEN }}""")
+          discord_url = clean("""${{ secrets.DISCORD_WEBHOOK_URL }}""")
 
-          # 필수 값이 비어있는지 체크
-          for key, value in secrets.items():
-              if not value:
-                  print(f"❌ ERROR: {key} is empty! Check your GitHub Secrets names.")
-                  exit(1)
+          # Debugging Helper: 토큰의 형태 확인 (보안을 위해 앞뒤만 살짝 노출)
+          if cf_token:
+              masked = f"{cf_token[:3]}...{cf_token[-3:]}" if len(cf_token) > 6 else "***"
+              print(f"DEBUG: Token Length: {len(cf_token)}, Format: {masked}")
+              if cf_token.lower().startswith("bearer"):
+                  print("⚠️ WARNING: Secret에 'Bearer'라는 글자가 포함되어 있습니다. 이를 제거하고 토큰 문자열만 넣어야 합니다.")
 
-          # GITHUB_ENV에 저장하여 다음 단계에서 사용하게 함
+          # Save to Env
           with open(os.environ["GITHUB_ENV"], "a") as f:
-              for key, value in secrets.items():
-                  f.write(f"{key}={value}\n")
+              f.write(f"CF_ACCOUNT_ID={cf_id}\n")
+              f.write(f"CF_PROJECT={cf_proj}\n")
+              f.write(f"CF_TOKEN={cf_token}\n")
+              f.write(f"DISCORD_WEBHOOK={discord_url}\n")
 
-          print("✅ All secrets sanitized and loaded.")
+          print("✅ Secrets Sanitized.")
 
       - name: Token Diagnostics
         run: |
-          echo "🔍 Checking Cloudflare Token validity..."
+          echo "🔍 Testing token with Cloudflare API..."
+          # Bearer 토큰 인증 시도
           VERIFY=$(curl -s -X GET "https://api.cloudflare.com/client/v4/user/tokens/verify" \
             -H "Authorization: Bearer $CF_TOKEN" \
             -H "Content-Type: application/json")
 
-          if [[ $VERIFY != *"\"status\":\"active\""* ]]; then
-            echo "❌ 토큰 인증 실패! Cloudflare가 토큰을 인식하지 못합니다."
-            echo "Response: $VERIFY"
-            echo "힌트: 토큰 생성 시 IP 제한이 걸려있지 않은지 확인해 주세요."
+          echo "Cloudflare Response: $VERIFY"
+
+          if [[ $VERIFY == *"\"status\":\"active\""* ]]; then
+            echo "✅ 토큰이 활성 상태입니다!"
+          else
+            echo "❌ 여전히 토큰 오류입니다. 토큰 생성 시 'Account.Cloudflare Pages' 권한이 있는지, IP 제한이 없는지 확인하세요."
             exit 1
           fi
-          echo "✅ Token is active and valid!"
-
-      - name: Wait for Cloudflare
-        run: sleep 30
 
       - name: Poll Deployment Status
         id: poll
@@ -69,32 +68,27 @@ jobs:
           set +e
           API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
 
-          echo "🔍 Attempting to access project: $CF_PROJECT"
+          echo "🔍 Accessing project: $CF_PROJECT"
           DETAILS=$(curl -s -X GET "$API_BASE/deployments?per_page=1" \
             -H "Authorization: Bearer $CF_TOKEN")
 
           if [[ $DETAILS == *"\"success\":false"* ]]; then
-            echo "❌ 프로젝트 접근 거부 (403 Forbidden)!"
-            echo "API Response: $DETAILS"
+            echo "❌ API 호출 실패. Response: $DETAILS"
             exit 1
           fi
 
           DEPLOY_ID=$(echo "$DETAILS" | jq -r '.result[0].id')
-          if [ "$DEPLOY_ID" == "null" ]; then
-            echo "❌ No deployments found."
-            exit 1
-          fi
           echo "📌 Tracking Deployment ID: $DEPLOY_ID"
 
           for i in {1..30}; do
             STATUS_RESP=$(curl -s -X GET "$API_BASE/deployments/$DEPLOY_ID" -H "Authorization: Bearer $CF_TOKEN")
-            STATUS=$(echo "$STATUS_RESP" | jq -r '.result.latest_stage.status')
-            URL=$(echo "$STATUS_RESP" | jq -r '.result.url')
-            echo "   Status ($i/30): $STATUS"
+            STATUS_VAL=$(echo "$STATUS_RESP" | jq -r '.result.latest_stage.status')
+            URL_VAL=$(echo "$STATUS_RESP" | jq -r '.result.url')
+            echo "   Status ($i/30): $STATUS_VAL"
             
-            if [[ "$STATUS" == "success" || "$STATUS" == "failure" ]]; then
-              echo "STATUS=$STATUS" >> $GITHUB_ENV
-              echo "DEPLOY_URL=$URL" >> $GITHUB_ENV
+            if [[ "$STATUS_VAL" == "success" || "$STATUS_VAL" == "failure" ]]; then
+              echo "STATUS=$STATUS_VAL" >> $GITHUB_ENV
+              echo "DEPLOY_URL=$URL_VAL" >> $GITHUB_ENV
               exit 0
             fi
             sleep 10
@@ -104,18 +98,11 @@ jobs:
       - name: Send Discord Notification
         if: always()
         run: |
-          # Metadata
-          REPO="${{ github.repository }}"
-          ACTOR="${{ github.actor }}"
-          COMMIT_SHA Heather="${{ github.sha }}"
-          SHORT_SHA=${COMMIT_SHA:0:7}
+          # Use Environment Variables safely
+          COMMIT_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
 
-          [ -z "$STATUS" ] && STATUS="error"
-          [ -z "$DEPLOY_URL" ] && DEPLOY_URL="https://github.com/$REPO/actions"
-
-          # Use Python for reliable JSON generation
-          JSON_STRING=$(python3 -c '
-          import os, json
+          python3 -c '
+          import os, json, requests
 
           status = os.environ.get("STATUS", "error")
           color = 5763719 if status == "success" else 15548997
@@ -127,18 +114,15 @@ jobs:
               "embeds": [{
                   "title": title,
                   "color": color,
-                  "url": os.environ.get("DEPLOY_URL"),
+                  "url": os.environ.get("DEPLOY_URL", ""),
                   "fields": [
                       {"name": "Project", "value": os.environ.get("CF_PROJECT", "N/A"), "inline": True},
-                      {"name": "Status", "value": status, "inline": True},
-                      {"name": "Author", "value": "'$ACTOR'", "inline": True},
-                      {"name": "Commit", "value": "'$SHORT_SHA'", "inline": True},
-                      {"name": "Link", "value": f"[Visit]({os.environ.get("DEPLOY_URL")})", "inline": False}
+                      {"name": "Commit", "value": "'$COMMIT_SHORT'", "inline": True},
+                      {"name": "Author", "value": "${{ github.actor }}", "inline": True},
+                      {"name": "Status", "value": status, "inline": True}
                   ],
                   "footer": {"text": "Via GitHub Actions (Python Sanitized)"}
               }]
           }
-          print(json.dumps(payload))
-          ')
-
-          curl -H "Content-Type: application/json" -X POST -d "$JSON_STRING" "$DISCORD_WEBHOOK"
+          requests.post(os.environ["DISCORD_WEBHOOK"], json=payload)
+          '
