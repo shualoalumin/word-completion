@@ -92,10 +92,8 @@ jobs:
         if: always()
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          COMMIT_SHORT_ID: ${{ github.sha }}
         run: |
-          # Safe Metadata
-          COMMIT_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
-
           python3 -c '
           import os, json, requests
 
@@ -103,9 +101,11 @@ jobs:
           color = 5763719 if status == "success" else 15548997
           title = "✅ 배포 성공" if status == "success" else "❌ 배포 실패/오류"
 
-          # Get commit message and truncate to first line
+          # Get commit metadata
+          commit_sha = os.environ.get("COMMIT_SHORT_ID", "unknown")
+          commit_short = commit_sha[:7]
           commit_msg = os.environ.get("COMMIT_MSG") or "Manual Trigger / Dispatch"
-          commit_msg_first_line = commit_msg.split("\n")[0][:100] # Max 100 chars for safety
+          commit_msg_first_line = commit_msg.split("\n")[0][:100]
 
           payload = {
               "username": "Cloudflare Pages",
@@ -118,7 +118,7 @@ jobs:
                       {"name": "Project", "value": os.environ.get("CF_PROJECT", "N/A"), "inline": True},
                       {"name": "Status", "value": status, "inline": True},
                       {"name": "Author", "value": "${{ github.actor }}", "inline": True},
-                      {"name": "Commit", "value": f"[`{COMMIT_SHORT}`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})", "inline": True},
+                      {"name": "Commit", "value": f"[`{commit_short}`](https://github.com/${{ github.repository }}/commit/{commit_sha})", "inline": True},
                       {"name": "Message", "value": commit_msg_first_line, "inline": False}
                   ],
                   "footer": {"text": "Via GitHub Actions (Multi-Auth Support)"}
