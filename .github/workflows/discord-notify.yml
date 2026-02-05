@@ -155,33 +155,29 @@ jobs:
 
           if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://github.com/$REPO/actions"; fi
 
-          # Generate JSON payload without HereDoc to avoid YAML syntax issues
-          JSON_STRING=$(jq -n \
-            --arg title "$TITLE" \
-            --arg desc "$DESC" \
-            --arg url "$DEPLOY_URL" \
-            --arg color "$COLOR" \
-            --arg repo "$REPO" \
-            --arg commit "$COMMIT_MSG" \
-            --arg actor "$ACTOR" \
-            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{
-              username: "Cloudflare Pages",
-              avatar_url: "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
-              embeds: [{
-                title: $title,
-                description: $desc,
-                color: ($color | tonumber),
-                url: $url,
-                fields: [
-                  { name: "Project", value: $repo, inline: true },
-                  { name: "Commit", value: $commit, inline: true },
-                  { name: "Author", value: $actor, inline: true },
-                  { name: "Link", value: ("[Visit](" + $url + ")"), inline: false }
-                ],
-                footer: { text: "Via GitHub Actions (Robust Polling)" },
-                timestamp: $timestamp
+          # Use Python for reliable JSON generation (avoids shell/jq escaping issues)
+          JSON_STRING=$(python3 -c '
+          import os, json
+
+          payload = {
+              "username": "Cloudflare Pages",
+              "avatar_url": "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
+              "embeds": [{
+                  "title": os.environ.get("TITLE"),
+                  "description": os.environ.get("DESC"),
+                  "color": int(os.environ.get("COLOR") or 0),
+                  "url": os.environ.get("DEPLOY_URL"),
+                  "fields": [
+                      { "name": "Project", "value": os.environ.get("REPO"), "inline": True },
+                      { "name": "Commit", "value": os.environ.get("COMMIT_MSG"), "inline": True },
+                      { "name": "Author", "value": os.environ.get("ACTOR"), "inline": True },
+                      { "name": "Link", "value": f"[Visit]({os.environ.get("DEPLOY_URL")})", "inline": False }
+                  ],
+                  "footer": { "text": "Via GitHub Actions (Robust Polling)" },
+                  "timestamp": os.environ.get("TIMESTAMP")
               }]
-            }')
+          }
+          print(json.dumps(payload))
+          ')
 
           curl -H "Content-Type: application/json" -X POST -d "$JSON_STRING" "$DISCORD_WEBHOOK"
