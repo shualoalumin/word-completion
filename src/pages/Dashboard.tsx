@@ -31,7 +31,8 @@ export default function Dashboard() {
 
   // Dashboard 통계 데이터 fetching
   const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: recentActivity, isLoading: activityLoading, error: activityError } = useRecentActivity(5);
+  const { data: recentActivity, isLoading: activityLoading, error: activityError } = useRecentActivity(10);
+  const { data: sectionStats, isLoading: sectionStatsLoading } = useSectionStats();
 
   // Skills, Learning Patterns, Topic Performance
   const { data: skillsData, isLoading: skillsLoading } = useUserSkills();
@@ -273,7 +274,47 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Time Performance Stats */}
+        {/* Progress by section (섹션별 목표/통계 직관적) */}
+        <section className="mb-8">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <LayoutDashboard className="w-5 h-5 text-blue-400" />
+            Progress by section
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl border-l-4 border-l-blue-500">
+              <div className="flex items-center gap-2 mb-3">
+                <Book className="w-5 h-5 text-blue-400" />
+                <h3 className="font-semibold text-white">Reading (Text Completion)</h3>
+              </div>
+              {sectionStatsLoading ? (
+                <div className="animate-pulse h-14 bg-zinc-800 rounded" />
+              ) : (
+                <div className="text-sm space-y-1 text-zinc-400">
+                  <p>{sectionStats?.reading.count ?? 0} sessions</p>
+                  <p>Avg score: {sectionStats?.reading.avgScorePercent != null ? `${Math.round(sectionStats.reading.avgScorePercent)}%` : '—'}</p>
+                  <p>Avg time: {sectionStats?.reading.avgTimeSeconds != null ? `${Math.floor(sectionStats.reading.avgTimeSeconds / 60)}:${String(Math.round(sectionStats.reading.avgTimeSeconds % 60)).padStart(2, '0')}` : '—'}</p>
+                </div>
+              )}
+            </div>
+            <div className="p-5 bg-zinc-900/60 border border-zinc-800 rounded-xl border-l-4 border-l-purple-500">
+              <div className="flex items-center gap-2 mb-3">
+                <PencilLine className="w-5 h-5 text-purple-400" />
+                <h3 className="font-semibold text-white">Writing (Build a Sentence)</h3>
+              </div>
+              {sectionStatsLoading ? (
+                <div className="animate-pulse h-14 bg-zinc-800 rounded" />
+              ) : (
+                <div className="text-sm space-y-1 text-zinc-400">
+                  <p>{sectionStats?.writing.count ?? 0} sessions</p>
+                  <p>Avg score: {sectionStats?.writing.avgScorePercent != null ? `${Math.round(sectionStats.writing.avgScorePercent)}%` : '—'}</p>
+                  <p>Avg time: {sectionStats?.writing.avgTimeSeconds != null ? `${Math.floor(sectionStats.writing.avgTimeSeconds / 60)}:${String(Math.round(sectionStats.writing.avgTimeSeconds % 60)).padStart(2, '0')}` : '—'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Time Performance Stats (Reading) */}
         <section className="mb-8">
           <PerformanceStats darkMode={true} />
         </section>
@@ -458,96 +499,100 @@ export default function Dashboard() {
               </div>
             </div>
           ) : recentActivity && recentActivity.length > 0 ? (
-            <div className="space-y-3">
-              {recentActivity.map((activity) => {
-                const completedDate = new Date(activity.completedAt);
-                const timeAgo = getTimeAgo(completedDate);
-                const scorePercent = activity.scorePercent || 0;
-                const isWriting = activity.exerciseType === 'build-sentence';
-
-                return (
-                  <div
-                    key={activity.id}
-                    onClick={() => {
-                      if (isWriting) {
-                        navigate(`/practice/build-sentence?review=${activity.id}`);
-                      } else if (activity.exerciseId) {
-                        navigate(`/practice/text-completion?review=${activity.exerciseId}`);
-                      }
-                    }}
-                    className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-blue-600/50 hover:bg-zinc-900/60 transition-all cursor-pointer group"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <div className={cn(
-                            "w-2 h-2 rounded-full shrink-0",
-                            scorePercent >= 90 ? 'bg-emerald-500' :
-                            scorePercent >= 70 ? 'bg-blue-500' :
-                            scorePercent >= 50 ? 'bg-amber-500' :
-                            'bg-red-500'
-                          )} />
-                          
-                          {/* Type Indicator */}
-                          <div className={cn(
-                            "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
-                            isWriting 
-                              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" 
-                              : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                          )}>
-                            {isWriting ? (
-                              <PencilLine className="w-2.5 h-2.5" />
-                            ) : (
-                              <Book className="w-2.5 h-2.5" />
-                            )}
-                            {isWriting ? 'Writing' : 'Reading'}
-                          </div>
-
-                          <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
-                            {activity.topic || (isWriting ? 'Build a Sentence' : 'Text Completion')}
-                            {activity.attemptNumber && (
-                              <span className="ml-1.5 text-zinc-500 text-[10px] font-normal">
-                                (Attempt #{activity.attemptNumber})
+            <div className="space-y-6">
+              {(() => {
+                const reading = recentActivity.filter((a) => a.exerciseType !== 'build-sentence');
+                const writing = recentActivity.filter((a) => a.exerciseType === 'build-sentence');
+                const renderActivity = (activity: typeof recentActivity[0]) => {
+                  const completedDate = new Date(activity.completedAt);
+                  const timeAgo = getTimeAgo(completedDate);
+                  const scorePercent = activity.scorePercent || 0;
+                  const isWriting = activity.exerciseType === 'build-sentence';
+                  return (
+                    <div
+                      key={activity.id}
+                      onClick={() => {
+                        if (isWriting) {
+                          navigate(`/practice/build-sentence?review=${activity.id}`);
+                        } else if (activity.exerciseId) {
+                          navigate(`/practice/text-completion?review=${activity.exerciseId}&historyId=${activity.id}`);
+                        }
+                      }}
+                      className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-blue-600/50 hover:bg-zinc-900/60 transition-all cursor-pointer group"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <div className={cn(
+                              "w-2 h-2 rounded-full shrink-0",
+                              scorePercent >= 90 ? 'bg-emerald-500' :
+                              scorePercent >= 70 ? 'bg-blue-500' :
+                              scorePercent >= 50 ? 'bg-amber-500' :
+                              'bg-red-500'
+                            )} />
+                            <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
+                              {activity.topic || (isWriting ? 'Build a Sentence' : 'Text Completion')}
+                              {activity.attemptNumber && (
+                                <span className="ml-1.5 text-zinc-500 text-[10px] font-normal">
+                                  (Attempt #{activity.attemptNumber})
+                                </span>
+                              )}
+                            </h3>
+                            {activity.difficulty && (
+                              <span className={cn(
+                                'text-[10px] px-1.5 py-0.5 rounded-full shrink-0',
+                                activity.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
+                                activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
+                                'bg-yellow-500/20 text-yellow-400'
+                              )}>
+                                {activity.difficulty === 'easy' ? 'Easy' :
+                                  activity.difficulty === 'hard' ? 'Hard' : 'Medium'}
                               </span>
                             )}
-                          </h3>
-                          {activity.difficulty && (
-                            <span className={cn(
-                              'text-[10px] px-1.5 py-0.5 rounded-full shrink-0',
-                              activity.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
-                              activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
-                              'bg-yellow-500/20 text-yellow-400'
-                            )}>
-                              {activity.difficulty === 'easy' ? 'Easy' :
-                                activity.difficulty === 'hard' ? 'Hard' : 'Medium'}
+                          </div>
+                          <div className="flex items-center gap-3 text-[11px] sm:text-xs text-zinc-400 flex-wrap">
+                            <span>Score: {activity.score}/{activity.maxScore} ({Math.round(scorePercent)}%)</span>
+                            <span className="hidden sm:inline">•</span>
+                            <span>{timeAgo}</span>
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 flex items-center gap-1 ml-auto sm:ml-0">
+                              <History className="w-3 h-3" /> Review
                             </span>
-                          )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] sm:text-xs text-zinc-400 flex-wrap">
-                          <span>
-                            Score: {activity.score}/{activity.maxScore} ({Math.round(scorePercent)}%)
-                          </span>
-                          <span className="hidden sm:inline">•</span>
-                          <span>{timeAgo}</span>
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-400 flex items-center gap-1 ml-auto sm:ml-0">
-                            <History className="w-3 h-3" />
-                            Review
-                          </span>
+                        <div className={cn(
+                          "self-start sm:self-center px-3 py-1 rounded-full text-sm font-medium shrink-0",
+                          scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
+                          scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
+                          scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-red-500/20 text-red-400'
+                        )}>
+                          {Math.round(scorePercent)}%
                         </div>
-                      </div>
-                      <div className={cn(
-                        "self-start sm:self-center px-3 py-1 rounded-full text-sm font-medium shrink-0",
-                        scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
-                        scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
-                        scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
-                        'bg-red-500/20 text-red-400'
-                      )}>
-                        {Math.round(scorePercent)}%
                       </div>
                     </div>
-                  </div>
+                  );
+                };
+                return (
+                  <>
+                    {reading.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-zinc-400 mb-2 flex items-center gap-2">
+                          <Book className="w-4 h-4 text-blue-400" /> Reading
+                        </h3>
+                        <div className="space-y-2">{reading.map(renderActivity)}</div>
+                      </div>
+                    )}
+                    {writing.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-zinc-400 mb-2 flex items-center gap-2">
+                          <PencilLine className="w-4 h-4 text-purple-400" /> Writing
+                        </h3>
+                        <div className="space-y-2">{writing.map(renderActivity)}</div>
+                      </div>
+                    )}
+                  </>
                 );
-              })}
+              })()}
             </div>
           ) : (
             <div className="p-8 bg-zinc-900/40 border border-zinc-800 rounded-2xl text-center">

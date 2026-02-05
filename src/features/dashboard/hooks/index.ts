@@ -1,1 +1,1 @@
-export { useDashboardStats, useRecentActivity } from './useDashboardStats';
+export { useDashboardStats, useRecentActivity, useSectionStats } from './useDashboardStats';
