@@ -125,11 +125,7 @@ export const TextCompletion: React.FC = () => {
   // Show tc.error toast
   useEffect(() => {
     if (tc.error) {
-      toast({
-        title: 'Error',
-        description: tc.error,
-        variant: 'destructive',
-      });
+      toast.error(tc.error);
     }
   }, [tc.error]);
 
@@ -372,12 +368,15 @@ export const TextCompletion: React.FC = () => {
         style={{ caretColor: 'transparent' }}
       >
         <div className="text-center animate-in zoom-in-50 duration-300 [caret-color:transparent]">
-          <div className={cn(
-            "text-[120px] font-black tabular-nums leading-none mb-4 outline-none",
-            countdownValue === 3 && "text-emerald-500",
-            countdownValue === 2 && "text-amber-500",
-            countdownValue === 1 && "text-red-500"
-          )}>
+          <div 
+            key={countdownValue}
+            className={cn(
+              "text-[120px] font-black tabular-nums leading-none mb-4 outline-none border-0",
+              countdownValue === 3 && "text-emerald-500",
+              countdownValue === 2 && "text-amber-500",
+              countdownValue === 1 && "text-red-500"
+            )}
+          >
             {countdownValue}
           </div>
           <p className={cn(

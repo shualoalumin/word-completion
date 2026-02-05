@@ -262,12 +262,15 @@ export const BuildSentenceExercise: React.FC = () => {
         style={{ caretColor: 'transparent' }}
       >
         <div className="text-center animate-in zoom-in-50 duration-300">
-          <div className={cn(
-            'text-[120px] font-black tabular-nums leading-none mb-4 outline-none',
-            countdownValue === 3 && 'text-emerald-500',
-            countdownValue === 2 && 'text-amber-500',
-            countdownValue === 1 && 'text-red-500',
-          )}>
+          <div 
+            key={countdownValue}
+            className={cn(
+              'text-[120px] font-black tabular-nums leading-none mb-4 outline-none border-0',
+              countdownValue === 3 && 'text-emerald-500',
+              countdownValue === 2 && 'text-amber-500',
+              countdownValue === 1 && 'text-red-500',
+            )}
+          >
             {countdownValue}
           </div>
           <p className={cn(
