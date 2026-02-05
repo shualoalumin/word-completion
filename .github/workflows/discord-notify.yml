@@ -15,24 +15,34 @@ jobs:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
     steps:
-      - name: Verify and Sanitize
+      - name: Verify and Sanitize Secrets (Python)
+        shell: python
         run: |
-          # Use secrets directly to ensure we have values (avoiding empty env var issues)
-          ID_CLEAN=$(echo '${{ secrets.CLOUDFLARE_ACCOUNT_ID }}' | xargs)
-          PROJ_CLEAN=$(echo '${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}' | xargs)
-          TOKEN_CLEAN=$(echo '${{ secrets.CLOUDFLARE_API_TOKEN }}' | xargs)
-          WEBHOOK_CLEAN=$(echo '${{ secrets.DISCORD_WEBHOOK_URL }}' | xargs)
+          import os
 
-          if [ -z "$ID_CLEAN" ]; then
-            echo "❌ ERROR: CLOUDFLARE_ACCOUNT_ID secret is EMPTY in GitHub Settings!"
-            echo "Please add it to Settings > Secrets and variables > Actions."
-            exit 1
-          fi
+          # GitHub Secrets에서 값을 가져와 앞뒤 공백/줄바꿈 완벽 제거
+          def clean(val):
+              return val.strip() if val else ""
 
-          echo "CF_ACCOUNT_ID=$ID_CLEAN" >> $GITHUB_ENV
-          echo "CF_PROJECT=$PROJ_CLEAN" >> $GITHUB_ENV
-          echo "CF_TOKEN=$TOKEN_CLEAN" >> $GITHUB_ENV
-          echo "DISCORD_WEBHOOK=$WEBHOOK_CLEAN" >> $GITHUB_ENV
+          secrets = {
+              "CF_ACCOUNT_ID": clean("""${{ secrets.CLOUDFLARE_ACCOUNT_ID }}"""),
+              "CF_PROJECT": clean("""${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}"""),
+              "CF_TOKEN": clean("""${{ secrets.CLOUDFLARE_API_TOKEN }}"""),
+              "DISCORD_WEBHOOK": clean("""${{ secrets.DISCORD_WEBHOOK_URL }}""")
+          }
+
+          # 필수 값이 비어있는지 체크
+          for key, value in secrets.items():
+              if not value:
+                  print(f"❌ ERROR: {key} is empty! Check your GitHub Secrets names.")
+                  exit(1)
+
+          # GITHUB_ENV에 저장하여 다음 단계에서 사용하게 함
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              for key, value in secrets.items():
+                  f.write(f"{key}={value}\n")
+
+          print("✅ All secrets sanitized and loaded.")
 
       - name: Token Diagnostics
         run: |
@@ -42,10 +52,12 @@ jobs:
             -H "Content-Type: application/json")
 
           if [[ $VERIFY != *"\"status\":\"active\""* ]]; then
-            echo "❌ 토큰 인증 실패! Response: $VERIFY"
+            echo "❌ 토큰 인증 실패! Cloudflare가 토큰을 인식하지 못합니다."
+            echo "Response: $VERIFY"
+            echo "힌트: 토큰 생성 시 IP 제한이 걸려있지 않은지 확인해 주세요."
             exit 1
           fi
-          echo "✅ Token is active."
+          echo "✅ Token is active and valid!"
 
       - name: Wait for Cloudflare
         run: sleep 30
@@ -55,33 +67,30 @@ jobs:
         shell: bash
         run: |
           set +e
-          if [ -z "$CF_ACCOUNT_ID" ]; then echo "❌ CF_ACCOUNT_ID is empty!"; exit 1; fi
-
           API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
-          echo "🔍 Accessing: $API_BASE"
 
+          echo "🔍 Attempting to access project: $CF_PROJECT"
           DETAILS=$(curl -s -X GET "$API_BASE/deployments?per_page=1" \
             -H "Authorization: Bearer $CF_TOKEN")
 
           if [[ $DETAILS == *"\"success\":false"* ]]; then
-            echo "❌ 프로젝트 접근 거부 (403)! 계정 ID가 맞는지 확인하세요."
+            echo "❌ 프로젝트 접근 거부 (403 Forbidden)!"
             echo "API Response: $DETAILS"
             exit 1
           fi
 
           DEPLOY_ID=$(echo "$DETAILS" | jq -r '.result[0].id')
           if [ "$DEPLOY_ID" == "null" ]; then
-            echo "❌ No deployments found for this project."
+            echo "❌ No deployments found."
             exit 1
           fi
           echo "📌 Tracking Deployment ID: $DEPLOY_ID"
 
-          # Poll for 5 minutes (30 * 10s)
           for i in {1..30}; do
             STATUS_RESP=$(curl -s -X GET "$API_BASE/deployments/$DEPLOY_ID" -H "Authorization: Bearer $CF_TOKEN")
             STATUS=$(echo "$STATUS_RESP" | jq -r '.result.latest_stage.status')
             URL=$(echo "$STATUS_RESP" | jq -r '.result.url')
-            echo "   Current Status ($i/30): $STATUS"
+            echo "   Status ($i/30): $STATUS"
             
             if [[ "$STATUS" == "success" || "$STATUS" == "failure" ]]; then
               echo "STATUS=$STATUS" >> $GITHUB_ENV
@@ -98,20 +107,19 @@ jobs:
           # Metadata
           REPO="${{ github.repository }}"
           ACTOR="${{ github.actor }}"
-          COMMIT_SHA="${{ github.sha }}"
+          COMMIT_SHA Heather="${{ github.sha }}"
           SHORT_SHA=${COMMIT_SHA:0:7}
 
-          # Handle missing environment variables
           [ -z "$STATUS" ] && STATUS="error"
           [ -z "$DEPLOY_URL" ] && DEPLOY_URL="https://github.com/$REPO/actions"
 
-          # Generate JSON payload using Python
+          # Use Python for reliable JSON generation
           JSON_STRING=$(python3 -c '
           import os, json
 
           status = os.environ.get("STATUS", "error")
           color = 5763719 if status == "success" else 15548997
-          title = "✅ Deployment Successful" if status == "success" else "❌ Deployment Failed/Issue"
+          title = "✅ 배포 성공" if status == "success" else "❌ 배포 실패/오류"
 
           payload = {
               "username": "Cloudflare Pages",
@@ -127,7 +135,7 @@ jobs:
                       {"name": "Commit", "value": "'$SHORT_SHA'", "inline": True},
                       {"name": "Link", "value": f"[Visit]({os.environ.get("DEPLOY_URL")})", "inline": False}
                   ],
-                  "footer": {"text": "Via GitHub Actions (Diagnostic Polling)"}
+                  "footer": {"text": "Via GitHub Actions (Python Sanitized)"}
               }]
           }
           print(json.dumps(payload))
