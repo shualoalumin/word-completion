@@ -266,6 +266,254 @@ export const SAMPLE_QUESTIONS: BuildSentenceQuestion[] = [
       correct_order: ['c4', 'c3', 'c5', 'c1', 'c2'],
     },
   },
+
+  // ── Additional Questions ─────────────────────────────
+  {
+    id: 'bs-e4',
+    scenario: 'Academic - Library',
+    difficulty: 'easy',
+    dialogue: {
+      speaker_a: { text: "I'm looking for the latest issue of the biology journal.", avatar: 'student_male' },
+      speaker_b: {
+        full_response: 'Where can I find it?',
+        anchor_start: null,
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'find', is_distractor: false },
+        { id: 'c2', text: 'where', is_distractor: false },
+        { id: 'c3', text: 'can', is_distractor: false },
+        { id: 'c4', text: 'I', is_distractor: false },
+        { id: 'c5', text: 'it', is_distractor: false },
+      ],
+      correct_order: ['c2', 'c3', 'c4', 'c1', 'c5'],
+    }
+  },
+  {
+    id: 'bs-e5',
+    scenario: 'Daily Life - Weather',
+    difficulty: 'easy',
+    dialogue: {
+      speaker_a: { text: "It looks like it might rain later this afternoon.", avatar: 'student_female' },
+      speaker_b: {
+        full_response: 'Should I bring an umbrella?',
+        anchor_start: null,
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'bring', is_distractor: false },
+        { id: 'c2', text: 'an', is_distractor: false },
+        { id: 'c3', text: 'umbrella', is_distractor: false },
+        { id: 'c4', text: 'should', is_distractor: false },
+        { id: 'c5', text: 'I', is_distractor: false },
+      ],
+      correct_order: ['c4', 'c5', 'c1', 'c2', 'c3'],
+    }
+  },
+  {
+    id: 'bs-m5',
+    scenario: 'Academic - Assignment',
+    difficulty: 'medium',
+    dialogue: {
+      speaker_a: { text: "I'm having trouble finishing the history essay.", avatar: 'student_male' },
+      speaker_b: {
+        full_response: 'Have you decided which topic you will write about?',
+        anchor_start: null,
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 6,
+      chunks: [
+        { id: 'c1', text: 'decided', is_distractor: false },
+        { id: 'c2', text: 'topic you', is_distractor: false },
+        { id: 'c3', text: 'which', is_distractor: false },
+        { id: 'c4', text: 'have you', is_distractor: false },
+        { id: 'c5', text: 'will write', is_distractor: false },
+        { id: 'c6', text: 'about', is_distractor: false },
+      ],
+      correct_order: ['c4', 'c1', 'c3', 'c2', 'c5', 'c6'],
+    }
+  },
+  {
+    id: 'bs-m6',
+    scenario: 'Daily Life - Hobbies',
+    difficulty: 'medium',
+    dialogue: {
+      speaker_a: { text: "I've started learning to play the guitar recently.", avatar: 'student_female' },
+      speaker_b: {
+        full_response: 'Tell me how long it took to learn that song.',
+        anchor_start: 'Tell me',
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'it took', is_distractor: false },
+        { id: 'c2', text: 'to learn', is_distractor: false },
+        { id: 'c3', text: 'how long', is_distractor: false },
+        { id: 'c4', text: 'that', is_distractor: false },
+        { id: 'c5', text: 'song', is_distractor: false },
+        { id: 'c6', text: 'was', is_distractor: true },
+      ],
+      correct_order: ['c3', 'c1', 'c2', 'c4', 'c5'],
+    }
+  },
+  {
+    id: 'bs-h4',
+    scenario: 'Academic - Presentation',
+    difficulty: 'hard',
+    dialogue: {
+      speaker_a: { text: "The presentation scheduled for Monday has been postponed.", avatar: 'student_male' },
+      speaker_b: {
+        full_response: 'Does anyone know why the deadline was changed so suddenly?',
+        anchor_start: 'Does anyone',
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'why the', is_distractor: false },
+        { id: 'c2', text: 'deadline', is_distractor: false },
+        { id: 'c3', text: 'was changed', is_distractor: false },
+        { id: 'c4', text: 'so suddenly', is_distractor: false },
+        { id: 'c5', text: 'know', is_distractor: false },
+        { id: 'c6', text: 'if', is_distractor: true },
+        { id: 'c7', text: 'changing', is_distractor: true },
+      ],
+      correct_order: ['c5', 'c1', 'c2', 'c3', 'c4'],
+    }
+  },
+  {
+    id: 'bs-h5',
+    scenario: 'Business - Meeting',
+    difficulty: 'hard',
+    dialogue: {
+      speaker_a: { text: "The manager wants to discuss the new project details.", avatar: 'student_female' },
+      speaker_b: {
+        full_response: 'I wonder if the budget we requested has been approved.',
+        anchor_start: 'I wonder',
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'the budget', is_distractor: false },
+        { id: 'c2', text: 'we requested', is_distractor: false },
+        { id: 'c3', text: 'if', is_distractor: false },
+        { id: 'c4', text: 'has been', is_distractor: false },
+        { id: 'c5', text: 'approved', is_distractor: false },
+        { id: 'c6', text: 'requested', is_distractor: true },
+      ],
+      correct_order: ['c3', 'c1', 'c2', 'c4', 'c5'],
+    }
+  },
+  {
+    id: 'bs-e6',
+    scenario: 'Daily Life - Restaurant',
+    difficulty: 'easy',
+    dialogue: {
+      speaker_a: { text: "This restaurant is famous for its homemade pasta.", avatar: 'student_male' },
+      speaker_b: {
+        full_response: 'Shall we make a reservation?',
+        anchor_start: null,
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'we', is_distractor: false },
+        { id: 'c2', text: 'make', is_distractor: false },
+        { id: 'c3', text: 'a', is_distractor: false },
+        { id: 'c4', text: 'shall', is_distractor: false },
+        { id: 'c5', text: 'reservation', is_distractor: false },
+      ],
+      correct_order: ['c4', 'c1', 'c2', 'c3', 'c5'],
+    }
+  },
+  {
+    id: 'bs-m7',
+    scenario: 'Academic - Research',
+    difficulty: 'medium',
+    dialogue: {
+      speaker_a: { text: "The professor invited several students to join his research group.", avatar: 'student_female' },
+      speaker_b: {
+        full_response: 'I heard that only a few will be selected.',
+        anchor_start: 'I heard',
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 4,
+      chunks: [
+        { id: 'c1', text: 'only a few', is_distractor: false },
+        { id: 'c2', text: 'will be', is_distractor: false },
+        { id: 'c3', text: 'selected', is_distractor: false },
+        { id: 'c4', text: 'that', is_distractor: false },
+        { id: 'c5', text: 'selecting', is_distractor: true },
+      ],
+      correct_order: ['c4', 'c1', 'c2', 'c3'],
+    }
+  },
+  {
+    id: 'bs-m8',
+    scenario: 'Daily Life - Transportation',
+    difficulty: 'medium',
+    dialogue: {
+      speaker_a: { text: "The bus to the airport leaves every thirty minutes.", avatar: 'student_male' },
+      speaker_b: {
+        full_response: 'Can you tell me where the bus stop is?',
+        anchor_start: 'Can you',
+        anchor_end: null,
+      },
+    },
+    puzzle: {
+      slots_count: 4,
+      chunks: [
+        { id: 'c1', text: 'where', is_distractor: false },
+        { id: 'c2', text: 'the bus stop', is_distractor: false },
+        { id: 'c3', text: 'is', is_distractor: false },
+        { id: 'c4', text: 'tell me', is_distractor: false },
+        { id: 'c5', text: 'at', is_distractor: true },
+      ],
+      correct_order: ['c4', 'c1', 'c2', 'c3'],
+    }
+  },
+  {
+    id: 'bs-h6',
+    scenario: 'Academic - Graduation',
+    difficulty: 'hard',
+    dialogue: {
+      speaker_a: { text: "I can't believe we are finally graduating next month!", avatar: 'student_female' },
+      speaker_b: {
+        full_response: 'The advice that the speaker gave us was very inspiring.',
+        anchor_start: 'The',
+        anchor_end: 'inspiring.',
+      },
+    },
+    puzzle: {
+      slots_count: 5,
+      chunks: [
+        { id: 'c1', text: 'advice', is_distractor: false },
+        { id: 'c2', text: 'that the', is_distractor: false },
+        { id: 'c3', text: 'speaker', is_distractor: false },
+        { id: 'c4', text: 'gave us', is_distractor: false },
+        { id: 'c5', text: 'was very', is_distractor: false },
+        { id: 'c6', text: 'giving', is_distractor: true },
+      ],
+      correct_order: ['c1', 'c2', 'c3', 'c4', 'c5'],
+    }
+  },
 ];
 
 /**

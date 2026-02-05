@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { BuildSentenceQuestion, BuildSentenceQuestionResult } from '../types';
 import { getSessionQuestions } from '../data/sampleQuestions';
+import { generateSessionQuestions } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
 export interface UseBuildSentenceReturn {
@@ -64,25 +65,56 @@ export function useBuildSentence(): UseBuildSentenceReturn {
   const sessionScore = questionResults.filter((r) => r.isCorrect).length;
 
   // Actions
-  const loadSession = useCallback(() => {
+  const loadSession = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
-      setQuestions(picked);
-      setCurrentIndex(0);
-      setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
-      setQuestionResults([]);
-      setShowQuestionResult(false);
-      setSessionComplete(false);
-      startTimeRef.current = null;
+      // Try AI generation first
+      console.log('[BuildSentence] Attempting AI generation...');
+      const result = await generateSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
+      
+      if (result.data && result.data.length > 0) {
+        console.log(`[BuildSentence] AI generated ${result.data.length} questions`);
+        setQuestions(result.data);
+        setCurrentIndex(0);
+        setSlotContents(new Array(result.data[0]?.puzzle.slots_count ?? 0).fill(null));
+        setQuestionResults([]);
+        setShowQuestionResult(false);
+        setSessionComplete(false);
+        startTimeRef.current = null;
+      } else {
+        // Fallback to local sample questions
+        console.log('[BuildSentence] AI failed, falling back to sample questions');
+        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
+        setQuestions(picked);
+        setCurrentIndex(0);
+        setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
+        setQuestionResults([]);
+        setShowQuestionResult(false);
+        setSessionComplete(false);
+        startTimeRef.current = null;
+      }
     } catch {
-      setError('Failed to load questions.');
+      // Fallback to local sample questions on any error
+      console.log('[BuildSentence] Error occurred, falling back to sample questions');
+      try {
+        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
+        setQuestions(picked);
+        setCurrentIndex(0);
+        setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
+        setQuestionResults([]);
+        setShowQuestionResult(false);
+        setSessionComplete(false);
+        startTimeRef.current = null;
+      } catch {
+        setError('Failed to load questions.');
+      }
     }
 
     setLoading(false);
   }, []);
+
 
   const startTiming = useCallback(() => {
     startTimeRef.current = Date.now();
