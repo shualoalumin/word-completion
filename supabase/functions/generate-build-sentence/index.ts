@@ -338,8 +338,19 @@ OUTPUT FORMAT (strict JSON)
       // ... more chunks, shuffled order
     ],
     "correct_order": ["c1", "c2", ...] (IDs in correct order)
-  }
+  },
+  "grammar_tip": "Brief explanation of the grammar pattern tested. Example: 'This is an indirect question. After \"tell me\", use statement word order (S-V), not question inversion.'",
+  "trap_type": "indirect_question" | "subject_verb_agreement" | "redundant_pronoun" | "tense" | "word_order" | null
 }
+
+IMPORTANT: grammar_tip should be 1-2 sentences explaining WHY the correct order is correct.
+trap_type indicates the main grammatical trap in this question:
+- "indirect_question": Tests embedded question word order (S-V vs V-S)
+- "subject_verb_agreement": Tests was/were, is/are matching
+- "redundant_pronoun": Tests unnecessary "it" insertion
+- "tense": Tests verb tense consistency
+- "word_order": Tests basic word order rules
+- null: No specific trap (easy questions)
 `;
 
     const userPrompt = `Generate a TOEFL Build a Sentence question for the scenario: "${selectedScenario}"

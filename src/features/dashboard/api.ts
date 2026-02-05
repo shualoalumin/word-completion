@@ -31,6 +31,9 @@ export interface RecentActivity {
   difficulty?: string;
   topicCategory?: string;
   attemptNumber?: number;
+  // New: exercise type distinction
+  section?: 'reading' | 'writing';
+  exerciseType?: 'text-completion' | 'build-sentence';
 }
 
 /**
@@ -259,7 +262,9 @@ export async function getRecentActivity(userId: string, limit: number = 5): Prom
         score_percent,
         completed_at,
         difficulty,
-        topic_category
+        topic_category,
+        section,
+        exercise_type
       `)
       .eq('user_id', userId)
       .order('completed_at', { ascending: false })
@@ -321,7 +326,9 @@ export async function getRecentActivity(userId: string, limit: number = 5): Prom
       topic: topicsMap[record.exercise_id] || undefined,
       difficulty: record.difficulty || undefined,
       topicCategory: record.topic_category || undefined,
-      attemptNumber: attemptMap[record.id]
+      attemptNumber: attemptMap[record.id],
+      section: record.section || 'reading',
+      exerciseType: record.exercise_type || 'text-completion',
     }));
   } catch (error) {
     console.error('Unexpected error fetching recent activity:', error);

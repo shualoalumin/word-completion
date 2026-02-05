@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { BuildSentenceQuestion, BuildSentenceQuestionResult } from '../types';
 import { getSessionQuestions } from '../data/sampleQuestions';
-import { generateSessionQuestions } from '../api';
+import { generateSessionQuestions, saveBuildSentenceHistory, loadHistoryRecordById } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
 export interface UseBuildSentenceReturn {
@@ -14,6 +14,7 @@ export interface UseBuildSentenceReturn {
   showQuestionResult: boolean;
   sessionComplete: boolean;
   error: string | null;
+  historySaved: boolean;
 
   // Computed
   currentQuestion: BuildSentenceQuestion | null;
@@ -30,6 +31,8 @@ export interface UseBuildSentenceReturn {
   nextQuestion: () => void;
   retrySession: () => void;
   startTiming: () => void;
+  saveHistory: (elapsedTime: number, targetTime: number) => Promise<void>;
+  loadHistoryReview: (historyId: string) => Promise<void>;
 
   // Timing
   startTimeRef: React.MutableRefObject<number | null>;
@@ -44,6 +47,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
   const [showQuestionResult, setShowQuestionResult] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [historySaved, setHistorySaved] = useState(false);
 
   const startTimeRef = useRef<number | null>(null);
 
@@ -82,6 +86,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
         setQuestionResults([]);
         setShowQuestionResult(false);
         setSessionComplete(false);
+        setHistorySaved(false);
         startTimeRef.current = null;
       } else {
         // Fallback to local sample questions
@@ -93,6 +98,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
         setQuestionResults([]);
         setShowQuestionResult(false);
         setSessionComplete(false);
+        setHistorySaved(false);
         startTimeRef.current = null;
       }
     } catch {
@@ -214,7 +220,94 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     setQuestionResults([]);
     setShowQuestionResult(false);
     setSessionComplete(false);
+    setHistorySaved(false);
     startTimeRef.current = null;
+  }, []);
+
+  const saveHistory = useCallback(async (elapsedTime: number, targetTime: number) => {
+    if (historySaved || questionResults.length === 0) return;
+
+    const score = questionResults.filter((r) => r.isCorrect).length;
+    const maxScore = questionResults.length;
+    const scorePercent = maxScore > 0 ? (score / maxScore) * 100 : 0;
+
+    // Get first question's exercise_id if available
+    const exerciseId = questions[0]?.exercise_id || undefined;
+    const difficulty = questions[0]?.difficulty || 'medium';
+    const topicCategory = questions[0]?.topic_category || undefined;
+
+    const mistakes = questionResults
+      .filter((r) => !r.isCorrect)
+      .map((r) => ({
+        questionIndex: r.questionIndex,
+        correctOrder: r.correctOrder,
+        userOrder: r.userOrder,
+      }));
+
+    const answers = questionResults.map((r) => ({
+      questionIndex: r.questionIndex,
+      userOrder: r.userOrder,
+      isCorrect: r.isCorrect,
+      questionData: questions[r.questionIndex], // Store full context
+    }));
+
+    const result = await saveBuildSentenceHistory({
+      exerciseId,
+      score,
+      maxScore,
+      scorePercent,
+      timeSpentSeconds: elapsedTime,
+      targetTimeSeconds: targetTime,
+      answers,
+      mistakes,
+      difficulty,
+      topicCategory,
+    });
+
+    if (result.success) {
+      setHistorySaved(true);
+      console.log('[BuildSentence] History saved successfully');
+    } else {
+      console.error('[BuildSentence] Failed to save history:', result.error);
+    }
+  }, [historySaved, questionResults, questions]);
+
+  const loadHistoryReview = useCallback(async (historyId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: historyError } = await loadHistoryRecordById(historyId);
+      if (historyError) throw historyError;
+      if (!data) throw new Error('History record not found');
+
+      // Reconstruct state from history record
+      // We stored full questionData in each answer
+      const historyAnswers = data.answers as any[];
+      if (!historyAnswers || historyAnswers.length === 0) {
+        throw new Error('No answer data in history record');
+      }
+
+      const reconstructedQuestions = historyAnswers.map(a => a.questionData as BuildSentenceQuestion);
+      const reconstructedResults = historyAnswers.map(a => ({
+        questionIndex: a.questionIndex,
+        userOrder: a.userOrder,
+        correctOrder: (a.questionData as BuildSentenceQuestion).puzzle.correct_order,
+        isCorrect: a.isCorrect
+      } as BuildSentenceQuestionResult));
+
+      setQuestions(reconstructedQuestions);
+      setQuestionResults(reconstructedResults);
+      setCurrentIndex(0);
+      setSlotContents(new Array(reconstructedQuestions[0]?.puzzle.slots_count ?? 0).fill(null));
+      setSessionComplete(true);
+      setShowQuestionResult(false);
+      setHistorySaved(true);
+    } catch (err) {
+      console.error('[BuildSentence] Failed to load history review:', err);
+      setError('Failed to load history record for review.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   return {
@@ -226,6 +319,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     showQuestionResult,
     sessionComplete,
     error,
+    historySaved,
     currentQuestion,
     availableChunks,
     allSlotsFilled,
@@ -238,6 +332,8 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     nextQuestion,
     retrySession,
     startTiming,
+    saveHistory,
+    loadHistoryReview,
     startTimeRef,
   };
 }

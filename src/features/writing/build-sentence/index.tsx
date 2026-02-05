@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   DndContext,
   DragEndEvent,
@@ -40,6 +41,10 @@ export const BuildSentenceExercise: React.FC = () => {
 
   // DnD overlay state
   const [activeChunkId, setActiveChunkId] = useState<string | null>(null);
+  
+  const [searchParams] = useSearchParams();
+  const reviewId = searchParams.get('review');
+  const isReviewMode = !!reviewId;
 
   const bs = useBuildSentence();
 
@@ -77,10 +82,16 @@ export const BuildSentenceExercise: React.FC = () => {
   const keyboardSensor = useSensor(KeyboardSensor);
   const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor);
 
-  // Load session on mount
+  // Load session or review on mount
   useEffect(() => {
-    bs.loadSession();
-  }, [bs.loadSession]);
+    if (isReviewMode && reviewId) {
+      bs.loadHistoryReview(reviewId);
+      setShowGetReadyModal(false);
+      setCountdownComplete(true);
+    } else {
+      bs.loadSession();
+    }
+  }, [isReviewMode, reviewId, bs.loadSession, bs.loadHistoryReview]);
 
   // Start timer when countdown finishes and questions are loaded
   useEffect(() => {
@@ -91,12 +102,19 @@ export const BuildSentenceExercise: React.FC = () => {
     }
   }, [bs.questions.length, bs.sessionComplete, countdownComplete, bs.startTiming]);
 
-  // Stop timer when session complete
+  // Stop timer and save history when session complete
   useEffect(() => {
     if (bs.sessionComplete) {
       timer.stop();
+      
+      // Save history automatically
+      const elapsedTime = bs.startTimeRef.current 
+        ? Math.floor((Date.now() - bs.startTimeRef.current) / 1000) 
+        : timer.totalElapsed;
+      const targetTime = getTargetTime(bs.questions[0]?.difficulty);
+      bs.saveHistory(elapsedTime, targetTime);
     }
-  }, [bs.sessionComplete, timer]);
+  }, [bs.sessionComplete, timer, bs.saveHistory, bs.questions, getTargetTime]);
 
   // Countdown effect
   useEffect(() => {

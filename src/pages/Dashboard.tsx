@@ -463,13 +463,15 @@ export default function Dashboard() {
                 const completedDate = new Date(activity.completedAt);
                 const timeAgo = getTimeAgo(completedDate);
                 const scorePercent = activity.scorePercent || 0;
+                const isWriting = activity.exerciseType === 'build-sentence';
 
                 return (
                   <div
                     key={activity.id}
                     onClick={() => {
-                      // Navigate to review the exercise
-                      if (activity.exerciseId) {
+                      if (isWriting) {
+                        navigate(`/practice/build-sentence?review=${activity.id}`);
+                      } else if (activity.exerciseId) {
                         navigate(`/practice/text-completion?review=${activity.exerciseId}`);
                       }
                     }}
@@ -478,13 +480,31 @@ export default function Dashboard() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <div className={`w-2 h-2 rounded-full shrink-0 ${scorePercent >= 90 ? 'bg-emerald-500' :
+                          <div className={cn(
+                            "w-2 h-2 rounded-full shrink-0",
+                            scorePercent >= 90 ? 'bg-emerald-500' :
                             scorePercent >= 70 ? 'bg-blue-500' :
-                              scorePercent >= 50 ? 'bg-amber-500' :
-                                'bg-red-500'
-                            }`} />
+                            scorePercent >= 50 ? 'bg-amber-500' :
+                            'bg-red-500'
+                          )} />
+                          
+                          {/* Type Indicator */}
+                          <div className={cn(
+                            "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider",
+                            isWriting 
+                              ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" 
+                              : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                          )}>
+                            {isWriting ? (
+                              <PencilLine className="w-2.5 h-2.5" />
+                            ) : (
+                              <Book className="w-2.5 h-2.5" />
+                            )}
+                            {isWriting ? 'Writing' : 'Reading'}
+                          </div>
+
                           <h3 className="font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
-                            {activity.topic || 'Text Completion'}
+                            {activity.topic || (isWriting ? 'Build a Sentence' : 'Text Completion')}
                             {activity.attemptNumber && (
                               <span className="ml-1.5 text-zinc-500 text-[10px] font-normal">
                                 (Attempt #{activity.attemptNumber})
@@ -495,8 +515,8 @@ export default function Dashboard() {
                             <span className={cn(
                               'text-[10px] px-1.5 py-0.5 rounded-full shrink-0',
                               activity.difficulty === 'easy' ? 'bg-green-500/20 text-green-400' :
-                                activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
-                                  'bg-yellow-500/20 text-yellow-400'
+                              activity.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
+                              'bg-yellow-500/20 text-yellow-400'
                             )}>
                               {activity.difficulty === 'easy' ? 'Easy' :
                                 activity.difficulty === 'hard' ? 'Hard' : 'Medium'}
@@ -515,11 +535,13 @@ export default function Dashboard() {
                           </span>
                         </div>
                       </div>
-                      <div className={`self-start sm:self-center px-3 py-1 rounded-full text-sm font-medium shrink-0 ${scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
+                      <div className={cn(
+                        "self-start sm:self-center px-3 py-1 rounded-full text-sm font-medium shrink-0",
+                        scorePercent >= 90 ? 'bg-emerald-500/20 text-emerald-400' :
                         scorePercent >= 70 ? 'bg-blue-500/20 text-blue-400' :
-                          scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
-                            'bg-red-500/20 text-red-400'
-                        }`}>
+                        scorePercent >= 50 ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-red-500/20 text-red-400'
+                      )}>
                         {Math.round(scorePercent)}%
                       </div>
                     </div>

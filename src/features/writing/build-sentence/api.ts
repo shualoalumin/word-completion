@@ -83,3 +83,155 @@ export async function generateSessionQuestions(
 
   return { data: questions, error: null };
 }
+
+// ============================================
+// History Saving Functions
+// ============================================
+
+export interface SaveBuildSentenceHistoryParams {
+  exerciseId?: string;
+  score: number;
+  maxScore: number;
+  scorePercent: number;
+  timeSpentSeconds: number;
+  targetTimeSeconds?: number;
+  answers: { 
+    questionIndex: number; 
+    userOrder: string[]; 
+    isCorrect: boolean;
+    questionData: BuildSentenceQuestion; // Store the full question for review
+  }[];
+  mistakes: { questionIndex: number; correctOrder: string[]; userOrder: string[] }[];
+  difficulty?: 'easy' | 'medium' | 'hard';
+  topicCategory?: string;
+}
+
+export interface SaveBuildSentenceHistoryResult {
+  success: boolean;
+  error: Error | null;
+  historyId?: string;
+}
+
+const SAVE_HISTORY_RETRIES = 2;
+
+/**
+ * Save Build Sentence exercise history to database
+ */
+export async function saveBuildSentenceHistory(
+  params: SaveBuildSentenceHistoryParams
+): Promise<SaveBuildSentenceHistoryResult> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= SAVE_HISTORY_RETRIES; attempt++) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.log('[BuildSentence] No authenticated user, skipping history save');
+        return { success: false, error: new Error('Not authenticated') };
+      }
+
+      // Map difficulty to core format
+      const difficultyMap: Record<string, string> = {
+        easy: 'easy',
+        medium: 'intermediate',
+        hard: 'hard',
+      };
+      const mappedDifficulty = params.difficulty 
+        ? difficultyMap[params.difficulty] || 'intermediate'
+        : 'intermediate';
+
+      const { data, error } = await supabase
+        .from('user_exercise_history')
+        .insert({
+          user_id: user.id,
+          exercise_id: params.exerciseId || null,
+          section: 'writing',
+          exercise_type: 'build-sentence',
+          score: params.score,
+          max_score: params.maxScore,
+          score_percent: params.scorePercent,
+          time_spent_seconds: params.timeSpentSeconds,
+          target_time_seconds: params.targetTimeSeconds || null,
+          answers: params.answers,
+          mistakes: params.mistakes,
+          difficulty: mappedDifficulty,
+          topic_category: params.topicCategory || null,
+        } as any)
+        .select('id')
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      console.log(`[BuildSentence] History saved with ID: ${data?.id}`);
+      return {
+        success: true,
+        error: null,
+        historyId: data?.id,
+      };
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error('Unknown error');
+      console.error(`[BuildSentence] History save attempt ${attempt + 1} failed:`, lastError.message);
+
+      if (attempt < SAVE_HISTORY_RETRIES) {
+        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      }
+    }
+  }
+
+  return { success: false, error: lastError };
+}
+
+/**
+ * Get Build Sentence history for the current user
+ */
+export async function getBuildSentenceHistory(
+  limit: number = 10
+): Promise<{ data: any[] | null; error: Error | null }> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { data: null, error: new Error('Not authenticated') };
+    }
+
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('exercise_type', 'build-sentence')
+      .order('completed_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return { data, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error('Unknown error'),
+    };
+  }
+}
+
+/**
+ * Load a specific history record by ID
+ */
+export async function loadHistoryRecordById(historyId: string): Promise<{ data: any | null, error: Error | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('*')
+      .eq('id', historyId)
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err : new Error('Unknown error') };
+  }
+}
+
+

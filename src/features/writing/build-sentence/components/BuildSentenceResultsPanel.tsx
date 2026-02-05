@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BuildSentenceQuestion, BuildSentenceQuestionResult } from '../types';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,24 @@ interface BuildSentenceResultsPanelProps {
   targetTime: number;
 }
 
+// Grammar tip database for common patterns (fallback when AI doesn't provide)
+const GRAMMAR_TIPS: Record<string, string> = {
+  indirect_question: 'This is an indirect (embedded) question. After words like "know", "wonder", "tell me", use statement word order (Subject-Verb), NOT question inversion.',
+  subject_verb_agreement: 'Subject-verb agreement: Singular subjects take singular verbs (is/was), plural subjects take plural verbs (are/were).',
+  redundant_pronoun: 'Avoid redundant pronouns. When the subject is already defined (e.g., "the study guide"), don\'t add "it" before the verb.',
+  tense: 'Verb tense consistency: Make sure the verb tense matches the time context of the sentence.',
+  word_order: 'Basic English word order follows Subject-Verb-Object (SVO) pattern.',
+};
+
+// Trap type labels for display
+const TRAP_LABELS: Record<string, { icon: string; label: string; color: string }> = {
+  indirect_question: { icon: '🔄', label: 'Indirect Question Trap', color: 'text-purple-400' },
+  subject_verb_agreement: { icon: '🔗', label: 'Subject-Verb Agreement', color: 'text-blue-400' },
+  redundant_pronoun: { icon: '👤', label: 'Redundant Pronoun Trap', color: 'text-orange-400' },
+  tense: { icon: '⏰', label: 'Tense Consistency', color: 'text-cyan-400' },
+  word_order: { icon: '📝', label: 'Word Order', color: 'text-green-400' },
+};
+
 export const BuildSentenceResultsPanel: React.FC<BuildSentenceResultsPanelProps> = ({
   questions,
   results,
@@ -19,6 +37,8 @@ export const BuildSentenceResultsPanel: React.FC<BuildSentenceResultsPanelProps>
   targetTime,
 }) => {
   const { t } = useTranslation();
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  
   const correctCount = results.filter((r) => r.isCorrect).length;
   const totalCount = results.length;
   const percentage = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
@@ -56,6 +76,45 @@ export const BuildSentenceResultsPanel: React.FC<BuildSentenceResultsPanelProps>
   };
 
   const encouragement = getEncouragement();
+
+  // Analyze user error to provide specific feedback
+  const analyzeError = (
+    question: BuildSentenceQuestion,
+    result: BuildSentenceQuestionResult
+  ): string | null => {
+    if (result.isCorrect) return null;
+    
+    const userOrder = result.userOrder;
+    const correctOrder = result.correctOrder;
+    
+    // Check for indirect question inversion error
+    // Pattern: User placed verb before subject in embedded clause
+    if (question.trap_type === 'indirect_question') {
+      return 'You may have used question word order (V-S) instead of statement order (S-V) in the embedded clause.';
+    }
+    
+    // Check for distractor usage
+    const distractorIds = question.puzzle.chunks
+      .filter(c => c.is_distractor)
+      .map(c => c.id);
+    
+    const usedDistractor = userOrder.some(id => distractorIds.includes(id));
+    if (usedDistractor) {
+      const usedDistractorText = question.puzzle.chunks
+        .find(c => c.is_distractor && userOrder.includes(c.id))?.text;
+      return `You used "${usedDistractorText}" which is a distractor (incorrect option).`;
+    }
+    
+    // Generic mismatch
+    const firstDiff = userOrder.findIndex((id, i) => id !== correctOrder[i]);
+    if (firstDiff !== -1) {
+      const wrongChunk = question.puzzle.chunks.find(c => c.id === userOrder[firstDiff])?.text;
+      const rightChunk = question.puzzle.chunks.find(c => c.id === correctOrder[firstDiff])?.text;
+      return `Position ${firstDiff + 1}: You placed "${wrongChunk}" but it should be "${rightChunk}".`;
+    }
+    
+    return null;
+  };
 
   return (
     <div className="space-y-5">
@@ -126,24 +185,43 @@ export const BuildSentenceResultsPanel: React.FC<BuildSentenceResultsPanelProps>
             if (!question) return null;
 
             const chunkMap = new Map(question.puzzle.chunks.map((c) => [c.id, c]));
+            const isExpanded = expandedIndex === idx;
+            const trapInfo = question.trap_type ? TRAP_LABELS[question.trap_type] : null;
+            const grammarTip = question.grammar_tip || (question.trap_type ? GRAMMAR_TIPS[question.trap_type] : null);
+            const errorAnalysis = analyzeError(question, result);
 
+            // Build user sentence from chunks
+            const userSentenceParts = result.userOrder.map((id) => {
+              const chunk = chunkMap.get(id);
+              return chunk ? chunk.text : '?';
+            });
             const userSentence = [
               question.dialogue.speaker_b.anchor_start,
-              ...result.userOrder.map((id) => chunkMap.get(id)?.text ?? '?'),
+              ...userSentenceParts,
               question.dialogue.speaker_b.anchor_end,
             ].filter(Boolean).join(' ');
+
+            // Build correct sentence from chunks
+            const correctSentenceParts = result.correctOrder.map((id) => {
+              const chunk = chunkMap.get(id);
+              return chunk ? chunk.text : '?';
+            });
 
             return (
               <div
                 key={idx}
                 className={cn(
-                  'p-3 rounded-lg border',
+                  'p-3 rounded-lg border transition-all',
                   result.isCorrect
                     ? darkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-green-50 border-green-200'
                     : darkMode ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200',
                 )}
               >
-                <div className="flex items-start gap-3">
+                {/* Header Row */}
+                <div 
+                  className="flex items-start gap-3 cursor-pointer"
+                  onClick={() => setExpandedIndex(isExpanded ? null : idx)}
+                >
                   <span className={cn(
                     'text-xs font-bold px-2 py-0.5 rounded shrink-0',
                     result.isCorrect
@@ -170,7 +248,125 @@ export const BuildSentenceResultsPanel: React.FC<BuildSentenceResultsPanelProps>
                       </p>
                     )}
                   </div>
+                  
+                  {/* Expand indicator */}
+                  <span className={cn(
+                    'text-xs transition-transform',
+                    darkMode ? 'text-zinc-500' : 'text-gray-400',
+                    isExpanded && 'rotate-180'
+                  )}>
+                    ▼
+                  </span>
                 </div>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className={cn(
+                    'mt-3 pt-3 border-t space-y-3',
+                    darkMode ? 'border-zinc-700' : 'border-gray-200'
+                  )}>
+                    {/* Chunk Comparison (for wrong answers) */}
+                    {!result.isCorrect && (
+                      <div className="space-y-2">
+                        <p className={cn('text-xs font-medium', darkMode ? 'text-zinc-400' : 'text-gray-500')}>
+                          Chunk Comparison:
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          <span className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>Your:</span>
+                          {userSentenceParts.map((text, i) => {
+                            const isCorrectPosition = result.userOrder[i] === result.correctOrder[i];
+                            return (
+                              <span
+                                key={i}
+                                className={cn(
+                                  'px-1.5 py-0.5 rounded text-xs',
+                                  isCorrectPosition
+                                    ? darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-green-100 text-green-700'
+                                    : darkMode ? 'bg-red-900/50 text-red-300' : 'bg-red-100 text-red-700'
+                                )}
+                              >
+                                {text}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className={cn('text-xs', darkMode ? 'text-zinc-500' : 'text-gray-400')}>Correct:</span>
+                          {correctSentenceParts.map((text, i) => (
+                            <span
+                              key={i}
+                              className={cn(
+                                'px-1.5 py-0.5 rounded text-xs',
+                                darkMode ? 'bg-emerald-900/50 text-emerald-300' : 'bg-green-100 text-green-700'
+                              )}
+                            >
+                              {text}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Error Analysis (for wrong answers) */}
+                    {!result.isCorrect && errorAnalysis && (
+                      <div className={cn(
+                        'p-2.5 rounded-lg',
+                        darkMode ? 'bg-amber-900/20 border border-amber-800/50' : 'bg-amber-50 border border-amber-200'
+                      )}>
+                        <p className={cn('text-xs font-medium flex items-center gap-1.5', darkMode ? 'text-amber-300' : 'text-amber-700')}>
+                          ⚠️ What went wrong:
+                        </p>
+                        <p className={cn('text-xs mt-1', darkMode ? 'text-amber-200/80' : 'text-amber-600')}>
+                          {errorAnalysis}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Trap Type Badge */}
+                    {trapInfo && (
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full text-xs font-medium',
+                          darkMode ? 'bg-zinc-800' : 'bg-gray-100',
+                          trapInfo.color
+                        )}>
+                          {trapInfo.icon} {trapInfo.label}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Grammar Tip */}
+                    {grammarTip && (
+                      <div className={cn(
+                        'p-2.5 rounded-lg',
+                        darkMode ? 'bg-blue-900/20 border border-blue-800/50' : 'bg-blue-50 border border-blue-200'
+                      )}>
+                        <p className={cn('text-xs font-medium flex items-center gap-1.5', darkMode ? 'text-blue-300' : 'text-blue-700')}>
+                          💡 Grammar Insight:
+                        </p>
+                        <p className={cn('text-xs mt-1', darkMode ? 'text-blue-200/80' : 'text-blue-600')}>
+                          {grammarTip}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Difficulty & Scenario */}
+                    <div className="flex flex-wrap gap-2">
+                      <span className={cn(
+                        'px-2 py-0.5 rounded text-xs',
+                        darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'
+                      )}>
+                        {question.difficulty.charAt(0).toUpperCase() + question.difficulty.slice(1)}
+                      </span>
+                      <span className={cn(
+                        'px-2 py-0.5 rounded text-xs',
+                        darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600'
+                      )}>
+                        {question.scenario}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
