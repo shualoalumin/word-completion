@@ -153,26 +153,35 @@ jobs:
 
           if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://github.com/$REPO/actions"; fi
 
-          PAYLOAD=$(cat <<EOF
-          {
-            "username": "Cloudflare Pages",
-            "avatar_url": "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
-            "embeds": [{
-              "title": "$TITLE",
-              "description": "$DESC",
-              "color": $COLOR,
-              "url": "$DEPLOY_URL",
-              "fields": [
-                { "name": "Project", "value": "$REPO", "inline": true },
-                { "name": "Commit", "value": "$COMMIT_MSG", "inline": true },
-                { "name": "Author", "value": "$ACTOR", "inline": true },
-                { "name": "Link", "value": "[Visit]($DEPLOY_URL)", "inline": false }
-              ],
-              "footer": { "text": "Via GitHub Actions (Robust Polling)" },
-              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            }]
-          }
-          EOF
-          )
+          if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://github.com/$REPO/actions"; fi
 
-          curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
+          # Generate JSON payload without HereDoc to avoid YAML syntax issues
+          JSON_STRING=$(jq -n \
+            --arg title "$TITLE" \
+            --arg desc "$DESC" \
+            --arg url "$DEPLOY_URL" \
+            --arg color "$COLOR" \
+            --arg repo "$REPO" \
+            --arg commit "$COMMIT_MSG" \
+            --arg actor "$ACTOR" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              username: "Cloudflare Pages",
+              avatar_url: "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
+              embeds: [{
+                title: $title,
+                description: $desc,
+                color: ($color | tonumber),
+                url: $url,
+                fields: [
+                  { name: "Project", value: $repo, inline: true },
+                  { name: "Commit", value: $commit, inline: true },
+                  { name: "Author", value: $actor, inline: true },
+                  { name: "Link", value: ("[Visit](" + $url + ")"), inline: false }
+                ],
+                footer: { text: "Via GitHub Actions (Robust Polling)" },
+                timestamp: $timestamp
+              }]
+            }')
+
+          curl -H "Content-Type: application/json" -X POST -d "$JSON_STRING" "$DISCORD_WEBHOOK"
