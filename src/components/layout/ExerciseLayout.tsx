@@ -20,6 +20,8 @@ export interface ExerciseLayoutProps {
   showResults: boolean;
   onCheckAnswers: () => void;
   onNextExercise: () => void;
+  /** When set (e.g. after showing result), primary button shows this label instead of "Check answers" (e.g. "Next question") */
+  primaryButtonLabel?: string;
   onRetry?: () => void;
   score?: number;
   totalQuestions?: number;
@@ -40,6 +42,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
   showResults,
   onCheckAnswers,
   onNextExercise,
+  primaryButtonLabel,
   onRetry,
   renderResults,
   useProgressBar = false,
@@ -127,7 +130,7 @@ export const ExerciseLayout: React.FC<ExerciseLayoutProps> = ({
                 'bg-blue-600 text-white hover:bg-blue-700'
               )}
             >
-              <Check className="w-4 h-4" /> {t('practice.checkAnswers')}
+              <Check className="w-4 h-4" /> {primaryButtonLabel ?? t('practice.checkAnswers')}
             </button>
           ) : (
             <div className="flex items-center gap-3">

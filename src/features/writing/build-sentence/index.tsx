@@ -307,6 +307,7 @@ export const BuildSentenceExercise: React.FC = () => {
         }
         showResults={bs.sessionComplete}
         onCheckAnswers={handleCheck}
+        primaryButtonLabel={bs.showQuestionResult ? (t('practice.nextQuestion', 'Next question') as string) : undefined}
         onNextExercise={handleNextExercise}
         onRetry={handleRetry}
         score={bs.sessionScore}
