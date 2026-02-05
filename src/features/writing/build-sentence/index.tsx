@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -46,6 +46,7 @@ export const BuildSentenceExercise: React.FC = () => {
 
   // DnD overlay state
   const [activeChunkId, setActiveChunkId] = useState<string | null>(null);
+  const historySaveAttemptedRef = useRef(false);
 
   const bs = useBuildSentence();
 
@@ -103,18 +104,17 @@ export const BuildSentenceExercise: React.FC = () => {
     }
   }, [bs.questions.length, bs.sessionComplete, countdownComplete, bs.startTiming]);
 
-  // Stop timer and save history when session complete
+  // Stop timer and save history when session complete (once per session to avoid duplicate rows)
   useEffect(() => {
-    if (bs.sessionComplete) {
-      timer.stop();
-      
-      // Save history automatically
-      const elapsedTime = bs.startTimeRef.current 
-        ? Math.floor((Date.now() - bs.startTimeRef.current) / 1000) 
-        : timer.totalElapsed;
-      const targetTime = getTargetTime(bs.questions[0]?.difficulty);
-      bs.saveHistory(elapsedTime, targetTime);
-    }
+    if (!bs.sessionComplete || historySaveAttemptedRef.current) return;
+    historySaveAttemptedRef.current = true;
+    timer.stop();
+
+    const elapsedTime = bs.startTimeRef.current
+      ? Math.floor((Date.now() - bs.startTimeRef.current) / 1000)
+      : timer.totalElapsed;
+    const targetTime = getTargetTime(bs.questions[0]?.difficulty);
+    bs.saveHistory(elapsedTime, targetTime);
   }, [bs.sessionComplete, timer, bs.saveHistory, bs.questions, getTargetTime]);
 
   // Countdown effect

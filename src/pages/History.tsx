@@ -19,6 +19,8 @@ interface HistoryRecord {
   topicCategory?: string;
   timeSpentSeconds?: number;
   attemptNumber?: number;
+  /** 'build-sentence' | 'text-completion' - from DB for correct label and route */
+  exerciseType?: string;
 }
 
 interface GroupedHistory {
@@ -60,7 +62,8 @@ export default function History() {
           completed_at,
           difficulty,
           topic_category,
-          time_spent_seconds
+          time_spent_seconds,
+          exercise_type
         `)
         .eq('user_id', user.id)
         .order('completed_at', { ascending: false });
@@ -101,24 +104,26 @@ export default function History() {
         difficulty: record.difficulty,
         topicCategory: record.topic_category,
         timeSpentSeconds: record.time_spent_seconds,
+        exerciseType: record.exercise_type || 'text-completion',
       }));
 
-      // Calculate attempt numbers (oldest = #1)
+      // Calculate attempt numbers: per (exercise_type, exercise_id) so build-sentence sessions get sequential attempts
+      const attemptKey = (h: HistoryRecord) =>
+        h.exerciseType === 'build-sentence' ? `build-sentence:${h.id}` : `text-completion:${h.exerciseId}`;
       const exerciseCounters: Record<string, number> = {};
-      // Iterate from oldest to newest to assign numbers
-      const sortedOldestFirst = [...mappedHistory].sort((a, b) => 
+      const sortedOldestFirst = [...mappedHistory].sort((a, b) =>
         new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
       );
-      
-      const attemptMap: Record<string, number> = {}; // historyRecordId -> attemptNumber
+      const attemptMap: Record<string, number> = {};
       sortedOldestFirst.forEach(h => {
-        exerciseCounters[h.exerciseId] = (exerciseCounters[h.exerciseId] || 0) + 1;
-        attemptMap[h.id] = exerciseCounters[h.exerciseId];
+        const key = attemptKey(h);
+        exerciseCounters[key] = (exerciseCounters[key] || 0) + 1;
+        attemptMap[h.id] = exerciseCounters[key];
       });
 
       return mappedHistory.map(h => ({
         ...h,
-        attemptNumber: attemptMap[h.id]
+        attemptNumber: attemptMap[h.id],
       }));
     },
     enabled: !!user?.id,
@@ -262,10 +267,18 @@ export default function History() {
                       minute: '2-digit',
                     });
 
+                    const isBuildSentence = record.exerciseType === 'build-sentence';
+                    const recordLabel = isBuildSentence
+                      ? (t('practiceSelection.buildSentence', 'Build a Sentence') as string)
+                      : (record.topic || (t('practice.title', 'Text Completion') as string));
+                    const reviewUrl = isBuildSentence
+                      ? `/practice/build-sentence?review=${record.id}`
+                      : `/practice/text-completion?review=${record.exerciseId}&historyId=${record.id}`;
+
                     return (
                       <div
                         key={record.id}
-                        onClick={() => navigate(`/practice/text-completion?review=${record.exerciseId}&historyId=${record.id}`)}
+                        onClick={() => navigate(reviewUrl)}
                         className="p-4 bg-zinc-900/40 border border-zinc-800 rounded-xl hover:border-blue-600/50 hover:bg-zinc-900/60 transition-all cursor-pointer group"
                       >
                         <div className="flex items-center justify-between">
@@ -278,7 +291,7 @@ export default function History() {
                                     'bg-red-500'
                                 }`} />
                               <h3 className="font-medium text-white group-hover:text-blue-400 transition-colors">
-                                {record.topic || 'Text Completion'}
+                                {recordLabel}
                                 {record.attemptNumber && (
                                   <span className="ml-2 text-zinc-500 text-xs font-normal">
                                     (Attempt #{record.attemptNumber})
