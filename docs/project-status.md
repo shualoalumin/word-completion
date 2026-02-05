@@ -16,6 +16,7 @@ build a sentence 기능 추가 완료
 | --------------------- | ------------------- | ----------------------------------------------------------------------------------------------------- |
 | **DB 구현률**         | 8/46 테이블 (17.4%) | exercises, user_profiles, user_exercise_history, user_streaks, user_vocabulary (+ 3개 어휘 테이블) ✅ |
 | **Text Completion**   | 100% ✅             | 기능 완료, Review 모드 버그 수정 완료 (2026-01-18)                                                    |
+| **Writing (Task 1)**  | 100% ✅             | Build a Sentence 구현 및 AI 결과 연동 완료 (2026-02-05)                                               |
 | **Dashboard**         | 100% ✅             | Recent Activity %, Review 링크, 난이도별 통계 ✅                                                      |
 | **History**           | 100% ✅             | 전체 기록 페이지 추가 (2026-01-18), 월별 그룹핑                                                       |
 | **Vocabulary System** | 100% ✅             | 단어장 페이지, 복습 테스트 (3가지 모드), SM-2 알고리즘                                                |
@@ -552,6 +553,26 @@ exercises
   - ✅ `docs/troubleshooting/2026-02-05-discord-webhook-workflow-issues.md`
     생성.
   - ✅ YAML/Shell 조합의 한계와 파이썬 전환의 정당성 기록.
+
+---
+
+### 2026-02-05 - Writing Task 1 (Build a Sentence) 정식 출시 및 통합 완료 ✍️
+
+- ✨ **Build a Sentence (Writing Task 1) 구현**
+  - ✅ TOEFL 2026 개편안 규격(10문항, 5분 30초)에 맞춘 신규 학습 모드 출시.
+  - ✅ 드래그 앤 드롭 및 클릭 기반의 직관적인 문장 완성 인터페이스.
+- 🧠 **ETS 청킹(Chunking) 알고리즘 통합**
+  - ✅ 문장을 의미 단위로 파싱하고 고품질 함정(Distractor)을 생성하는 알고리즘
+    적용.
+  - ✅ Gemini API 기반 실시간 문제 생성 및 캐싱 시스템 구축.
+- 🎨 **디자인 및 사용자 경험(UX) 고도화**
+  - ✅ **Native Speaker Avatars**: 텍스트 아바타 대신 고화질 인물 이미지
+    도입으로 학습 몰입도 강화.
+  - ✅ **WOW Design Landing**: 메인 랜딩 페이지 리뉴얼(LandingC)을 통해 서비스
+    아이덴티티 강화 및 신규 세션(Writing) 섹션 추가.
+- 📊 **데이터 및 히스토리 연동**
+  - ✅ Writing 결과 저장 및 대시보드 Recent Activity 연동.
+  - ✅ 결과 화면에서 정답 분석 및 다시 풀기 기능 지원.
 
 ---
 
