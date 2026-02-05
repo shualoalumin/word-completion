@@ -17,11 +17,22 @@ jobs:
     steps:
       - name: Verify and Sanitize
         run: |
-          # Remove whitespace and re-export (crucial for clean API calls)
-          echo "CF_ACCOUNT_ID=$(echo "$CF_ACCOUNT_ID" | xargs)" >> $GITHUB_ENV
-          echo "CF_PROJECT=$(echo "$CF_PROJECT" | xargs)" >> $GITHUB_ENV
-          echo "CF_TOKEN=$(echo "$CF_TOKEN" | xargs)" >> $GITHUB_ENV
-          echo "DISCORD_WEBHOOK=$(echo "$DISCORD_WEBHOOK" | xargs)" >> $GITHUB_ENV
+          # Use secrets directly to ensure we have values (avoiding empty env var issues)
+          ID_CLEAN=$(echo '${{ secrets.CLOUDFLARE_ACCOUNT_ID }}' | xargs)
+          PROJ_CLEAN=$(echo '${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}' | xargs)
+          TOKEN_CLEAN=$(echo '${{ secrets.CLOUDFLARE_API_TOKEN }}' | xargs)
+          WEBHOOK_CLEAN=$(echo '${{ secrets.DISCORD_WEBHOOK_URL }}' | xargs)
+
+          if [ -z "$ID_CLEAN" ]; then
+            echo "❌ ERROR: CLOUDFLARE_ACCOUNT_ID secret is EMPTY in GitHub Settings!"
+            echo "Please add it to Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+          echo "CF_ACCOUNT_ID=$ID_CLEAN" >> $GITHUB_ENV
+          echo "CF_PROJECT=$PROJ_CLEAN" >> $GITHUB_ENV
+          echo "CF_TOKEN=$TOKEN_CLEAN" >> $GITHUB_ENV
+          echo "DISCORD_WEBHOOK=$WEBHOOK_CLEAN" >> $GITHUB_ENV
 
       - name: Token Diagnostics
         run: |
@@ -30,14 +41,13 @@ jobs:
             -H "Authorization: Bearer $CF_TOKEN" \
             -H "Content-Type: application/json")
 
-          echo "Response: $VERIFY"
           if [[ $VERIFY != *"\"status\":\"active\""* ]]; then
-            echo "❌ Token is INACTIVE or INVALID! Please check your token in Cloudflare dashboard."
+            echo "❌ 토큰 인증 실패! Response: $VERIFY"
             exit 1
           fi
           echo "✅ Token is active."
 
-      - name: Wait for Cloudflare to pick up changes
+      - name: Wait for Cloudflare
         run: sleep 30
 
       - name: Poll Deployment Status
@@ -45,14 +55,16 @@ jobs:
         shell: bash
         run: |
           set +e
-          API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
+          if [ -z "$CF_ACCOUNT_ID" ]; then echo "❌ CF_ACCOUNT_ID is empty!"; exit 1; fi
 
-          echo "🔍 Attempting to access project: $CF_PROJECT"
+          API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
+          echo "🔍 Accessing: $API_BASE"
+
           DETAILS=$(curl -s -X GET "$API_BASE/deployments?per_page=1" \
             -H "Authorization: Bearer $CF_TOKEN")
 
           if [[ $DETAILS == *"\"success\":false"* ]]; then
-            echo "❌ Access Denied (403 Forbidden) or Project Not Found!"
+            echo "❌ 프로젝트 접근 거부 (403)! 계정 ID가 맞는지 확인하세요."
             echo "API Response: $DETAILS"
             exit 1
           fi
