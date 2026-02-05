@@ -72,10 +72,41 @@ export interface SaveExerciseHistoryResult {
 }
 
 /**
+ * Get recent exercise IDs completed by the current user (to avoid repeating too soon)
+ */
+export async function getRecentTextCompletionExerciseIds(
+  limit: number = 30
+): Promise<string[]> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('exercise_id')
+      .eq('user_id', user.id)
+      .eq('exercise_type', 'text-completion')
+      .order('completed_at', { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+    return data.map((r: { exercise_id: string }) => r.exercise_id).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export interface GeneratePassageOptions {
+  /** Exclude these exercise IDs when picking from cache (spaced repetition) */
+  excludeExerciseIds?: string[];
+}
+
+/**
  * Generate a new passage via Edge Function
  */
 export async function generatePassage(
-  retryCount = 0
+  retryCount = 0,
+  options?: GeneratePassageOptions
 ): Promise<GeneratePassageResult> {
   try {
     const {
@@ -92,12 +123,17 @@ export async function generatePassage(
       headers.Authorization = `Bearer ${session.access_token}`;
     }
 
+    const body: { excludeExerciseIds?: string[] } = {};
+    if (options?.excludeExerciseIds?.length) {
+      body.excludeExerciseIds = options.excludeExerciseIds;
+    }
+
     const response = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-passage`,
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({}),
+        body: JSON.stringify(body),
       }
     );
 

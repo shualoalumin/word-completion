@@ -204,6 +204,9 @@ serve(async (req) => {
       }
     }
 
+    // Parse request body once (for excludeExerciseIds and module)
+    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+
     // Step 1: Try to get a cached exercise from DB
     console.log("Checking for cached exercises...");
     const { data: cachedExercises, error: fetchError } = await supabase
@@ -218,19 +221,26 @@ serve(async (req) => {
       console.error("Error fetching cached exercises:", fetchError);
     }
 
+    // Optional: exclude recently completed exercise IDs (spaced repetition)
+    const excludeExerciseIds: string[] = Array.isArray(body.excludeExerciseIds) ? body.excludeExerciseIds : [];
+    let pool = cachedExercises || [];
+    if (excludeExerciseIds.length > 0 && pool.length > 0) {
+      pool = pool.filter((c: { id: string }) => !excludeExerciseIds.includes(c.id));
+    }
+
     // Cache strategy:
     // - If less than 20 cached: 80% chance to generate new (build up cache)
     // - If 20+ cached: 90% chance to use cache, 10% to generate new (keep fresh)
     const MIN_CACHE_SIZE = 20;
-    const cacheCount = cachedExercises?.length || 0;
+    const cacheCount = pool.length;
     
     const shouldUseCache = cacheCount >= MIN_CACHE_SIZE 
       ? Math.random() < 0.9  // 90% use cache when enough cached
       : Math.random() < 0.2; // 20% use cache when building up
     
-    if (cachedExercises && cacheCount > 0 && shouldUseCache) {
+    if (pool.length > 0 && shouldUseCache) {
       const randomIndex = Math.floor(Math.random() * cacheCount);
-      const cached = cachedExercises[randomIndex];
+      const cached = pool[randomIndex];
       console.log(`Returning cached exercise (${cacheCount} in pool): ${cached.topic}`);
       
       let content = cached.content;
@@ -275,7 +285,6 @@ serve(async (req) => {
     const { topic: selectedTopic, category: topicCategory } = getRandomTopic();
     
     // Determine difficulty (can be passed as parameter or random for cache building)
-    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const requestedModule = body.module as Module | undefined;
     const selectedDifficulty = getRandomDifficulty(requestedModule);
     

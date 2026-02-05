@@ -518,11 +518,15 @@ export const SAMPLE_QUESTIONS: BuildSentenceQuestion[] = [
 
 /**
  * Pick `count` random questions from the sample pool.
- * Ensures a mix of difficulties when possible.
+ * Optionally exclude questions recently used (by speaker_b full_response) to space repetition.
  */
 export function getSessionQuestions(
-  count: number = EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET
+  count: number = EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET,
+  excludeResponseKeys?: Set<string>
 ): BuildSentenceQuestion[] {
-  const shuffled = [...SAMPLE_QUESTIONS].sort(() => Math.random() - 0.5);
+  const pool = excludeResponseKeys?.size
+    ? SAMPLE_QUESTIONS.filter((q) => !excludeResponseKeys.has(q.dialogue.speaker_b.full_response))
+    : [...SAMPLE_QUESTIONS];
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }

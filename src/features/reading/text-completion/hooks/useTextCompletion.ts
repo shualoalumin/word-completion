@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { TextCompletionPassage, TextCompletionBlank, TextCompletionPart, UserAnswers, isBlankPart } from '../types';
-import { generatePassage, saveExerciseHistory, findExerciseId, loadExerciseById, loadHistoryRecordById } from '../api';
+import { generatePassage, getRecentTextCompletionExerciseIds, saveExerciseHistory, findExerciseId, loadExerciseById, loadHistoryRecordById } from '../api';
 import { UI_CONFIG, TIMER_TARGET_BY_DIFFICULTY } from '@/core/constants';
 import { toast } from 'sonner';
 
@@ -142,7 +142,8 @@ export function useTextCompletion(): UseTextCompletionReturn {
     blankOrderRef.current = [];
     startTimeRef.current = null; // Reset start time
 
-    const result = await generatePassage();
+    const excludeIds = await getRecentTextCompletionExerciseIds(30);
+    const result = await generatePassage(0, { excludeExerciseIds: excludeIds });
 
     if (result.error) {
       setError('Failed to generate passage. Please try again.');

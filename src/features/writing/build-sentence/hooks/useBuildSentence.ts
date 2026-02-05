@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { BuildSentenceQuestion, BuildSentenceQuestionResult } from '../types';
 import { getSessionQuestions } from '../data/sampleQuestions';
-import { generateSessionQuestions, saveBuildSentenceHistory, loadHistoryRecordById } from '../api';
+import { generateSessionQuestions, getBuildSentenceHistory, saveBuildSentenceHistory, loadHistoryRecordById } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
 export interface UseBuildSentenceReturn {
@@ -73,6 +73,22 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     setLoading(true);
     setError(null);
 
+    // Build set of recently used question keys to avoid repeating too soon
+    let excludeKeys = new Set<string>();
+    try {
+      const { data: recentHistory } = await getBuildSentenceHistory(5);
+      if (recentHistory?.length) {
+        recentHistory.forEach((record: { answers?: Array<{ questionData?: { dialogue?: { speaker_b?: { full_response?: string } } } }> }) => {
+          (record.answers || []).forEach((a: { questionData?: { dialogue?: { speaker_b?: { full_response?: string } } } }) => {
+            const key = a.questionData?.dialogue?.speaker_b?.full_response;
+            if (key) excludeKeys.add(key);
+          });
+        });
+      }
+    } catch {
+      // ignore; proceed without exclusion
+    }
+
     try {
       // Try AI generation first
       console.log('[BuildSentence] Attempting AI generation...');
@@ -89,9 +105,9 @@ export function useBuildSentence(): UseBuildSentenceReturn {
         setHistorySaved(false);
         startTimeRef.current = null;
       } else {
-        // Fallback to local sample questions
+        // Fallback to local sample questions (excluding recently used)
         console.log('[BuildSentence] AI failed, falling back to sample questions');
-        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
+        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET, excludeKeys);
         setQuestions(picked);
         setCurrentIndex(0);
         setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
@@ -105,7 +121,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
       // Fallback to local sample questions on any error
       console.log('[BuildSentence] Error occurred, falling back to sample questions');
       try {
-        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
+        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET, excludeKeys);
         setQuestions(picked);
         setCurrentIndex(0);
         setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
