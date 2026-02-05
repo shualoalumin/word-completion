@@ -1,12 +1,10 @@
 # 📊 프로젝트 상태 모니터링
 
+build a sentence 기능 추가 완료
 
-build a sentence 기능 추가 완료 
-
-
-> **Last Updated**: 2026-01-18 (일요일, KST 기준)\
-> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ (완료) → Phase 2.5 🔧 (버그 수정 및
-> UI 개선)\
+> **Last Updated**: 2026-02-05 (목요일, KST 기준)\
+> **Current Phase**: Phase 1 ✅ → Phase 2 ✅ → Phase 2.5 ✅ (배포 알림 시스템
+> 완료)\
 > **전체 진행률**: 약 17% (스키마 기준) / 40% (기능 단위, 과대평가됨)\
 > **목적**: 프로젝트의 현재 위치와 다음 단계를 시각적으로 파악
 
@@ -537,6 +535,25 @@ exercises
 - 🧹 **문서 구조 정리**
   - ✅ 루트 폴더의 불필요한 스크립트 및 작업 로그 파일 삭제
   - ✅ `CHANGELOG.md`를 `docs/` 폴더로 이동하여 문서 일관성 확보
+
+### 2026-02-05 - Discord 배포 알림 시스템 및 워크플로우 안정화 🔔
+
+- 🚀 **Discord 알림 자동화 완료**
+  - ✅ Cloudflare Pages 배포 성공/실패 시 Discord 웹훅으로 즉시 알림 전송.
+  - ✅ 배포 URL, 커밋 SHA, 작성자 정보 포함.
+- 🛠️ **워크플로우 견고함(Robustness) 강화**
+  - ✅ **Python 기반 정화(Sanitization)**: GitHub Secrets의 앞뒤 공백 및
+    줄바꿈을 파이썬으로 완벽 제거하여 API 인증 에러 원천 차단.
+  - ✅ **멀티 인증 지원**: Cloudflare API Token과 Global API Key 방식을 모두
+    지원하도록 설계.
+  - ✅ **자동 폴링(Polling)**: Cloudflare 배포 완료 시까지 최대 5분간 상태를
+    추적하여 결과 반영.
+- 📝 **트러블슈팅 문서화**
+  - ✅ `docs/troubleshooting/2026-02-05-discord-webhook-workflow-issues.md`
+    생성.
+  - ✅ YAML/Shell 조합의 한계와 파이썬 전환의 정당성 기록.
+
+---
 
 ### 2026-01-30 - 학습 보상 체계 및 데이터 통찰력 강화 📈
 
