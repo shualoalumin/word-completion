@@ -147,13 +147,20 @@ export default function LandingC() {
         </h1>
 
         {/* Interactive card — front and center */}
-        <div className={cn(
-          'max-w-xl mx-auto mb-10 rounded-3xl p-6 sm:p-8 border animate-float glass-card',
-          darkMode ? 'shadow-black/20' : 'shadow-amber-900/[0.04]'
-        )}>
-          <p className={cn('text-[10px] uppercase tracking-widest font-bold mb-4 opacity-60', darkMode ? 'text-teal-400' : 'text-teal-600')}>Interactive Demo</p>
+        <div className="relative group max-w-xl mx-auto mb-10">
+          {/* Subtle Glow behind the card in dark mode */}
+          <div className={cn(
+            'absolute -inset-1 rounded-[2rem] blur-xl opacity-0 transition duration-500 group-hover:opacity-100',
+            darkMode ? 'bg-teal-500/10' : 'bg-teal-500/5'
+          )} />
+          
+          <div className={cn(
+            'relative rounded-3xl p-6 sm:p-8 border animate-float glass-card',
+            darkMode ? 'shadow-black/40 border-zinc-700/50' : 'shadow-amber-900/[0.04]'
+          )}>
+            <p className={cn('text-[10px] uppercase tracking-widest font-bold mb-4', darkMode ? 'text-teal-400' : 'text-teal-600')}>Interactive Demo</p>
 
-          <p className={cn('text-[15px] leading-relaxed mb-5', darkMode ? 'text-zinc-300' : 'text-slate-600')}>
+            <p className={cn('text-[15px] sm:text-base leading-relaxed mb-5', darkMode ? 'text-zinc-100' : 'text-slate-600')}>
             The process of <span className="text-teal-500 font-semibold">photosynthesis</span> converts light energy into chemical
             compounds. During this process, the{' '}
             <span className="inline-flex items-baseline gap-[1px]">
@@ -179,7 +186,7 @@ export default function LandingC() {
                       ? demoCorrect
                         ? 'border-emerald-500 text-emerald-400'
                         : 'border-red-400 text-red-400'
-                      : darkMode ? 'border-zinc-500 text-zinc-200 focus:border-teal-500' : 'border-slate-300 text-slate-700 focus:border-teal-500'
+                      : darkMode ? 'border-zinc-600 text-white focus:border-teal-400' : 'border-slate-300 text-slate-700 focus:border-teal-500'
                   )}
                   style={{ fontFamily: "'Arial Narrow', 'Helvetica Condensed', Arial, sans-serif" }}
                 />
@@ -203,6 +210,7 @@ export default function LandingC() {
             {demoAttempted ? 'Press Enter to continue.' : 'Type the missing letters and press Enter.'}
           </p>
         </div>
+      </div>
 
         {/* Explanation line */}
         <p className={cn('text-center text-lg leading-relaxed max-w-lg mx-auto mb-6', darkMode ? 'text-zinc-400' : 'text-slate-500')}>
@@ -305,15 +313,15 @@ export default function LandingC() {
         <h2 className={cn('text-2xl font-bold text-center mb-12', darkMode ? 'text-white' : 'text-slate-800')}>What you get</h2>
         <div className="grid sm:grid-cols-2 gap-4">
           {[
-            { title: 'Reading: Complete the Words', desc: 'AI passages with 10 blanks. Master the context-based word prediction.', emoji: '\u270F\uFE0F', bg: darkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
-            { title: 'Writing: Build a Sentence', desc: 'Drag and drop chunks to form logical sentences with grammar insights.', emoji: '\u270A', bg: darkMode ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
-            { title: 'Smart Vocabulary', desc: 'Save words from exercises. Flashcards + fill-in-blank review.', emoji: '\uD83D\uDCD6', bg: darkMode ? 'bg-emerald-900/20 border-emerald-800' : 'bg-emerald-50 border-emerald-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
-            { title: 'AI Tutor Analysis', desc: 'Get detailed explanations of trap answers and grammar tips for every exercise.', emoji: '\u2728', bg: darkMode ? 'bg-rose-900/20 border-rose-800' : 'bg-rose-50 border-rose-100', text: darkMode ? 'text-zinc-300' : 'text-slate-500' },
+            { title: 'Reading: Complete the Words', desc: 'AI passages with 10 blanks. Master the context-based word prediction.', emoji: '\u270F\uFE0F', bg: darkMode ? 'bg-blue-900/40 border-blue-800/60' : 'bg-blue-50 border-blue-100', text: darkMode ? 'text-zinc-200' : 'text-slate-500' },
+            { title: 'Writing: Build a Sentence', desc: 'Drag and drop chunks to form logical sentences with grammar insights.', emoji: '\u270A', bg: darkMode ? 'bg-purple-900/40 border-purple-800/60' : 'bg-purple-50 border-purple-100', text: darkMode ? 'text-zinc-200' : 'text-slate-500' },
+            { title: 'Smart Vocabulary', desc: 'Save words from exercises. Flashcards + fill-in-blank review.', emoji: '\uD83D\uDCD6', bg: darkMode ? 'bg-emerald-900/40 border-emerald-800/60' : 'bg-emerald-50 border-emerald-100', text: darkMode ? 'text-zinc-200' : 'text-slate-500' },
+            { title: 'AI Tutor Analysis', desc: 'Get detailed explanations of trap answers and grammar tips for every exercise.', emoji: '\u2728', bg: darkMode ? 'bg-rose-900/40 border-rose-800/60' : 'bg-rose-50 border-rose-100', text: darkMode ? 'text-zinc-200' : 'text-slate-500' },
           ].map((f) => (
-            <div key={f.title} className={cn('p-5 rounded-2xl border', f.bg)}>
+            <div key={f.title} className={cn('p-5 rounded-2xl border transition-all duration-300 hover:scale-[1.02]', f.bg)}>
               <span className="text-2xl mb-3 block">{f.emoji}</span>
-              <h3 className={cn('text-[15px] font-semibold mb-1', darkMode ? 'text-zinc-100' : 'text-slate-800')}>{f.title}</h3>
-              <p className={cn('text-sm', f.text)}>{f.desc}</p>
+              <h3 className={cn('text-[15px] font-bold mb-1', darkMode ? 'text-white' : 'text-slate-800')}>{f.title}</h3>
+              <p className={cn('text-sm leading-relaxed', f.text)}>{f.desc}</p>
             </div>
           ))}
         </div>

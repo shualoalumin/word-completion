@@ -113,7 +113,7 @@ All colors MUST be HSL.
   }
 
   .dark .glass-card {
-    @apply bg-black/40 border-white/10 shadow-black/40;
+    @apply bg-zinc-900/60 border-zinc-700/50 shadow-black/60;
   }
 }
 
