@@ -196,90 +196,84 @@ export const BuildSentenceExercise: React.FC = () => {
     ? bs.currentQuestion.puzzle.chunks.find((c) => c.id === activeChunkId)
     : null;
 
-  // ── Render: Get Ready Modal ────────────────────────────
-  if (showGetReadyModal) {
+  // ── Render: Get Ready Modal and Countdown (combined to prevent flash) ──
+  if (showGetReadyModal || showCountdown) {
     return (
       <div className={cn(
         'min-h-screen flex items-center justify-center transition-colors',
         darkMode ? 'bg-zinc-950' : 'bg-gray-50',
       )}>
-        <div className={cn(
-          'max-w-md mx-4 p-8 rounded-2xl border shadow-2xl animate-in zoom-in-95 duration-300',
-          darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200',
-        )}>
-          <div className="text-center">
-            <div className={cn(
-              'w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center',
-              darkMode ? 'bg-emerald-500/10' : 'bg-emerald-50',
-            )}>
-              <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
-              </svg>
-            </div>
-            <h3 className={cn(
-              'text-2xl font-bold mb-3',
-              darkMode ? 'text-gray-100' : 'text-gray-900',
-            )}>
-              {t('buildSentence.getReady', 'Build a Sentence')}
-            </h3>
-            <div className={cn(
-              'text-left space-y-3 mb-8 p-4 rounded-xl',
-              darkMode ? 'bg-zinc-800/50' : 'bg-gray-50',
-            )}>
-              <p className={cn('text-sm flex items-start gap-2', darkMode ? 'text-gray-300' : 'text-gray-700')}>
-                <span className="text-blue-500 font-bold shrink-0">💬</span>
-                <span>{t('buildSentence.instruction1', 'Read the conversation and build a reply')}</span>
-              </p>
-              <p className={cn('text-sm flex items-start gap-2', darkMode ? 'text-gray-300' : 'text-gray-700')}>
-                <span className="text-emerald-500 font-bold shrink-0">🧩</span>
-                <span>{t('buildSentence.instruction2', 'Click or drag words into the correct order')}</span>
-              </p>
-              <p className={cn('text-sm flex items-start gap-2', darkMode ? 'text-gray-300' : 'text-gray-700')}>
-                <span className="text-amber-500 font-bold shrink-0">⚠️</span>
-                <span>{t('buildSentence.instruction3', 'Watch out for distractor words in hard mode!')}</span>
-              </p>
-            </div>
-            <button
-              onClick={handleGetReadyConfirm}
-              className="w-full h-12 px-6 text-[15px] font-semibold bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
-            >
-              {t('buildSentence.iGotIt', "I got it!")}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Render: Countdown ──────────────────────────────────
-  if (showCountdown) {
-    return (
-      <div
-        className={cn(
-          'min-h-screen flex items-center justify-center transition-colors select-none',
-          darkMode ? 'bg-zinc-950' : 'bg-gray-50',
-        )}
-        style={{ caretColor: 'transparent' }}
-      >
-        <div className="text-center animate-in zoom-in-50 duration-300">
-          <div 
-            key={countdownValue}
-            className={cn(
-              'text-[120px] font-black tabular-nums leading-none mb-4 outline-none border-0',
-              countdownValue === 3 && 'text-emerald-500',
-              countdownValue === 2 && 'text-amber-500',
-              countdownValue === 1 && 'text-red-500',
-            )}
-          >
-            {countdownValue}
-          </div>
-          <p className={cn(
-            'text-xl font-semibold',
-            darkMode ? 'text-gray-400' : 'text-gray-600',
+        {showGetReadyModal && (
+          <div className={cn(
+            'max-w-md mx-4 p-8 rounded-2xl border shadow-2xl animate-in zoom-in-95 duration-300',
+            darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200',
           )}>
-            {t('buildSentence.getReadyDots', 'Get ready...')}
-          </p>
-        </div>
+            <div className="text-center">
+              <div className={cn(
+                'w-16 h-16 mx-auto mb-6 rounded-full flex items-center justify-center',
+                darkMode ? 'bg-emerald-500/10' : 'bg-emerald-50',
+              )}>
+                <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+              </div>
+              <h3 className={cn(
+                'text-2xl font-bold mb-3',
+                darkMode ? 'text-gray-100' : 'text-gray-900',
+              )}>
+                {t('buildSentence.getReady', 'Build a Sentence')}
+              </h3>
+              <div className={cn(
+                'text-left space-y-3 mb-8 p-4 rounded-xl',
+                darkMode ? 'bg-zinc-800/50' : 'bg-gray-50',
+              )}>
+                <p className={cn('text-sm flex items-start gap-2', darkMode ? 'text-gray-300' : 'text-gray-700')}>
+                  <span className="text-blue-500 font-bold shrink-0">💬</span>
+                  <span>{t('buildSentence.instruction1', 'Read the conversation and build a reply')}</span>
+                </p>
+                <p className={cn('text-sm flex items-start gap-2', darkMode ? 'text-gray-300' : 'text-gray-700')}>
+                  <span className="text-emerald-500 font-bold shrink-0">🧩</span>
+                  <span>{t('buildSentence.instruction2', 'Click or drag words into the correct order')}</span>
+                </p>
+                <p className={cn('text-sm flex items-start gap-2', darkMode ? 'text-gray-300' : 'text-gray-700')}>
+                  <span className="text-amber-500 font-bold shrink-0">⚠️</span>
+                  <span>{t('buildSentence.instruction3', 'Watch out for distractor words in hard mode!')}</span>
+                </p>
+              </div>
+              <button
+                onClick={handleGetReadyConfirm}
+                className="w-full h-12 px-6 text-[15px] font-semibold bg-emerald-500 text-white hover:bg-emerald-600 rounded-xl transition-colors shadow-lg shadow-emerald-500/20"
+              >
+                {t('buildSentence.iGotIt', "I got it!")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showCountdown && (
+          <div className="text-center animate-in zoom-in-50 duration-300 select-none" style={{ caretColor: 'transparent' }}>
+            <div
+              key={countdownValue}
+              className={cn(
+                'text-[120px] font-black tabular-nums leading-none mb-4',
+                'animate-in zoom-in-95 duration-200',
+                '[text-shadow:none] [box-shadow:none]',
+                countdownValue === 3 && 'text-emerald-500',
+                countdownValue === 2 && 'text-amber-500',
+                countdownValue === 1 && 'text-red-500',
+              )}
+              style={{ outline: 'none', border: 'none' }}
+            >
+              {countdownValue}
+            </div>
+            <p className={cn(
+              'text-xl font-semibold',
+              darkMode ? 'text-gray-400' : 'text-gray-600',
+            )}>
+              {t('buildSentence.getReadyDots', 'Get ready...')}
+            </p>
+          </div>
+        )}
       </div>
     );
   }
