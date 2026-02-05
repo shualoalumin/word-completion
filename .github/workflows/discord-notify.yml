@@ -1,28 +1,87 @@
 name: Discord Notification
 
 on:
-  status:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   notify:
-    # Run only when context is 'Cloudflare Pages' and state is success/failure
-    if: "contains(github.event.context, 'Cloudflare Pages') && (github.event.state == 'success' || github.event.state == 'failure')"
     runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+
     steps:
-      - name: Send Discord Webhook
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          STATUS: ${{ github.event.state }}
-          TARGET_URL: ${{ github.event.target_url }}
-          REPO: ${{ github.repository }}
-          ACTOR: ${{ github.actor }}
-          COMMIT_MSG: ${{ github.event.commit.commit.message }}
+      - name: Wait for Cloudflare Check
         run: |
-          if [ -z "$DISCORD_WEBHOOK" ]; then
-            echo "Error: DISCORD_WEBHOOK secret is missing!"
-            exit 1
+          echo "Waiting 30 seconds for Cloudflare to register the build..."
+          sleep 30
+
+      - name: Poll Deployment Status
+        id: poll
+        run: |
+          set -e
+          API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
+          HEADERS=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json")
+
+          # 1. Find the deployment triggered by this commit
+          echo "Looking for deployment with commit SHA: ${{ github.sha }}"
+
+          FOUND=0
+          ATTEMPTS=0
+          MAX_RETRIES=10
+
+          while [ $FOUND -eq 0 ] && [ $ATTEMPTS -lt $MAX_RETRIES ]; do
+            LIST=$(curl -s "${HEADERS[@]}" "${API}?sort_by=created_on&sort_order=desc&per_page=5")
+            # Filter by Commit Hash (first 7 chars usually enough, but we check full/partial match)
+            # Cloudflare might not strictly sync the SHA instantly, so we just take the LATEST one if it matches branch 'main'
+            # To be precise, let's look for the one matching github.sha
+            
+            DEPLOYMENT_ID=$(echo "$LIST" | jq -r --arg sha "${{ github.sha }}" '.result[] | select(.deployment_trigger.metadata.commit_hash == $sha) | .id' | head -n 1)
+            
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              echo "Found deployment: $DEPLOYMENT_ID"
+              FOUND=1
+            else
+              echo "Deployment not found yet... retrying ($ATTEMPTS/$MAX_RETRIES)"
+              ATTEMPTS=$((ATTEMPTS+1))
+              sleep 10
+            fi
+          done
+
+          if [ -z "$DEPLOYMENT_ID" ]; then
+             echo "⚠️ Could not find exact deployment for this commit. Falling back to the latest deployment."
+             DEPLOYMENT_ID=$(echo "$LIST" | jq -r '.result[0].id')
           fi
 
+          # 2. Poll for completion
+          echo "Polling status for deployment: $DEPLOYMENT_ID"
+
+          STATUS="unknown"
+          while true; do
+            DEPLOY=$(curl -s "${HEADERS[@]}" "${API}/${DEPLOYMENT_ID}")
+            STATUS=$(echo "$DEPLOY" | jq -r '.result.latest_stage.status')
+            URL=$(echo "$DEPLOY" | jq -r '.result.url // ""')
+            
+            echo "Current status: $STATUS"
+
+            if [ "$STATUS" == "success" ] || [ "$STATUS" == "failure" ] || [ "$STATUS" == "error" ]; then
+              break
+            fi
+            
+            echo "Build in progress... waiting 20s"
+            sleep 20
+          done
+
+          # Export variables for the next step
+          echo "STATUS=$STATUS" >> $GITHUB_ENV
+          echo "DEPLOY_URL=$URL" >> $GITHUB_ENV
+
+      - name: Send Discord Notification
+        run: |
           if [ "$STATUS" == "success" ]; then
             COLOR=5763719  # Green
             TITLE="✅ Deployment Successful"
@@ -31,12 +90,13 @@ jobs:
             TITLE="❌ Deployment Failed"
           fi
 
-          # Safe string handling
-          REPO="${REPO//\"/\\\"}"
-          ACTOR="${ACTOR//\"/\\\"}"
-          TARGET_URL="${TARGET_URL//\"/\\\"}"
+          REPO="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          COMMIT_MSG="${COMMIT_MSG//\"/\\\"}" # Safe escape
+          COMMIT_MSG=$(echo "$COMMIT_MSG" | head -n 1) # First line only
 
-          # Construct JSON payload
+          # Build JSON
           PAYLOAD=$(cat <<EOF
           {
             "username": "Cloudflare Pages",
@@ -44,20 +104,18 @@ jobs:
             "embeds": [{
               "title": "$TITLE",
               "color": $COLOR,
-              "url": "$TARGET_URL",
+              "url": "$DEPLOY_URL",
               "fields": [
                 { "name": "Project", "value": "$REPO", "inline": true },
-                { "name": "Status", "value": "$STATUS", "inline": true },
-                { "name": "Visit Preview", "value": "[Click Here]($TARGET_URL)", "inline": false }
+                { "name": "Commit", "value": "$COMMIT_MSG", "inline": true },
+                { "name": "Author", "value": "$ACTOR", "inline": true },
+                { "name": "Visit Site", "value": "[Click here]($DEPLOY_URL)", "inline": false }
               ],
-              "footer": {
-                "text": "Via GitHub Actions (Status Check)"
-              },
+              "footer": { "text": "Via GitHub Actions Polling" },
               "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             }]
           }
           EOF
           )
 
-          # Send to Discord
           curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
