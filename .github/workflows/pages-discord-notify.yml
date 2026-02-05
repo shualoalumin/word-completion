@@ -1,0 +1,94 @@
+# Notify Discord when Cloudflare Pages build finishes (poll Pages Builds API).
+#
+# Repo secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_ACCOUNT_ID   - Account ID (dash URL: .../1c5d59786f5f910e62f41f657e9257c1/...)
+#   CLOUDFLARE_PAGES_PROJECT_NAME - Pages project name (e.g. word-completion)
+#   CLOUDFLARE_API_TOKEN    - API token with "Pages Read" (or "Pages Edit")
+#   DISCORD_WEBHOOK_URL     - Discord channel webhook URL
+#
+name: Pages build → Discord
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_PROJECT: ${{ secrets.CLOUDFLARE_PAGES_PROJECT_NAME }}
+      CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      GITHUB_SHA: ${{ github.sha }}
+
+    steps:
+      - name: Wait for Pages to start build
+        run: sleep 60
+
+      - name: Poll deployment and notify Discord
+        run: |
+          set -e
+          API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
+          HEADERS=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json")
+
+          # Optional: find deployment for this commit (list returns newest first)
+          LIST=$(curl -s "${HEADERS[@]}" "${API}?per_page=5")
+          DEPLOYMENT_ID=$(echo "$LIST" | jq -r '.result[0].id // empty')
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "No deployment found"
+            exit 0
+          fi
+
+          echo "Polling deployment $DEPLOYMENT_ID ..."
+          for i in $(seq 1 30); do
+            DEPLOY=$(curl -s "${HEADERS[@]}" "${API}/${DEPLOYMENT_ID}")
+            STATUS=$(echo "$DEPLOY" | jq -r '.result.latest_stage.status // "unknown"')
+            echo "  [$i] status=$STATUS"
+
+            case "$STATUS" in
+              success)
+                TITLE="Deploy finished"
+                COLOR=3066993
+                break
+                ;;
+              failure|error)
+                TITLE="Build failed"
+                COLOR=15158332
+                break
+                ;;
+              *)
+                sleep 30
+                continue
+                ;;
+            esac
+          done
+
+          if [ -z "$TITLE" ]; then
+            TITLE="Build status unknown (timeout?)"
+            COLOR=8421504
+            DEPLOY=$(curl -s "${HEADERS[@]}" "${API}/${DEPLOYMENT_ID}")
+          fi
+
+          URL=$(echo "$DEPLOY" | jq -r '.result.url // ""')
+          BRANCH=$(echo "$DEPLOY" | jq -r '.result.deployment_trigger.metadata.branch // "—"')
+          COMMIT=$(echo "$DEPLOY" | jq -r '.result.deployment_trigger.metadata.commit_hash // ""')
+          COMMIT_MSG=$(echo "$DEPLOY" | jq -r '.result.deployment_trigger.metadata.commit_message // ""')
+          ENV_NAME=$(echo "$DEPLOY" | jq -r '.result.environment // "preview"')
+
+          BODY=$(jq -n \
+            --arg t "$TITLE" \
+            --arg d "**Branch:** $BRANCH\n**Commit:** \`${COMMIT:0:7}\`\n**Env:** $ENV_NAME\n**Message:** $COMMIT_MSG" \
+            --arg u "$URL" \
+            --argjson c "$COLOR" \
+            '{ embeds: [{ title: $t, description: $d, color: $c, timestamp: (now | todateiso8601), fields: (if $u != "" then [{ name: "URL", value: $u, inline: false }] else [] end) }] }')
+
+          if [ -n "$DISCORD_WEBHOOK" ]; then
+            curl -s -X POST "$DISCORD_WEBHOOK" -H "Content-Type: application/json" -d "$BODY"
+            echo "Discord notification sent."
+          else
+            echo "DISCORD_WEBHOOK not set, skip."
+          fi
