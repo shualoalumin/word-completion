@@ -15,98 +15,164 @@ jobs:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
 
     steps:
-      - name: Wait for Cloudflare Check
+      - name: Wait for Cloudflare to start build
         run: |
-          echo "Waiting 45 seconds for Cloudflare to initiate the build..."
-          sleep 45
+          echo "⏳ Waiting 30 seconds for Cloudflare to pick up the changes..."
+          sleep 30
 
-      - name: Poll Deployment Status
+      - name: Poll Deployment Status (Robust)
         id: poll
+        shell: bash
         run: |
-          set -e
-          API="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}/deployments"
-          HEADERS=(-H "Authorization: Bearer ${CF_TOKEN}" -H "Content-Type: application/json")
+          # Disable immediate exit to handle errors manually
+          set +e
+          
+          # Helper function for API calls
+          call_cf_api() {
+            local url="$1"
+            local method="${2:-GET}"
+            
+            # Request with HTTP code at the end
+            RESPONSE=$(curl -s -w "\n%{http_code}" -X "$method" \
+              -H "Authorization: Bearer ${CF_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "$url")
+            
+            # Extract Body and Status Code
+            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+            BODY=$(echo "$RESPONSE" | sed '$d')
+            
+            # Log for debugging (Masking sensitive tokens if any appeared, though they shouldn't)
+            echo "URL: $url"
+            echo "HTTP Code: $HTTP_CODE"
+            
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+               echo "$BODY"
+               return 0
+            else
+               echo "❌ API Error Response:"
+               echo "$BODY" | jq '.' 2>/dev/null || echo "$BODY"
+               return 1
+            fi
+          }
 
-          # 1. Get the very latest deployment
-          echo "Fetching latest deployment..."
-          LIST=$(curl -s "${HEADERS[@]}" "${API}?sort_by=created_on&sort_order=desc&per_page=1")
-          DEPLOYMENT_ID=$(echo "$LIST" | jq -r '.result[0].id')
+          API_BASE="https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${CF_PROJECT}"
 
-          if [ "$DEPLOYMENT_ID" == "null" ] || [ -z "$DEPLOYMENT_ID" ]; then
-             echo "❌ Error: No deployments found at all."
+          # 1. Health Check & Project Verification
+          echo "🔍 Verifying credentials and project..."
+          PROJECT_INFO=$(call_cf_api "$API_BASE")
+          if [ $? -ne 0 ]; then
+            echo "🚨 Critical Error: Failed to access Cloudflare Pages Project."
+            echo "Check your CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_PAGES_PROJECT_NAME, and API Token permission."
+            exit 1
+          fi
+          echo "✅ Project found: $(echo "$PROJECT_INFO" | jq -r '.result.name')"
+
+          # 2. Get Latest Deployment
+          echo "🔍 Fetching latest deployment..."
+          DEPLOYMENTS=$(call_cf_api "$API_BASE/deployments?sort_by=created_on&sort_order=desc&per_page=1")
+          if [ $? -ne 0 ]; then
+             echo "🚨 Failed to list deployments."
              exit 1
           fi
 
-          echo "Found latest deployment: $DEPLOYMENT_ID"
+          DEPLOYMENT_ID=$(echo "$DEPLOYMENTS" | jq -r '.result[0].id')
+          if [ "$DEPLOYMENT_ID" == "null" ] || [ -z "$DEPLOYMENT_ID" ]; then
+             echo "❌ Error: API returned no deployments. Is this a new project?"
+             exit 1
+          fi
+          echo "📌 Tracking Deployment ID: $DEPLOYMENT_ID"
 
-          # 2. Poll for completion
-          echo "Polling status for deployment: $DEPLOYMENT_ID"
-
-          MAX_RETRIES=30 # 30 * 10s = 300s (5 mins max wait)
+          # 3. Poll Loop
+          MAX_RETRIES=40  # 40 * 10s = 400s (approx 6.5 mins)
           COUNT=0
-          STATUS="unknown"
+          FINAL_STATUS="unknown"
+          FINAL_URL=""
 
           while [ $COUNT -lt $MAX_RETRIES ]; do
-            DEPLOY=$(curl -s "${HEADERS[@]}" "${API}/${DEPLOYMENT_ID}")
-            STATUS=$(echo "$DEPLOY" | jq -r '.result.latest_stage.status')
-            URL=$(echo "$DEPLOY" | jq -r '.result.url // ""')
+            echo "🔄 Polling status [$COUNT/$MAX_RETRIES]..."
             
-            echo "[$COUNT] Current status: $STATUS"
+            DETAILS=$(call_cf_api "$API_BASE/deployments/$DEPLOYMENT_ID")
+            if [ $? -ne 0 ]; then
+               echo "⚠️ Transient API error, retrying..."
+               sleep 5
+               continue
+            fi
+
+            STATUS=$(echo "$DETAILS" | jq -r '.result.latest_stage.status')
+            FINAL_URL=$(echo "$DETAILS" | jq -r '.result.url // ""')
+            
+            echo "   Current Status: $STATUS"
 
             if [ "$STATUS" == "success" ] || [ "$STATUS" == "failure" ] || [ "$STATUS" == "error" ]; then
+              FINAL_STATUS="$STATUS"
               break
             fi
             
-            echo "Build in progress... waiting 10s"
             sleep 10
             COUNT=$((COUNT+1))
           done
 
-          if [ "$STATUS" != "success" ] && [ "$STATUS" != "failure" ] && [ "$STATUS" != "error" ]; then
-             echo "⚠️ Timeout waiting for build. Marking as unknown."
-             STATUS="timeout"
+          if [ "$FINAL_STATUS" == "unknown" ]; then
+            echo "⚠️ Timeout reached. Assuming unknown status."
           fi
 
-          # Export variables for the next step
-          echo "STATUS=$STATUS" >> $GITHUB_ENV
-          echo "DEPLOY_URL=$URL" >> $GITHUB_ENV
+          # Output to GitHub Env
+          echo "STATUS=$FINAL_STATUS" >> $GITHUB_ENV
+          echo "DEPLOY_URL=$FINAL_URL" >> $GITHUB_ENV
+          
+          # Explicitly exit 0 to proceed to notification step
+          exit 0
 
       - name: Send Discord Notification
+        if: always() # Run even if polling had issues, to report failures
         run: |
+          # If STATUS is missing (script crashed early), set to error
+          if [ -z "$STATUS" ]; then STATUS="script_error"; fi
+
           if [ "$STATUS" == "success" ]; then
             COLOR=5763719  # Green
             TITLE="✅ Deployment Successful"
+            DESC="New version is live!"
+          elif [ "$STATUS" == "script_error" ]; then
+             COLOR=15105570 # Orange
+             TITLE="⚠️ Notification Script Error"
+             DESC="Check GitHub Actions logs. Cloudflare API might be unreachable."
           else
             COLOR=15548997 # Red
             TITLE="❌ Deployment Failed"
+            DESC="Build failed on Cloudflare."
           fi
-
+          
+          # Metadata
           REPO="${{ github.repository }}"
           ACTOR="${{ github.actor }}"
           COMMIT_MSG="${{ github.event.head_commit.message }}"
-          COMMIT_MSG="${COMMIT_MSG//\"/\\\"}" # Safe escape
-          COMMIT_MSG=$(echo "$COMMIT_MSG" | head -n 1) # First line only
+          COMMIT_MSG="${COMMIT_MSG//\"/\\\"}"
+          COMMIT_MSG=$(echo "$COMMIT_MSG" | head -n 1)
 
-          # Build JSON
+          if [ -z "$DEPLOY_URL" ]; then DEPLOY_URL="https://github.com/$REPO/actions"; fi
+
           PAYLOAD=$(cat <<EOF
           {
             "username": "Cloudflare Pages",
             "avatar_url": "https://brand.cloudflare.com/static/assets/logos/pages-icon-blue.png",
             "embeds": [{
               "title": "$TITLE",
+              "description": "$DESC",
               "color": $COLOR,
               "url": "$DEPLOY_URL",
               "fields": [
                 { "name": "Project", "value": "$REPO", "inline": true },
                 { "name": "Commit", "value": "$COMMIT_MSG", "inline": true },
                 { "name": "Author", "value": "$ACTOR", "inline": true },
-                { "name": "Visit Site", "value": "[Click here]($DEPLOY_URL)", "inline": false }
+                { "name": "Link", "value": "[Visit]($DEPLOY_URL)", "inline": false }
               ],
-              "footer": { "text": "Via GitHub Actions Polling" },
+              "footer": { "text": "Via GitHub Actions (Robust Polling)" },
               "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             }]
           }
-          EOF
+EOF
           )
 
           curl -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK"
