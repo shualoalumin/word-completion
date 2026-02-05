@@ -1,44 +1,42 @@
 name: Discord Notification
 
 on:
-  deployment_status:
+  status:
 
 jobs:
   notify:
-    # Only run when deployment is 'success' or 'failure'
-    if: github.event.deployment_status.state == 'success' || github.event.deployment_status.state == 'failure'
+    # Run only when context is 'Cloudflare Pages' and state is success/failure
+    if: "contains(github.event.context, 'Cloudflare Pages') && (github.event.state == 'success' || github.event.state == 'failure')"
     runs-on: ubuntu-latest
     steps:
       - name: Send Discord Webhook
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          STATUS: ${{ github.event.deployment_status.state }}
-          DEPLOY_URL: ${{ github.event.deployment_status.target_url }}
+          STATUS: ${{ github.event.state }}
+          TARGET_URL: ${{ github.event.target_url }}
           REPO: ${{ github.repository }}
           ACTOR: ${{ github.actor }}
-          COMMIT_MSG: ${{ github.event.deployment.description }}
+          COMMIT_MSG: ${{ github.event.commit.commit.message }}
         run: |
           if [ -z "$DISCORD_WEBHOOK" ]; then
             echo "Error: DISCORD_WEBHOOK secret is missing!"
-            echo "Please add it in Settings > Secrets and variables > Actions"
             exit 1
           fi
 
           if [ "$STATUS" == "success" ]; then
-            COLOR=5763719  # Green (0x57F287)
+            COLOR=5763719  # Green
             TITLE="✅ Deployment Successful"
           else
-            COLOR=15548997 # Red (0xED4245)
+            COLOR=15548997 # Red
             TITLE="❌ Deployment Failed"
           fi
 
-          # Escape quotes in string variables to prevent JSON errors
+          # Safe string handling
           REPO="${REPO//\"/\\\"}"
           ACTOR="${ACTOR//\"/\\\"}"
-          DEPLOY_URL="${DEPLOY_URL//\"/\\\"}"
+          TARGET_URL="${TARGET_URL//\"/\\\"}"
 
           # Construct JSON payload
-          # Note: We use a heredoc for cleaner JSON construction
           PAYLOAD=$(cat <<EOF
           {
             "username": "Cloudflare Pages",
@@ -46,14 +44,14 @@ jobs:
             "embeds": [{
               "title": "$TITLE",
               "color": $COLOR,
-              "url": "$DEPLOY_URL",
+              "url": "$TARGET_URL",
               "fields": [
                 { "name": "Project", "value": "$REPO", "inline": true },
-                { "name": "Triggered By", "value": "$ACTOR", "inline": true },
-                { "name": "Visit Preview", "value": "[Click Here]($DEPLOY_URL)", "inline": false }
+                { "name": "Status", "value": "$STATUS", "inline": true },
+                { "name": "Visit Preview", "value": "[Click Here]($TARGET_URL)", "inline": false }
               ],
               "footer": {
-                "text": "Via GitHub Actions"
+                "text": "Via GitHub Actions (Status Check)"
               },
               "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             }]
