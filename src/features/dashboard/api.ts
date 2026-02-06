@@ -31,9 +31,20 @@ export interface RecentActivity {
   difficulty?: string;
   topicCategory?: string;
   attemptNumber?: number;
-  // New: exercise type distinction
   section?: 'reading' | 'writing';
   exerciseType?: 'text-completion' | 'build-sentence';
+}
+
+/** Per-section stats for integrated dashboard (각 섹션 구분 직관적) */
+export interface SectionStats {
+  count: number;
+  avgScorePercent: number | null;
+  avgTimeSeconds: number | null;
+}
+
+export interface DashboardSectionStats {
+  reading: SectionStats;
+  writing: SectionStats;
 }
 
 /**
@@ -243,6 +254,46 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       averageScore: null,
       totalExercises: 0,
     };
+  }
+}
+
+/**
+ * Get stats per section (reading / writing) for dashboard section blocks
+ */
+export async function getSectionStats(userId: string): Promise<DashboardSectionStats> {
+  const empty: SectionStats = { count: 0, avgScorePercent: null, avgTimeSeconds: null };
+  try {
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('section, score_percent, time_spent_seconds')
+      .eq('user_id', userId);
+
+    if (error || !data) return { reading: { ...empty }, writing: { ...empty } };
+
+    const reading = data.filter((r: any) => r.section === 'reading');
+    const writing = data.filter((r: any) => r.section === 'writing');
+
+    const toSectionStats = (rows: any[]): SectionStats => {
+      if (rows.length === 0) return { ...empty };
+      const scores = rows
+        .map((r) => (typeof r.score_percent === 'number' ? r.score_percent : parseFloat(String(r.score_percent || 0))))
+        .filter((n) => !isNaN(n));
+      const times = rows
+        .map((r) => r.time_spent_seconds)
+        .filter((t) => typeof t === 'number' && t >= 0);
+      return {
+        count: rows.length,
+        avgScorePercent: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
+        avgTimeSeconds: times.length ? times.reduce((a, b) => a + b, 0) / times.length : null,
+      };
+    };
+
+    return {
+      reading: toSectionStats(reading),
+      writing: toSectionStats(writing),
+    };
+  } catch {
+    return { reading: { ...empty }, writing: { ...empty } };
   }
 }
 

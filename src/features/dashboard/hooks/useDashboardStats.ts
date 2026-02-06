@@ -5,7 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { getDashboardStats, getRecentActivity, DashboardStats, RecentActivity } from '../api';
+import { getDashboardStats, getRecentActivity, getSectionStats, DashboardStats, RecentActivity, DashboardSectionStats } from '../api';
 
 /**
  * Hook to fetch dashboard statistics
@@ -55,6 +55,24 @@ export function useRecentActivity(limit: number = 5) {
     },
     enabled: isAuthenticated && !!user?.id,
     staleTime: 30000,  // 30 seconds
+    refetchOnWindowFocus: true,
+  });
+}
+
+/**
+ * Hook to fetch per-section stats (Reading / Writing) for integrated dashboard
+ */
+export function useSectionStats() {
+  const { user, isAuthenticated } = useAuth();
+
+  return useQuery<DashboardSectionStats>({
+    queryKey: ['dashboard-section-stats', user?.id],
+    queryFn: () => {
+      if (!user?.id) throw new Error('User not authenticated');
+      return getSectionStats(user.id);
+    },
+    enabled: isAuthenticated && !!user?.id,
+    staleTime: 30000,
     refetchOnWindowFocus: true,
   });
 }
