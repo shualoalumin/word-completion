@@ -22,7 +22,10 @@
       "Bash(git log:*)",
       "Bash(git checkout:*)",
       "Bash(npm install:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git merge:*)",
+      "Bash(echo:*)",
+      "Bash(ls:*)"
     ]
   }
 }
