@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   DndContext,
   DragEndEvent,
@@ -21,6 +22,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useBuildSentence } from './hooks';
 import { mapToCoreDifficulty } from './types';
+import { getBuildSentenceModeStats, type BuildSentencePracticeMode } from './api';
 import {
   DialogueDisplay,
   SentenceSkeleton,
@@ -37,16 +39,19 @@ export const BuildSentenceExercise: React.FC = () => {
   const reviewId = searchParams.get('review');
   const isReviewMode = !!reviewId;
 
-  // Get Ready modal & countdown - initialize based on whether it's a new session
   const isNewSession = !isReviewMode;
-  const [showGetReadyModal, setShowGetReadyModal] = useState(isNewSession);
+  const [practiceMode, setPracticeMode] = useState<BuildSentencePracticeMode | null>(isNewSession ? null : 'timed');
+  const [showModeSelection, setShowModeSelection] = useState(isNewSession);
+  const [showTestModeNotice, setShowTestModeNotice] = useState(false);
+  const [showGetReadyModal, setShowGetReadyModal] = useState(!isNewSession);
   const [showCountdown, setShowCountdown] = useState(false);
   const [countdownValue, setCountdownValue] = useState(3);
   const [countdownComplete, setCountdownComplete] = useState(false);
 
-  // DnD overlay state
   const [activeChunkId, setActiveChunkId] = useState<string | null>(null);
   const historySaveAttemptedRef = useRef(false);
+  const getReadyShownAfterModeRef = useRef(false);
+  const testModeTimeUpRef = useRef<(() => void) | null>(null);
 
   const bs = useBuildSentence();
 
@@ -61,15 +66,18 @@ export const BuildSentenceExercise: React.FC = () => {
 
   const timer = useTimerWithWarnings({
     duration: TIMER_CONFIG.BUILD_SENTENCE,
-    targetTime: getTargetTime(bs.currentQuestion?.difficulty),
+    targetTime: practiceMode === 'test' ? TIMER_CONFIG.BUILD_SENTENCE : getTargetTime(bs.currentQuestion?.difficulty),
     autoStart: false,
+    onComplete: () => testModeTimeUpRef.current?.(),
     callbacks: {
       onWarningThreshold: () => {
         toast.warning(t('buildSentence.timeWarning', '30 seconds left!'), { duration: 3000 });
       },
       onTargetReached: () => {},
       onOvertimeStart: () => {
-        toast.info(t('buildSentence.overtime', "Taking longer - that's okay!"), { duration: 3000 });
+        if (practiceMode !== 'test') {
+          toast.info(t('buildSentence.overtime', "Taking longer - that's okay!"), { duration: 3000 });
+        }
       },
     },
   });
@@ -84,27 +92,38 @@ export const BuildSentenceExercise: React.FC = () => {
   const keyboardSensor = useSensor(KeyboardSensor);
   const sensors = useSensors(pointerSensor, touchSensor, keyboardSensor);
 
-  // Load session or review on mount
+  // Load session or review on mount (new session: wait for mode selection)
   useEffect(() => {
     if (isReviewMode && reviewId) {
       bs.loadHistoryReview(reviewId);
       setShowGetReadyModal(false);
       setCountdownComplete(true);
-    } else {
-      bs.loadSession();
     }
-  }, [isReviewMode, reviewId, bs.loadSession, bs.loadHistoryReview]);
+  }, [isReviewMode, reviewId, bs.loadHistoryReview]);
 
-  // Start timer when countdown finishes and questions are loaded
+  // When mode selected and questions loaded, show Get Ready once
   useEffect(() => {
-    if (bs.questions.length > 0 && !bs.sessionComplete && countdownComplete) {
+    if (!isReviewMode && practiceMode && bs.questions.length > 0 && !bs.loading && !getReadyShownAfterModeRef.current) {
+      getReadyShownAfterModeRef.current = true;
+      setShowGetReadyModal(true);
+    }
+  }, [isReviewMode, practiceMode, bs.questions.length, bs.loading]);
+
+  // Start timer when countdown finishes and questions loaded (only for timed/test)
+  useEffect(() => {
+    if (
+      bs.questions.length > 0 &&
+      !bs.sessionComplete &&
+      countdownComplete &&
+      (practiceMode === 'timed' || practiceMode === 'test')
+    ) {
       timer.reset();
       timer.start();
       bs.startTiming();
     }
-  }, [bs.questions.length, bs.sessionComplete, countdownComplete, bs.startTiming]);
+  }, [bs.questions.length, bs.sessionComplete, countdownComplete, practiceMode, bs.startTiming]);
 
-  // Stop timer and save history when session complete (once per session to avoid duplicate rows)
+  // Stop timer and save history when session complete (once per session)
   useEffect(() => {
     if (!bs.sessionComplete || historySaveAttemptedRef.current) return;
     historySaveAttemptedRef.current = true;
@@ -114,8 +133,21 @@ export const BuildSentenceExercise: React.FC = () => {
       ? Math.floor((Date.now() - bs.startTimeRef.current) / 1000)
       : timer.totalElapsed;
     const targetTime = getTargetTime(bs.questions[0]?.difficulty);
-    bs.saveHistory(elapsedTime, targetTime);
-  }, [bs.sessionComplete, timer, bs.saveHistory, bs.questions, getTargetTime]);
+    bs.saveHistory(elapsedTime, targetTime, practiceMode ?? 'timed');
+  }, [bs.sessionComplete, timer, bs.saveHistory, bs.questions, getTargetTime, practiceMode]);
+
+  // Test mode: when time is up, stop timer and force complete (ref set in effect so timer is defined)
+  useEffect(() => {
+    if (practiceMode === 'test') {
+      testModeTimeUpRef.current = () => {
+        timer.stop();
+        bs.forceCompleteSession();
+      };
+      return () => {
+        testModeTimeUpRef.current = null;
+      };
+    }
+  }, [practiceMode, timer, bs.forceCompleteSession]);
 
   // Countdown effect
   useEffect(() => {
@@ -196,6 +228,121 @@ export const BuildSentenceExercise: React.FC = () => {
   const activeChunk = activeChunkId && bs.currentQuestion
     ? bs.currentQuestion.puzzle.chunks.find((c) => c.id === activeChunkId)
     : null;
+
+  const handleSelectMode = useCallback((mode: BuildSentencePracticeMode) => {
+    setPracticeMode(mode);
+    setShowModeSelection(false);
+    if (mode === 'test') {
+      setShowTestModeNotice(true);
+    } else {
+      bs.loadSession();
+    }
+  }, [bs.loadSession]);
+
+  const handleConfirmTestNotice = useCallback(() => {
+    setShowTestModeNotice(false);
+    bs.loadSession();
+  }, [bs.loadSession]);
+
+  const { data: modeStats } = useQuery({
+    queryKey: ['build-sentence-mode-stats'],
+    queryFn: async () => {
+      const res = await getBuildSentenceModeStats();
+      return res.data ?? [];
+    },
+    enabled: showModeSelection,
+  });
+
+  const formatAvgTime = (sec: number) => {
+    if (!sec) return '—';
+    const m = Math.floor(sec / 60);
+    const s = Math.round(sec % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  };
+
+  // ── Render: Mode selection (new session only) ──
+  if (showModeSelection) {
+    return (
+      <div className={cn('min-h-screen flex items-center justify-center transition-colors', darkMode ? 'bg-zinc-950' : 'bg-gray-50')}>
+        <div className={cn('max-w-lg mx-4 p-6 rounded-2xl border shadow-xl', darkMode ? 'bg-zinc-900 border-zinc-800' : 'bg-white border-gray-200')}>
+          <h2 className={cn('text-xl font-bold mb-4 text-center', darkMode ? 'text-gray-100' : 'text-gray-900')}>
+            {t('buildSentence.modeTitle', 'Choose practice mode')}
+          </h2>
+          {modeStats?.length ? (
+            <div className={cn('mb-4 p-3 rounded-lg text-sm', darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600')}>
+              <span className="font-medium">{t('history.score', 'Score')} / time by mode: </span>
+              {modeStats.filter((s) => s.count > 0).map((s) => (
+                <span key={s.practiceMode} className="mr-3">
+                  {s.practiceMode}: {Math.round(s.avgScorePercent)}% avg, {formatAvgTime(s.avgTimeSeconds)} ({s.count})
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <div className="space-y-3">
+            <button
+              onClick={() => handleSelectMode('untimed')}
+              className={cn(
+                'w-full p-4 rounded-xl border text-left transition-colors',
+                darkMode ? 'bg-zinc-800 border-zinc-700 hover:border-blue-500' : 'bg-gray-50 border-gray-200 hover:border-blue-400',
+              )}
+            >
+              <div className={cn('font-medium', darkMode ? 'text-white' : 'text-gray-900')}>{t('buildSentence.modeUntimed', 'Untimed practice')}</div>
+              <div className={cn('text-sm mt-1', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
+                {t('buildSentence.modeUntimedDesc', 'No timer. Practice at your own pace.')}
+              </div>
+            </button>
+            <button
+              onClick={() => handleSelectMode('timed')}
+              className={cn(
+                'w-full p-4 rounded-xl border text-left transition-colors',
+                darkMode ? 'bg-zinc-800 border-zinc-700 hover:border-blue-500' : 'bg-gray-50 border-gray-200 hover:border-blue-400',
+              )}
+            >
+              <div className={cn('font-medium', darkMode ? 'text-white' : 'text-gray-900')}>{t('buildSentence.modeTimed', 'Timed practice')}</div>
+              <div className={cn('text-sm mt-1', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
+                {t('buildSentence.modeTimedDesc', 'Timer with overtime allowed.')}
+              </div>
+            </button>
+            <button
+              onClick={() => handleSelectMode('test')}
+              className={cn(
+                'w-full p-4 rounded-xl border text-left transition-colors',
+                darkMode ? 'bg-zinc-800 border-zinc-700 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-400',
+              )}
+            >
+              <div className={cn('font-medium', darkMode ? 'text-white' : 'text-gray-900')}>{t('buildSentence.modeTest', 'Test mode')}</div>
+              <div className={cn('text-sm mt-1', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
+                {t('buildSentence.modeTestDesc', "Strict 5:30. Time's up = session ends, results shown.")}
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: Test mode notice ──
+  if (showTestModeNotice) {
+    return (
+      <div className={cn('min-h-screen flex items-center justify-center transition-colors', darkMode ? 'bg-zinc-950' : 'bg-gray-50')}>
+        <div className={cn('max-w-md mx-4 p-6 rounded-2xl border shadow-xl', darkMode ? 'bg-zinc-900 border-amber-500/30' : 'bg-white border-amber-200')}>
+          <h3 className={cn('text-lg font-bold mb-4', darkMode ? 'text-amber-400' : 'text-amber-700')}>
+            {t('buildSentence.testModeNoticeTitle', 'Test mode')}
+          </h3>
+          <ul className={cn('text-sm space-y-2 mb-6', darkMode ? 'text-zinc-300' : 'text-gray-700')}>
+            <li>• {t('buildSentence.testModeNotice1', "You have 5 minutes 30 seconds total. When time runs out, the session ends and you'll see your score.")}</li>
+            <li>• {t('buildSentence.testModeNotice2', "You won't see correct/incorrect per question until the end.")}</li>
+          </ul>
+          <button
+            onClick={handleConfirmTestNotice}
+            className="w-full h-12 px-6 text-[15px] font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-xl transition-colors"
+          >
+            {t('buildSentence.testModeNoticeConfirm', 'Start test')}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // ── Render: Get Ready Modal and Countdown (combined to prevent flash) ──
   if (showGetReadyModal || showCountdown) {
@@ -312,7 +459,7 @@ export const BuildSentenceExercise: React.FC = () => {
         onRetry={handleRetry}
         score={bs.sessionScore}
         totalQuestions={bs.questions.length}
-        useProgressBar={true}
+        useProgressBar={practiceMode === 'timed' || practiceMode === 'test'}
         timerTotalDuration={TIMER_CONFIG.BUILD_SENTENCE}
         renderResults={() => (
           <BuildSentenceResultsPanel
@@ -324,8 +471,8 @@ export const BuildSentenceExercise: React.FC = () => {
           />
         )}
       >
-        {/* Per-question result feedback */}
-        {bs.showQuestionResult && (
+        {/* Per-question result feedback (hidden in test mode until session complete) */}
+        {bs.showQuestionResult && (practiceMode !== 'test' || bs.sessionComplete) && (
           <div className={cn(
             'mb-4 px-4 py-3 rounded-lg border',
             bs.questionResults[bs.questionResults.length - 1]?.isCorrect

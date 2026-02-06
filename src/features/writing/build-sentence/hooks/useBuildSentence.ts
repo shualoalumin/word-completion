@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { BuildSentenceQuestion, BuildSentenceQuestionResult } from '../types';
 import { getSessionQuestions } from '../data/sampleQuestions';
 import { generateSessionQuestions, getBuildSentenceHistory, saveBuildSentenceHistory, loadHistoryRecordById } from '../api';
+import type { BuildSentencePracticeMode } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
 export interface UseBuildSentenceReturn {
@@ -31,8 +32,10 @@ export interface UseBuildSentenceReturn {
   nextQuestion: () => void;
   retrySession: () => void;
   startTiming: () => void;
-  saveHistory: (elapsedTime: number, targetTime: number) => Promise<void>;
+  saveHistory: (elapsedTime: number, targetTime: number, practiceMode?: BuildSentencePracticeMode) => Promise<void>;
   loadHistoryReview: (historyId: string) => Promise<void>;
+  /** Test mode: call when time is up to submit current (if any) and mark rest skipped, then complete session */
+  forceCompleteSession: () => void;
 
   // Timing
   startTimeRef: React.MutableRefObject<number | null>;
@@ -228,6 +231,33 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     setShowQuestionResult(false);
   }, [currentIndex, questions]);
 
+  const forceCompleteSession = useCallback(() => {
+    setQuestionResults((prev) => {
+      const next = [...prev];
+      const currentQ = questions[currentIndex];
+      if (currentQ && next.length === currentIndex) {
+        const userOrder = slotContents.filter(Boolean) as string[];
+        const correctOrder = currentQ.puzzle.correct_order;
+        const isCorrect =
+          userOrder.length === correctOrder.length &&
+          userOrder.every((id, i) => id === correctOrder[i]);
+        next.push({ questionIndex: currentIndex, userOrder, correctOrder, isCorrect });
+      }
+      for (let i = next.length; i < questions.length; i++) {
+        const q = questions[i];
+        next.push({
+          questionIndex: i,
+          userOrder: [],
+          correctOrder: q.puzzle.correct_order,
+          isCorrect: false,
+        });
+      }
+      return next;
+    });
+    setSessionComplete(true);
+    setShowQuestionResult(false);
+  }, [currentIndex, questions, slotContents]);
+
   const retrySession = useCallback(() => {
     const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
     setQuestions(picked);
@@ -240,7 +270,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     startTimeRef.current = null;
   }, []);
 
-  const saveHistory = useCallback(async (elapsedTime: number, targetTime: number) => {
+  const saveHistory = useCallback(async (elapsedTime: number, targetTime: number, practiceMode?: BuildSentencePracticeMode) => {
     if (historySaved || questionResults.length === 0) return;
 
     const score = questionResults.filter((r) => r.isCorrect).length;
@@ -274,6 +304,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
       scorePercent,
       timeSpentSeconds: elapsedTime,
       targetTimeSeconds: targetTime,
+      practiceMode: practiceMode ?? 'timed',
       answers,
       mistakes,
       difficulty,
@@ -340,6 +371,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
     availableChunks,
     allSlotsFilled,
     sessionScore,
+    forceCompleteSession,
     loadSession,
     placeChunk,
     removeChunk,
