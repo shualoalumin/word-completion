@@ -107,9 +107,9 @@ export default function History() {
         exerciseType: record.exercise_type || 'text-completion',
       }));
 
-      // Calculate attempt numbers: per (exercise_type, exercise_id) so build-sentence sessions get sequential attempts
+      // Calculate attempt numbers: build-sentence gets sequential session#, text-completion per exerciseId
       const attemptKey = (h: HistoryRecord) =>
-        h.exerciseType === 'build-sentence' ? `build-sentence:${h.id}` : `text-completion:${h.exerciseId}`;
+        h.exerciseType === 'build-sentence' ? 'build-sentence' : `text-completion:${h.exerciseId}`;
       const exerciseCounters: Record<string, number> = {};
       const sortedOldestFirst = [...mappedHistory].sort((a, b) =>
         new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
