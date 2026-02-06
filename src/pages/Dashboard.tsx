@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { useDashboardStats, useRecentActivity } from '@/features/dashboard';
+import { useDashboardStats, useRecentActivity, useSectionStats } from '@/features/dashboard';
 import { useUserSkills } from '@/features/skills';
 import { useLearningPatterns } from '@/features/learning-patterns';
 import { useTopicPerformance } from '@/features/topic-performance';
