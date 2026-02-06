@@ -286,7 +286,7 @@ export const BuildSentenceExercise: React.FC = () => {
                 darkMode ? 'bg-zinc-800 border-zinc-700 hover:border-blue-500' : 'bg-gray-50 border-gray-200 hover:border-blue-400',
               )}
             >
-              <div className="font-medium text-white">{t('buildSentence.modeUntimed', 'Untimed practice')}</div>
+              <div className={cn('font-medium', darkMode ? 'text-white' : 'text-gray-900')}>{t('buildSentence.modeUntimed', 'Untimed practice')}</div>
               <div className={cn('text-sm mt-1', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
                 {t('buildSentence.modeUntimedDesc', 'No timer. Practice at your own pace.')}
               </div>
@@ -298,7 +298,7 @@ export const BuildSentenceExercise: React.FC = () => {
                 darkMode ? 'bg-zinc-800 border-zinc-700 hover:border-blue-500' : 'bg-gray-50 border-gray-200 hover:border-blue-400',
               )}
             >
-              <div className="font-medium text-white">{t('buildSentence.modeTimed', 'Timed practice')}</div>
+              <div className={cn('font-medium', darkMode ? 'text-white' : 'text-gray-900')}>{t('buildSentence.modeTimed', 'Timed practice')}</div>
               <div className={cn('text-sm mt-1', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
                 {t('buildSentence.modeTimedDesc', 'Timer with overtime allowed.')}
               </div>
@@ -310,7 +310,7 @@ export const BuildSentenceExercise: React.FC = () => {
                 darkMode ? 'bg-zinc-800 border-zinc-700 hover:border-amber-500' : 'bg-gray-50 border-gray-200 hover:border-amber-400',
               )}
             >
-              <div className="font-medium text-white">{t('buildSentence.modeTest', 'Test mode')}</div>
+              <div className={cn('font-medium', darkMode ? 'text-white' : 'text-gray-900')}>{t('buildSentence.modeTest', 'Test mode')}</div>
               <div className={cn('text-sm mt-1', darkMode ? 'text-zinc-400' : 'text-gray-600')}>
                 {t('buildSentence.modeTestDesc', "Strict 5:30. Time's up = session ends, results shown.")}
               </div>
