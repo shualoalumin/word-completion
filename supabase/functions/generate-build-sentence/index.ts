@@ -203,17 +203,26 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    
+
+    // Parse request body for excludeIds
+    let excludeIds: string[] = [];
+    try {
+      const body = await req.json();
+      excludeIds = Array.isArray(body?.excludeIds) ? body.excludeIds : [];
+    } catch {
+      // Empty body or invalid JSON - proceed without exclusion
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
     });
-    
+
     // Optional user logging
     if (authHeader) {
       try {
@@ -231,6 +240,10 @@ serve(async (req) => {
       }
     }
 
+    if (excludeIds.length > 0) {
+      console.log(`Excluding ${excludeIds.length} recently used exercise IDs`);
+    }
+
     // Step 1: Try to get cached exercises from DB
     console.log("Checking for cached build-sentence exercises...");
     const { data: cachedExercises, error: fetchError } = await supabase
@@ -246,16 +259,21 @@ serve(async (req) => {
     }
 
     const MIN_CACHE_SIZE = 50;
-    const cacheCount = cachedExercises?.length || 0;
-    
+    // Filter out recently used exercises
+    const availableExercises = cachedExercises
+      ? cachedExercises.filter(e => !excludeIds.includes(e.id))
+      : [];
+    const cacheCount = availableExercises.length;
+    const totalCacheCount = cachedExercises?.length || 0;
+
     // Cache strategy: Build up cache until 50, then mostly use cache
-    const shouldUseCache = cacheCount >= MIN_CACHE_SIZE 
+    const shouldUseCache = totalCacheCount >= MIN_CACHE_SIZE
       ? Math.random() < 0.9
       : Math.random() < 0.2;
-    
-    if (cachedExercises && cacheCount > 0 && shouldUseCache) {
+
+    if (cacheCount > 0 && shouldUseCache) {
       const randomIndex = Math.floor(Math.random() * cacheCount);
-      const cached = cachedExercises[randomIndex];
+      const cached = availableExercises[randomIndex];
       console.log(`Returning cached build-sentence exercise (${cacheCount} in pool): ${cached.topic}`);
       
       const responseData = {

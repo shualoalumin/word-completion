@@ -8,8 +8,11 @@ export interface GenerateBuildSentenceResult {
 
 /**
  * Generate a new Build a Sentence question via Edge Function
+ * @param excludeIds - Exercise IDs to exclude from cache (prevent repetition)
  */
-export async function generateBuildSentenceQuestion(): Promise<GenerateBuildSentenceResult> {
+export async function generateBuildSentenceQuestion(
+  excludeIds: string[] = []
+): Promise<GenerateBuildSentenceResult> {
   try {
     const {
       data: { session },
@@ -28,7 +31,7 @@ export async function generateBuildSentenceQuestion(): Promise<GenerateBuildSent
       {
         method: 'POST',
         headers,
-        body: JSON.stringify({}),
+        body: JSON.stringify({ excludeIds }),
       }
     );
 
@@ -51,37 +54,40 @@ export async function generateBuildSentenceQuestion(): Promise<GenerateBuildSent
 }
 
 /**
- * Generate multiple questions for a session
+ * Get recently used exercise IDs from build-sentence history
+ * Used to prevent repetition across sessions
  */
-export async function generateSessionQuestions(
-  count: number = 10
-): Promise<{ data: BuildSentenceQuestion[]; error: Error | null }> {
-  const questions: BuildSentenceQuestion[] = [];
-  const errors: Error[] = [];
+export async function getRecentBuildSentenceExerciseIds(
+  limit: number = 50
+): Promise<string[]> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
 
-  // Generate questions in parallel (max 3 at a time to avoid rate limits)
-  const batchSize = 3;
-  for (let i = 0; i < count; i += batchSize) {
-    const batch = Array(Math.min(batchSize, count - i))
-      .fill(null)
-      .map(() => generateBuildSentenceQuestion());
-    
-    const results = await Promise.all(batch);
-    
-    for (const result of results) {
-      if (result.data) {
-        questions.push(result.data);
-      } else if (result.error) {
-        errors.push(result.error);
+    const { data, error } = await supabase
+      .from('user_exercise_history')
+      .select('answers')
+      .eq('user_id', user.id)
+      .eq('exercise_type', 'build-sentence')
+      .order('completed_at', { ascending: false })
+      .limit(limit);
+
+    if (error || !data) return [];
+
+    // Extract exercise_ids from stored answer data
+    const ids: string[] = [];
+    for (const record of data) {
+      const answers = record.answers as any[];
+      if (!answers) continue;
+      for (const a of answers) {
+        const id = a.questionData?.exercise_id;
+        if (id) ids.push(id);
       }
     }
+    return [...new Set(ids)];
+  } catch {
+    return [];
   }
-
-  if (questions.length === 0 && errors.length > 0) {
-    return { data: [], error: errors[0] };
-  }
-
-  return { data: questions, error: null };
 }
 
 // ============================================

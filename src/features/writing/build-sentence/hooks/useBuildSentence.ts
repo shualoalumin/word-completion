@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { BuildSentenceQuestion, BuildSentenceQuestionResult } from '../types';
 import { getSessionQuestions } from '../data/sampleQuestions';
-import { generateSessionQuestions, getBuildSentenceHistory, saveBuildSentenceHistory, loadHistoryRecordById } from '../api';
+import { generateBuildSentenceQuestion, getRecentBuildSentenceExerciseIds, getBuildSentenceHistory, saveBuildSentenceHistory, loadHistoryRecordById } from '../api';
 import type { BuildSentencePracticeMode } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
@@ -71,15 +71,26 @@ export function useBuildSentence(): UseBuildSentenceReturn {
 
   const sessionScore = questionResults.filter((r) => r.isCorrect).length;
 
+  // Track background generation cancellation
+  const bgAbortRef = useRef(false);
+
   // Actions
   const loadSession = useCallback(async () => {
     setLoading(true);
     setError(null);
+    bgAbortRef.current = false;
 
-    // Build set of recently used question keys to avoid repeating too soon
+    const totalCount = EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET;
+
+    // Collect recently used exercise IDs to prevent repetition
+    let excludeIds: string[] = [];
     let excludeKeys = new Set<string>();
     try {
-      const { data: recentHistory } = await getBuildSentenceHistory(5);
+      const [recentIds, { data: recentHistory }] = await Promise.all([
+        getRecentBuildSentenceExerciseIds(50),
+        getBuildSentenceHistory(5),
+      ]);
+      excludeIds = recentIds;
       if (recentHistory?.length) {
         recentHistory.forEach((record: { answers?: Array<{ questionData?: { dialogue?: { speaker_b?: { full_response?: string } } } }> }) => {
           (record.answers || []).forEach((a: { questionData?: { dialogue?: { speaker_b?: { full_response?: string } } } }) => {
@@ -92,52 +103,78 @@ export function useBuildSentence(): UseBuildSentenceReturn {
       // ignore; proceed without exclusion
     }
 
+    // Reset session state
+    const resetState = (firstQuestion: BuildSentenceQuestion) => {
+      setCurrentIndex(0);
+      setSlotContents(new Array(firstQuestion.puzzle.slots_count).fill(null));
+      setQuestionResults([]);
+      setShowQuestionResult(false);
+      setSessionComplete(false);
+      setHistorySaved(false);
+      startTimeRef.current = null;
+    };
+
     try {
-      // Try AI generation first
-      console.log('[BuildSentence] Attempting AI generation...');
-      const result = await generateSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
-      
-      if (result.data && result.data.length > 0) {
-        console.log(`[BuildSentence] AI generated ${result.data.length} questions`);
-        setQuestions(result.data);
-        setCurrentIndex(0);
-        setSlotContents(new Array(result.data[0]?.puzzle.slots_count ?? 0).fill(null));
-        setQuestionResults([]);
-        setShowQuestionResult(false);
-        setSessionComplete(false);
-        setHistorySaved(false);
-        startTimeRef.current = null;
+      // Step 1: Generate first question immediately
+      console.log('[BuildSentence] Generating first question...');
+      const firstResult = await generateBuildSentenceQuestion(excludeIds);
+
+      if (firstResult.data) {
+        const firstQ = firstResult.data;
+        console.log('[BuildSentence] First question ready, showing immediately');
+        setQuestions([firstQ]);
+        resetState(firstQ);
+        setLoading(false);
+
+        // Track IDs to exclude within this session
+        const sessionExcludeIds = [...excludeIds];
+        if (firstQ.exercise_id) sessionExcludeIds.push(firstQ.exercise_id);
+
+        // Step 2: Generate remaining questions in background
+        const generateRemaining = async () => {
+          for (let i = 1; i < totalCount; i++) {
+            if (bgAbortRef.current) break;
+
+            try {
+              const result = await generateBuildSentenceQuestion(sessionExcludeIds);
+              if (bgAbortRef.current) break;
+
+              if (result.data) {
+                if (result.data.exercise_id) {
+                  sessionExcludeIds.push(result.data.exercise_id);
+                }
+                setQuestions(prev => [...prev, result.data!]);
+                console.log(`[BuildSentence] Background: question ${i + 1}/${totalCount} ready`);
+              }
+            } catch (err) {
+              console.warn(`[BuildSentence] Background generation ${i + 1} failed:`, err);
+            }
+          }
+          console.log('[BuildSentence] All background questions generated');
+        };
+
+        // Fire and forget - don't await
+        generateRemaining();
       } else {
-        // Fallback to local sample questions (excluding recently used)
+        // AI failed for first question - fallback to sample questions
         console.log('[BuildSentence] AI failed, falling back to sample questions');
-        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET, excludeKeys);
+        const picked = getSessionQuestions(totalCount, excludeKeys);
         setQuestions(picked);
-        setCurrentIndex(0);
-        setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
-        setQuestionResults([]);
-        setShowQuestionResult(false);
-        setSessionComplete(false);
-        setHistorySaved(false);
-        startTimeRef.current = null;
+        resetState(picked[0]);
+        setLoading(false);
       }
     } catch {
-      // Fallback to local sample questions on any error
+      // Complete fallback
       console.log('[BuildSentence] Error occurred, falling back to sample questions');
       try {
-        const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET, excludeKeys);
+        const picked = getSessionQuestions(totalCount, excludeKeys);
         setQuestions(picked);
-        setCurrentIndex(0);
-        setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
-        setQuestionResults([]);
-        setShowQuestionResult(false);
-        setSessionComplete(false);
-        startTimeRef.current = null;
+        resetState(picked[0]);
       } catch {
         setError('Failed to load questions.');
       }
+      setLoading(false);
     }
-
-    setLoading(false);
   }, []);
 
 
@@ -221,14 +258,44 @@ export function useBuildSentence(): UseBuildSentenceReturn {
 
   const nextQuestion = useCallback(() => {
     const nextIdx = currentIndex + 1;
-    if (nextIdx >= questions.length) {
+    const totalCount = EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET;
+
+    // All questions answered
+    if (nextIdx >= totalCount) {
       setSessionComplete(true);
       setShowQuestionResult(false);
       return;
     }
-    setCurrentIndex(nextIdx);
-    setSlotContents(new Array(questions[nextIdx].puzzle.slots_count).fill(null));
+
+    // Next question is ready
+    if (nextIdx < questions.length) {
+      setCurrentIndex(nextIdx);
+      setSlotContents(new Array(questions[nextIdx].puzzle.slots_count).fill(null));
+      setShowQuestionResult(false);
+      return;
+    }
+
+    // Next question still loading - show loading state briefly
+    setLoading(true);
     setShowQuestionResult(false);
+    const checkInterval = setInterval(() => {
+      setQuestions(current => {
+        if (nextIdx < current.length) {
+          clearInterval(checkInterval);
+          setCurrentIndex(nextIdx);
+          setSlotContents(new Array(current[nextIdx].puzzle.slots_count).fill(null));
+          setLoading(false);
+        }
+        return current;
+      });
+    }, 300);
+
+    // Safety timeout - complete session if question never arrives
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      setLoading(false);
+      setSessionComplete(true);
+    }, 15000);
   }, [currentIndex, questions]);
 
   const forceCompleteSession = useCallback(() => {
@@ -259,16 +326,11 @@ export function useBuildSentence(): UseBuildSentenceReturn {
   }, [currentIndex, questions, slotContents]);
 
   const retrySession = useCallback(() => {
-    const picked = getSessionQuestions(EXERCISE_CONFIG.BUILD_SENTENCE.QUESTIONS_PER_SET);
-    setQuestions(picked);
-    setCurrentIndex(0);
-    setSlotContents(new Array(picked[0]?.puzzle.slots_count ?? 0).fill(null));
-    setQuestionResults([]);
-    setShowQuestionResult(false);
-    setSessionComplete(false);
-    setHistorySaved(false);
-    startTimeRef.current = null;
-  }, []);
+    // Cancel any ongoing background generation
+    bgAbortRef.current = true;
+    // Start a fresh session with progressive loading
+    loadSession();
+  }, [loadSession]);
 
   const saveHistory = useCallback(async (elapsedTime: number, targetTime: number, practiceMode?: BuildSentencePracticeMode) => {
     if (historySaved || questionResults.length === 0) return;
