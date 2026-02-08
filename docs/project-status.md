@@ -2,7 +2,7 @@
 
 build a sentence 기능 추가 완료
 
-> **Last Updated**: 2026-02-05 (목요일, KST 기준)\
+> **Last Updated**: 2026-02-08 (토요일, KST 기준)\
 > **Current Phase**: Phase 1 ✅ → Phase 2 ✅ → Phase 2.5 ✅ (배포 알림 시스템
 > 완료)\
 > **전체 진행률**: 약 17% (스키마 기준) / 40% (기능 단위, 과대평가됨)\
@@ -509,6 +509,32 @@ exercises
 ---
 
 ## 📝 Change Log (최근 변경사항)
+
+### 2026-02-08 - Build a Sentence 품질 대폭 개선 및 코드 리뷰 통합 🔧
+
+- 🔍 **주니어 5개 Task 코드 리뷰 및 버그 수정**
+  - ✅ Task 1 (History): attemptNumber 버그 수정 (h.id → 'build-sentence' 키)
+  - ✅ Task 4 (Practice Modes): 라이트모드 text-white 하드코딩 수정
+  - ✅ Task 5 (Dashboard): useSectionStats import 누락 수정
+  - ✅ 3개 feature 브랜치 main으로 merge 완료
+
+- 🗄️ **DB 마이그레이션 이슈 해결**
+  - ✅ exercise_type, practice_mode, target_time_seconds 컬럼 누락 발견
+  - ✅ 마이그레이션 파일 생성 및 적용 가이드 작성
+  - ✅ MEMORY.md에 "핵심 플로우 검증 프로토콜" 추가 (재발 방지)
+
+- 🚀 **Build a Sentence 프로그레시브 로딩**
+  - ✅ 1번 문제 즉시 표시 → 2~10번 백그라운드 순차 생성
+  - ✅ 반복 방지: excludeIds를 Edge Function에 전달하여 캐시 필터링
+  - ✅ 세션 내 중복 방지: 생성된 문제의 exercise_id도 제외 목록에 추가
+
+- 🎯 **ETS 스타일 문제 생성 품질 개선** (10개 공식 스크린샷 분석 기반)
+  - ✅ 구두점(? .) 항상 anchor_end로 고정, word bank에 절대 포함하지 않음
+  - ✅ Easy: 구두점만 anchor, Medium: 50% 텍스트 anchor, Hard: 항상 anchor + distractor
+  - ✅ 빈 카드 방지: sanitizeQuestion()으로 빈 text 필터링
+  - ✅ Word bank 셔플 보장: 프론트엔드 Fisher-Yates 셔플 + 정답순서 체크
+  - ✅ 어휘 난이도 하향: 어순(word order)이 핵심, 어휘는 단순하게
+  - ✅ Edge Function 프롬프트 완전 재작성 (ETS 패턴 반영)
 
 ### 2026-01-28 - TOEFL 2026 개편안 대응 및 시스템 안정화 🚀
 
