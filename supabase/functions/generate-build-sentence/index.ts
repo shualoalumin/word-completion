@@ -93,105 +93,102 @@ function getDifficultyGuidelines(difficulty: Difficulty): string {
     case "easy":
       return `
 ═══════════════════════════════════════════════════════════════
-LEVEL 1: BASIC STRUCTURES (Success Rate: ~70%)
+LEVEL 1: BASIC STRUCTURES (ETS Q4, Q7, Q8 style)
 ═══════════════════════════════════════════════════════════════
-SENTENCE TYPES:
+SENTENCE TYPE: B's response is a SHORT QUESTION (ends with ?)
 - Simple Wh-Questions: "What time does it start?"
 - Yes/No Questions: "Do you have a shopping list?"
+- "What will you learn?" / "What recipes will you learn?"
+
+ANCHOR RULES:
+- anchor_start: null (NO text anchor)
+- anchor_end: "?" (question mark ALWAYS fixed)
+- The "?" is displayed as anchor, NOT in word bank
 
 CHUNKING RULES:
 - 5-6 chunks, mostly SINGLE WORDS
-- Split by spaces (minimal phrase grouping)
+- Example: "What time does it start?"
+  → chunks: ["does", "what", "time", "it", "start"] (5 chunks)
+  → anchor_end: "?"
 - Example: "Do you have a shopping list?"
-  → ["list", "do", "a", "have", "shopping", "you"]
+  → chunks: ["list", "do", "a", "have", "shopping", "you"] (6 chunks)
+  → anchor_end: "?"
 
-GRAMMAR FOCUS:
-- Present/Future Simple tense
-- Basic word order: Do/Does + Subject + Verb
-- NO distractors, NO anchors
-
-TRAP PATTERN:
-- Basic auxiliary placement (Do/Does before subject)`;
+VOCABULARY: Simple everyday words. The test is about WORD ORDER, not vocabulary.
+DISTRACTORS: NONE
+GRAMMAR: Present/Future Simple, Do/Does + Subject + Verb`;
 
     case "medium":
       return `
 ═══════════════════════════════════════════════════════════════
-LEVEL 2: INTERMEDIATE PHRASES (Success Rate: ~40%)
+LEVEL 2: INTERMEDIATE PHRASES (ETS Q2, Q3, Q5, Q6 style)
 ═══════════════════════════════════════════════════════════════
-SENTENCE TYPES:
-- Indirect Questions: "Can you tell me where the library is?"
-- Complex Noun Phrases: "What is the water temperature like?"
-- Embedded Clauses with modal verbs
+SENTENCE TYPE: Mix of questions and statements.
+~70% questions (end with ?), ~30% statements (end with .)
+
+ANCHOR RULES (choose ONE pattern):
+Pattern A - End anchor only (50% of the time):
+  - anchor_start: null
+  - anchor_end: "?" or "."
+  - Example: "Do you know how much tickets will cost?"
+    → anchor_end: "?", chunks: ["do","you","how","know","tickets","will cost","much"]
+
+Pattern B - Start + End anchor (50% of the time):
+  - anchor_start: short phrase like "she will be", "tell me"
+  - anchor_end: "?" or "."
+  - Example: "she will be ___ ___ ___ ___ ___ ?"
+    → anchor_start: "she will be", anchor_end: "?"
+    → chunks: ["a different department","if","moving to","know","do","you"]
 
 CHUNKING RULES (SEMANTIC CHUNKING):
-- 6-7 chunks, mix of singles and 2-3 word PHRASES
-- Keep Noun Phrases together: "the library", "the water temperature"
-- Keep Verb Phrases together: "tell me", "is like"
-- Function words separate: "where", "what", "if"
+- 6-7 chunks, mix of single words and 2-3 word PHRASES
+- Keep Noun Phrases together: "the cabins", "the water", "time of year"
+- Keep Verb Phrases together: "will be", "will cost", "moving to"
+- Function words separate: "whether", "what", "if", "how"
 
 🚨 THE #1 TRAP: INDIRECT QUESTION WORD ORDER 🚨
-This is the single biggest point-loss pattern in TOEFL Writing!
+Trigger words: know, wonder, tell me, not sure, ask, curious
+After these → use S-V order (NOT question inversion)
+WRONG: "Can you tell me where IS the library?"
+RIGHT: "Can you tell me where the library IS?"
 
-| Trigger Words | After these → use S-V order (NOT question inversion) |
-| know, wonder, tell me, not sure, ask, curious |
-
-WRONG: "Can you tell me where IS the library?"  (question inversion)
-RIGHT: "Can you tell me where the library IS?"  (statement order S-V)
-
-EXAMPLE with trap setup:
-- Sentence: "Can you tell me where the library is?"
-- Chunks: ["tell me", "can", "where", "you", "the library", "is"]
-- The trap: Student might place "is" BEFORE "the library"
-
-DISTRACTORS: Rare (0-1), mainly for confusing word order`;
+DISTRACTORS: NONE (0)
+VOCABULARY: Simple, conversational. Focus on WORD ORDER difficulty, NOT vocabulary difficulty.`;
 
     case "hard":
       return `
 ═══════════════════════════════════════════════════════════════
-LEVEL 3: ADVANCED SYNTAX (Success Rate: ~30%)
+LEVEL 3: ADVANCED SYNTAX (ETS Q1, Q9, Q10 style)
 ═══════════════════════════════════════════════════════════════
-SENTENCE TYPES:
-- Relative Clauses: "I used the study guide THAT was provided by the professor."
-- Passive Voice: "The tour guides WHO showed us around WERE fantastic."
-- Reported Speech: "She asked whether the deadline had been extended."
+SENTENCE TYPE: B's response is a STATEMENT (ends with .)
+- Relative Clauses: "I used the study guide that was provided by the professor."
+- Passive Voice: "The tour guides who showed us around were fantastic."
+- Reported Speech: "She wanted to know where she could buy a copy."
+
+ANCHOR RULES (REQUIRED):
+- anchor_start: ALWAYS a short phrase (1-2 words): "The", "She", "I used", "I heard"
+- anchor_end: ALWAYS "." (period fixed at end)
+- Example: "The ___ ___ ___ ___ ___ ___ fantastic."
+  → anchor_start: "The", anchor_end: "fantastic."
+- Example: "I used ___ ___ ___ ___ ___ ."
+  → anchor_start: "I used", anchor_end: "."
+- Example: "She ___ ___ ___ ___ ___ ___ ___ ."
+  → anchor_start: "She", anchor_end: "."
 
 CHUNKING RULES (SEMANTIC UNITS):
-- 5-7 chunks as meaningful syntactic units
+- 5-7 chunks as meaningful syntactic units (excluding distractor)
 - Noun Phrases: "the study guide", "the tour guides", "the professor"
-- Verb Phrases: "was provided", "showed us around", "had been extended"
+- Verb Phrases: "was provided", "showed us around"
 - Function words: "that", "who", "whether", "by"
 
-ANCHOR TEXT (15-30% of sentence):
-- Start Anchor: "I used ____" (fixes subject)
-- End Anchor: "____ fantastic." (fixes adjective)
-- Split Anchor: "The ____ ____ ____ fantastic."
-
 🚨 DISTRACTOR INJECTION (EXACTLY 1 REQUIRED) 🚨
-Choose ONE trap type:
+Choose ONE:
+1. REDUNDANT PRONOUN: "it" or "she" (when subject already defined by anchor)
+   Example: anchor "She", distractor "she" (lowercase, redundant)
+2. SUBJECT-VERB AGREEMENT: "was" vs "were"
+3. TENSE TRAP: "learn" vs "learned"
 
-1. SUBJECT-VERB AGREEMENT: "was" vs "were"
-   - "The tour guides who showed us around WAS/WERE fantastic."
-   - Add "was" as distractor when plural subject requires "were"
-
-2. REDUNDANT PRONOUN: "it"
-   - "I used the study guide that IT was provided..." → WRONG
-   - Add "it" when subject is already defined
-
-3. FALSE CONJUNCTION: "if" vs "whether"
-   - Both seem correct in indirect questions
-   - Add wrong one as distractor
-
-4. TENSE TRAP: "learn" vs "learned"
-   - Add wrong tense form
-
-EXAMPLE with distractor:
-- Sentence: "I used the study guide that was provided by the professor."
-- Anchor: "I used"
-- Chunks: ["by", "the professor", "that", "the study guide", "was provided"]
-- Distractor: { "id": "c6", "text": "it", "is_distractor": true }
-- Correct order: ["c4", "c3", "c5", "c1", "c2"]
-
-ALSO include indirect question trap if applicable in combination with relative clause.`;
+VOCABULARY: Simple, conversational. Focus on SYNTAX complexity, NOT vocabulary difficulty.`;
   }
 }
 
@@ -300,15 +297,37 @@ serve(async (req) => {
 
     const systemPrompt = `
 You are an ETS TOEFL iBT 2026 test content generator for the "Build a Sentence" question type.
-This is a Writing section question where students must arrange word chunks to form a grammatically correct response.
 
 ═══════════════════════════════════════════════════════════════
-QUESTION STRUCTURE
+TASK OVERVIEW (Based on 10 Official ETS 2026 Samples)
 ═══════════════════════════════════════════════════════════════
-1. A dialogue between Speaker A and Speaker B
-2. Speaker A says a trigger sentence (context)
-3. Speaker B's response is the sentence students must BUILD
-4. The response is broken into CHUNKS that students arrange
+- Writing section: 10 questions, 5:30 time limit
+- Speaker A says a SHORT trigger sentence (8-15 words, simple vocabulary)
+- Speaker B's response must be BUILT from word chunks
+- The test is about WORD ORDER and SYNTAX, NOT vocabulary difficulty
+- Use simple, everyday words. Keep sentences conversational.
+- Binary scoring: all chunks must be in correct position (no partial credit)
+
+═══════════════════════════════════════════════════════════════
+CRITICAL RULES (MUST FOLLOW)
+═══════════════════════════════════════════════════════════════
+1. PUNCTUATION: The ending punctuation ("?" or ".") is ALWAYS anchor_end.
+   - NEVER put "?" or "." as a chunk in the word bank.
+   - Questions end with anchor_end: "?"
+   - Statements end with anchor_end: "." (or "fantastic." / "inspiring." etc.)
+
+2. EVERY chunk MUST have non-empty text (at least 1 word). No empty strings.
+
+3. SHUFFLE: The chunks array must be in RANDOM order, NOT in answer order.
+   Randomize the array before returning.
+
+4. Speaker A: SHORT sentence (8-15 words). Simple vocabulary. Sets context.
+   Examples: "I'm looking forward to the concert this weekend."
+             "What was the highlight of your trip?"
+
+5. Speaker B full_response: The complete correct sentence INCLUDING anchors.
+   If anchor_start is "She" and anchor_end is ".", and chunks form "wanted to know where she could buy a copy",
+   then full_response is "She wanted to know where she could buy a copy."
 
 ═══════════════════════════════════════════════════════════════
 DIFFICULTY GUIDELINES
@@ -316,75 +335,58 @@ DIFFICULTY GUIDELINES
 ${getDifficultyGuidelines(selectedDifficulty)}
 
 ═══════════════════════════════════════════════════════════════
-CHUNK DESIGN RULES
-═══════════════════════════════════════════════════════════════
-- Each chunk should be 1-3 words
-- Chunks must be unambiguous when combined correctly
-- For HARD mode, add 1-2 DISTRACTOR chunks (marked is_distractor: true)
-- Distractors should be grammatically similar but incorrect (e.g., "was" vs "were")
-
-═══════════════════════════════════════════════════════════════
-ANCHOR TEXT (HARD MODE ONLY)
-═══════════════════════════════════════════════════════════════
-- anchor_start: Fixed text at the beginning (e.g., "I wonder", "The")
-- anchor_end: Fixed text at the end (e.g., "inspiring.", "fantastic.")
-- These are NOT in the puzzle; they frame the response
-
-═══════════════════════════════════════════════════════════════
-OUTPUT FORMAT (strict JSON)
+OUTPUT FORMAT (strict JSON, no markdown)
 ═══════════════════════════════════════════════════════════════
 {
-  "id": "bs-generated-[timestamp]",
+  "id": "bs-generated-${Date.now()}",
   "scenario": "${selectedScenario}",
   "difficulty": "${selectedDifficulty}",
   "dialogue": {
     "speaker_a": {
-      "text": "Trigger sentence from Speaker A",
+      "text": "Short trigger sentence from Speaker A",
       "avatar": "student_male" or "student_female"
     },
     "speaker_b": {
-      "full_response": "Complete correct sentence",
+      "full_response": "Complete correct sentence including anchors and punctuation",
       "anchor_start": null or "fixed start text",
-      "anchor_end": null or "fixed end text."
+      "anchor_end": "?" or "." or "word."
     }
   },
   "puzzle": {
-    "slots_count": number (how many chunks to place, excluding distractors),
+    "slots_count": number (chunks to place, EXCLUDING distractors),
     "chunks": [
       { "id": "c1", "text": "chunk text", "is_distractor": false },
-      { "id": "c2", "text": "another chunk", "is_distractor": false },
-      // ... more chunks, shuffled order
+      ...
     ],
-    "correct_order": ["c1", "c2", ...] (IDs in correct order)
+    "correct_order": ["c3", "c1", "c5", ...] (IDs in CORRECT order, NOT same as chunks array order)
   },
-  "grammar_tip": "Brief explanation of the grammar pattern tested. Example: 'This is an indirect question. After \"tell me\", use statement word order (S-V), not question inversion.'",
+  "grammar_tip": "1-2 sentences explaining the grammar pattern tested",
   "trap_type": "indirect_question" | "subject_verb_agreement" | "redundant_pronoun" | "tense" | "word_order" | null
 }
-
-IMPORTANT: grammar_tip should be 1-2 sentences explaining WHY the correct order is correct.
-trap_type indicates the main grammatical trap in this question:
-- "indirect_question": Tests embedded question word order (S-V vs V-S)
-- "subject_verb_agreement": Tests was/were, is/are matching
-- "redundant_pronoun": Tests unnecessary "it" insertion
-- "tense": Tests verb tense consistency
-- "word_order": Tests basic word order rules
-- null: No specific trap (easy questions)
 `;
 
-    const userPrompt = `Generate a TOEFL Build a Sentence question for the scenario: "${selectedScenario}"
+    const anchorInstruction = selectedDifficulty === 'easy'
+      ? '- anchor_start: null, anchor_end: "?" (question mark always)'
+      : selectedDifficulty === 'medium'
+      ? '- anchor_end: "?" or "." (ALWAYS). anchor_start: use a short phrase ~50% of the time, null otherwise.'
+      : '- anchor_start: REQUIRED (1-2 word phrase). anchor_end: "." or "word." (ALWAYS). Include exactly 1 distractor chunk.';
 
-Category: ${scenarioCategory}
+    const userPrompt = `Generate a TOEFL Build a Sentence question.
+
+Scenario: "${selectedScenario}" (${scenarioCategory})
 Difficulty: ${selectedDifficulty.toUpperCase()}
 
-Requirements:
-- Create a natural, realistic dialogue that could occur in this scenario
-- Speaker A provides context, Speaker B responds with a sentence students must build
-- The response should test grammar patterns appropriate for ${selectedDifficulty} level
-- Shuffle the chunks array so they're NOT in correct order
-- Ensure the sentence sounds natural when correctly assembled
-${selectedDifficulty === 'hard' ? '- Include 1-2 distractor chunks and use anchor text' : '- Do NOT include distractors or anchors'}
+REQUIREMENTS:
+- Speaker A: short, simple sentence (8-15 words)
+- Speaker B: response that tests ${selectedDifficulty}-level grammar/syntax
+- ${anchorInstruction}
+- PUNCTUATION ("?" or ".") must be in anchor_end, NEVER as a chunk
+- Every chunk must have non-empty text (no blank cards)
+- SHUFFLE the chunks array (must NOT be in answer order)
+- Use SIMPLE vocabulary — the challenge is word ORDER, not hard words
+- ${selectedDifficulty === 'hard' ? 'Include exactly 1 distractor chunk (is_distractor: true)' : 'Do NOT include any distractor chunks'}
 
-Return ONLY valid JSON, no markdown or explanation.`;
+Return ONLY valid JSON.`;
 
     console.log("Requesting AI generation for build-sentence...");
     const questionData = await aiClient.generate(systemPrompt, userPrompt);

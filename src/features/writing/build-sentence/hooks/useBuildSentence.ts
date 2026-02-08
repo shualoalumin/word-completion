@@ -5,6 +5,46 @@ import { generateBuildSentenceQuestion, getRecentBuildSentenceExerciseIds, getBu
 import type { BuildSentencePracticeMode } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
+/**
+ * Sanitize a question: shuffle chunks, remove empty chunks, ensure punctuation not in word bank
+ */
+function sanitizeQuestion(q: BuildSentenceQuestion): BuildSentenceQuestion {
+  // Filter out empty chunks
+  const validChunks = q.puzzle.chunks.filter(c => c.text && c.text.trim().length > 0);
+
+  // Remove punctuation-only chunks (should be anchor_end)
+  const filteredChunks = validChunks.filter(c => {
+    const trimmed = c.text.trim();
+    return trimmed !== '?' && trimmed !== '.' && trimmed !== '!' && trimmed !== ',';
+  });
+
+  // Shuffle chunks (Fisher-Yates) so they're never in answer order
+  const shuffled = [...filteredChunks];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  // Check if still in correct order and re-shuffle if needed
+  const correctOrder = q.puzzle.correct_order;
+  const shuffledIds = shuffled.filter(c => !c.is_distractor).map(c => c.id);
+  if (shuffledIds.length === correctOrder.length && shuffledIds.every((id, i) => id === correctOrder[i])) {
+    // Still in order - do one more shuffle
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+  }
+
+  return {
+    ...q,
+    puzzle: {
+      ...q.puzzle,
+      chunks: shuffled,
+    },
+  };
+}
+
 export interface UseBuildSentenceReturn {
   // State
   loading: boolean;
@@ -120,7 +160,7 @@ export function useBuildSentence(): UseBuildSentenceReturn {
       const firstResult = await generateBuildSentenceQuestion(excludeIds);
 
       if (firstResult.data) {
-        const firstQ = firstResult.data;
+        const firstQ = sanitizeQuestion(firstResult.data);
         console.log('[BuildSentence] First question ready, showing immediately');
         setQuestions([firstQ]);
         resetState(firstQ);
@@ -143,7 +183,8 @@ export function useBuildSentence(): UseBuildSentenceReturn {
                 if (result.data.exercise_id) {
                   sessionExcludeIds.push(result.data.exercise_id);
                 }
-                setQuestions(prev => [...prev, result.data!]);
+                const sanitized = sanitizeQuestion(result.data);
+                setQuestions(prev => [...prev, sanitized]);
                 console.log(`[BuildSentence] Background: question ${i + 1}/${totalCount} ready`);
               }
             } catch (err) {
