@@ -1,7 +1,6 @@
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import {
   DndContext,
   DragEndEvent,
@@ -22,7 +21,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useBuildSentence } from './hooks';
 import { mapToCoreDifficulty } from './types';
-import { getBuildSentenceModeStats, type BuildSentencePracticeMode } from './api';
+import { type BuildSentencePracticeMode } from './api';
 import {
   DialogueDisplay,
   SentenceSkeleton,
@@ -244,22 +243,6 @@ export const BuildSentenceExercise: React.FC = () => {
     bs.loadSession();
   }, [bs.loadSession]);
 
-  const { data: modeStats } = useQuery({
-    queryKey: ['build-sentence-mode-stats'],
-    queryFn: async () => {
-      const res = await getBuildSentenceModeStats();
-      return res.data ?? [];
-    },
-    enabled: showModeSelection,
-  });
-
-  const formatAvgTime = (sec: number) => {
-    if (!sec) return '—';
-    const m = Math.floor(sec / 60);
-    const s = Math.round(sec % 60);
-    return `${m}:${String(s).padStart(2, '0')}`;
-  };
-
   // ── Render: Mode selection (new session only) ──
   if (showModeSelection) {
     return (
@@ -268,16 +251,6 @@ export const BuildSentenceExercise: React.FC = () => {
           <h2 className={cn('text-xl font-bold mb-4 text-center', darkMode ? 'text-gray-100' : 'text-gray-900')}>
             {t('buildSentence.modeTitle', 'Choose practice mode')}
           </h2>
-          {modeStats?.length ? (
-            <div className={cn('mb-4 p-3 rounded-lg text-sm', darkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-600')}>
-              <span className="font-medium">{t('history.score', 'Score')} / time by mode: </span>
-              {modeStats.filter((s) => s.count > 0).map((s) => (
-                <span key={s.practiceMode} className="mr-3">
-                  {s.practiceMode}: {Math.round(s.avgScorePercent)}% avg, {formatAvgTime(s.avgTimeSeconds)} ({s.count})
-                </span>
-              ))}
-            </div>
-          ) : null}
           <div className="space-y-3">
             <button
               onClick={() => handleSelectMode('untimed')}
