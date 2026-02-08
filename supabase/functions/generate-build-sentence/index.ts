@@ -193,6 +193,136 @@ VOCABULARY: Simple, conversational. Focus on SYNTAX complexity, NOT vocabulary d
 }
 
 
+interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  fixed?: any; // auto-fixed question data
+}
+
+/**
+ * Validate AI-generated question data before caching.
+ * Auto-fixes minor issues. Returns invalid if unfixable.
+ */
+function validateAndFixQuestion(data: any): ValidationResult {
+  const errors: string[] = [];
+
+  if (!data?.puzzle?.chunks || !Array.isArray(data.puzzle.chunks)) {
+    return { valid: false, errors: ["Missing puzzle.chunks array"] };
+  }
+  if (!data?.puzzle?.correct_order || !Array.isArray(data.puzzle.correct_order)) {
+    return { valid: false, errors: ["Missing puzzle.correct_order array"] };
+  }
+  if (!data?.dialogue?.speaker_b?.full_response) {
+    return { valid: false, errors: ["Missing dialogue.speaker_b.full_response"] };
+  }
+
+  const fixed = JSON.parse(JSON.stringify(data)); // deep clone
+  const correctOrder: string[] = fixed.puzzle.correct_order;
+  const correctIdSet = new Set(correctOrder);
+
+  // 1. Remove empty chunks
+  fixed.puzzle.chunks = fixed.puzzle.chunks.filter(
+    (c: any) => c.text && c.text.trim().length > 0
+  );
+
+  // 2. Remove punctuation-only chunks
+  fixed.puzzle.chunks = fixed.puzzle.chunks.filter((c: any) => {
+    const t = c.text.trim();
+    return t !== "?" && t !== "." && t !== "!" && t !== ",";
+  });
+
+  // 3. Fix distractor flag: chunks in correct_order cannot be distractors
+  for (const c of fixed.puzzle.chunks) {
+    if (correctIdSet.has(c.id) && c.is_distractor) {
+      errors.push(`Chunk "${c.text}" (${c.id}) in correct_order but marked distractor — fixed`);
+      c.is_distractor = false;
+    }
+  }
+
+  // 4. Remove duplicate text chunks (keep the one in correct_order)
+  const seenTexts = new Map<string, string>();
+  const dupIds = new Set<string>();
+  for (const c of fixed.puzzle.chunks) {
+    const key = c.text.trim().toLowerCase();
+    if (seenTexts.has(key)) {
+      const existingId = seenTexts.get(key)!;
+      if (correctIdSet.has(c.id) && !correctIdSet.has(existingId)) {
+        dupIds.add(existingId);
+        seenTexts.set(key, c.id);
+      } else {
+        dupIds.add(c.id);
+      }
+      errors.push(`Duplicate chunk text "${c.text}"`);
+    } else {
+      seenTexts.set(key, c.id);
+    }
+  }
+  fixed.puzzle.chunks = fixed.puzzle.chunks.filter((c: any) => !dupIds.has(c.id));
+
+  // 5. Verify all correct_order IDs exist in chunks
+  const chunkIds = new Set(fixed.puzzle.chunks.map((c: any) => c.id));
+  const missing = correctOrder.filter((id: string) => !chunkIds.has(id));
+  if (missing.length > 0) {
+    return { valid: false, errors: [...errors, `correct_order refs missing chunks: ${missing.join(", ")}`] };
+  }
+
+  // 5b. Remove orphan chunks: not in correct_order AND not marked as distractor
+  const orphans = fixed.puzzle.chunks.filter(
+    (c: any) => !correctIdSet.has(c.id) && !c.is_distractor
+  );
+  if (orphans.length > 0) {
+    errors.push(`Removing ${orphans.length} orphan chunks: ${orphans.map((c: any) => `"${c.text}"`).join(", ")}`);
+    fixed.puzzle.chunks = fixed.puzzle.chunks.filter(
+      (c: any) => correctIdSet.has(c.id) || c.is_distractor
+    );
+  }
+
+  // 6. Fix slots_count
+  fixed.puzzle.slots_count = correctOrder.length;
+
+  // 7. Minimum chunk count
+  if (correctOrder.length < 3) {
+    return { valid: false, errors: [...errors, `Too few chunks: ${correctOrder.length}`] };
+  }
+
+  // 8. Sentence reconstruction check: anchor_start + chunks_in_order + anchor_end must match full_response
+  const chunkMap = new Map(fixed.puzzle.chunks.map((c: any) => [c.id, c.text.trim()]));
+  const chunkTexts = correctOrder.map((id: string) => chunkMap.get(id) || "");
+  const anchorStart = (fixed.dialogue.speaker_b.anchor_start || "").trim();
+  const anchorEnd = (fixed.dialogue.speaker_b.anchor_end || "").trim();
+  const fullResponse = fixed.dialogue.speaker_b.full_response.trim();
+
+  // Build reconstructed sentence
+  const parts: string[] = [];
+  if (anchorStart) parts.push(anchorStart);
+  parts.push(...chunkTexts);
+  // anchor_end could be punctuation or "word." — handle both
+  let reconstructed = parts.join(" ");
+  if (anchorEnd) {
+    // If anchor_end starts with a letter/word (like "fantastic."), add with space
+    // If it's just punctuation ("?" or "."), append directly
+    if (/^[a-zA-Z]/.test(anchorEnd)) {
+      reconstructed += " " + anchorEnd;
+    } else {
+      reconstructed += anchorEnd;
+    }
+  }
+
+  // Normalize whitespace for comparison
+  const normalize = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+  if (normalize(reconstructed) !== normalize(fullResponse)) {
+    return {
+      valid: false,
+      errors: [
+        ...errors,
+        `Reconstruction mismatch: "${reconstructed}" vs full_response: "${fullResponse}"`,
+      ],
+    };
+  }
+
+  return { valid: true, errors, fixed };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -309,7 +439,7 @@ TASK OVERVIEW (Based on 10 Official ETS 2026 Samples)
 - Binary scoring: all chunks must be in correct position (no partial credit)
 
 ═══════════════════════════════════════════════════════════════
-CRITICAL RULES (MUST FOLLOW)
+CRITICAL RULES (MUST FOLLOW — violations will be rejected)
 ═══════════════════════════════════════════════════════════════
 1. PUNCTUATION: The ending punctuation ("?" or ".") is ALWAYS anchor_end.
    - NEVER put "?" or "." as a chunk in the word bank.
@@ -318,16 +448,28 @@ CRITICAL RULES (MUST FOLLOW)
 
 2. EVERY chunk MUST have non-empty text (at least 1 word). No empty strings.
 
-3. SHUFFLE: The chunks array must be in RANDOM order, NOT in answer order.
-   Randomize the array before returning.
+3. NO DUPLICATE CHUNKS: Every chunk must have UNIQUE text. Never repeat a word/phrase.
+   WRONG: [{"text":"increase"}, {"text":"increase"}] ← NEVER DO THIS
 
-4. Speaker A: SHORT sentence (8-15 words). Simple vocabulary. Sets context.
-   Examples: "I'm looking forward to the concert this weekend."
-             "What was the highlight of your trip?"
+4. SHUFFLE: The chunks array must be in RANDOM order, NOT in answer order.
 
-5. Speaker B full_response: The complete correct sentence INCLUDING anchors.
-   If anchor_start is "She" and anchor_end is ".", and chunks form "wanted to know where she could buy a copy",
-   then full_response is "She wanted to know where she could buy a copy."
+5. Speaker A: SHORT sentence (8-15 words). Simple vocabulary. Sets context.
+
+6. Speaker B full_response: The complete correct sentence INCLUDING anchors.
+
+7. slots_count = number of NON-DISTRACTOR chunks = correct_order.length
+   - If you have 5 chunks in correct_order + 1 distractor, slots_count = 5 (NOT 6)
+
+8. correct_order MUST only contain IDs of NON-DISTRACTOR chunks.
+   - A chunk with is_distractor: true must NEVER appear in correct_order.
+   - A chunk that appears in correct_order must have is_distractor: false.
+
+9. DISTRACTORS must be genuinely WRONG words that do NOT belong in the sentence.
+   - If a word like "it" is part of the correct answer, it CANNOT be a distractor.
+   - Distractors should be grammar traps (wrong tense, redundant pronoun, etc.)
+
+10. GRAMMATICAL CORRECTNESS: Speaker B's full_response MUST be grammatically perfect English.
+    - Read the sentence aloud. Does it sound natural? If not, fix it.
 
 ═══════════════════════════════════════════════════════════════
 DIFFICULTY GUIDELINES
@@ -379,46 +521,68 @@ Difficulty: ${selectedDifficulty.toUpperCase()}
 REQUIREMENTS:
 - Speaker A: short, simple sentence (8-15 words)
 - Speaker B: response that tests ${selectedDifficulty}-level grammar/syntax
+- Speaker B's full_response MUST be grammatically perfect, natural English
 - ${anchorInstruction}
 - PUNCTUATION ("?" or ".") must be in anchor_end, NEVER as a chunk
-- Every chunk must have non-empty text (no blank cards)
+- Every chunk must have UNIQUE, non-empty text — NO duplicate words/phrases
+- slots_count = correct_order.length (count of NON-distractor chunks only)
+- correct_order must ONLY contain IDs of chunks where is_distractor is false
 - SHUFFLE the chunks array (must NOT be in answer order)
 - Use SIMPLE vocabulary — the challenge is word ORDER, not hard words
-- ${selectedDifficulty === 'hard' ? 'Include exactly 1 distractor chunk (is_distractor: true)' : 'Do NOT include any distractor chunks'}
+- ${selectedDifficulty === 'hard' ? 'Include exactly 1 distractor chunk (is_distractor: true). The distractor must be a WRONG word that does NOT belong in the sentence.' : 'Do NOT include any distractor chunks'}
+
+SELF-CHECK before responding:
+1. Is full_response grammatically correct?
+2. Do chunks + anchors reconstruct full_response exactly?
+3. Are all chunk texts unique (no duplicates)?
+4. Is slots_count == correct_order.length?
+5. Are distractor IDs absent from correct_order?
 
 Return ONLY valid JSON.`;
 
     console.log("Requesting AI generation for build-sentence...");
     const questionData = await aiClient.generate(systemPrompt, userPrompt);
-    
+
     console.log("AI generation successful");
 
-    // Step 3: Save to DB for caching
-    let exerciseId: string | null = null;
-    
-    const { data: insertedExercise, error: insertError } = await supabase
-      .from("exercises")
-      .insert({
-        section: "writing",
-        exercise_type: "build-sentence",
-        topic: `${scenarioCategory} - ${selectedScenario}`,
-        topic_category: scenarioCategory,
-        difficulty: selectedDifficulty,
-        content: questionData,
-        is_active: true,
-      })
-      .select("id")
-      .single();
+    // Step 3: Validate before caching
+    const validation = validateAndFixQuestion(questionData);
+    const finalData = validation.valid ? validation.fixed : questionData;
 
-    if (insertError) {
-      console.error("Error saving exercise to cache:", insertError);
-    } else if (insertedExercise) {
-      console.log(`Exercise saved to cache with ID: ${insertedExercise.id}`);
-      exerciseId = insertedExercise.id;
+    if (validation.errors.length > 0) {
+      console.warn("Validation issues:", validation.errors);
+    }
+
+    // Only cache if valid (don't pollute cache with broken questions)
+    let exerciseId: string | null = null;
+
+    if (validation.valid) {
+      const { data: insertedExercise, error: insertError } = await supabase
+        .from("exercises")
+        .insert({
+          section: "writing",
+          exercise_type: "build-sentence",
+          topic: `${scenarioCategory} - ${selectedScenario}`,
+          topic_category: scenarioCategory,
+          difficulty: selectedDifficulty,
+          content: finalData,
+          is_active: true,
+        })
+        .select("id")
+        .single();
+
+      if (insertError) {
+        console.error("Error saving exercise to cache:", insertError);
+      } else if (insertedExercise) {
+        console.log(`Exercise saved to cache with ID: ${insertedExercise.id}`);
+        exerciseId = insertedExercise.id;
+      }
+    } else {
+      console.warn("Question failed validation — NOT caching. Returning to client for client-side fallback.");
     }
 
     const responseData = {
-      ...questionData,
+      ...finalData,
       difficulty: selectedDifficulty,
       topic_category: scenarioCategory,
       exercise_id: exerciseId,

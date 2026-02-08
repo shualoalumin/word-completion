@@ -6,30 +6,111 @@ import type { BuildSentencePracticeMode } from '../api';
 import { EXERCISE_CONFIG } from '@/core/constants';
 
 /**
- * Sanitize a question: shuffle chunks, remove empty chunks, ensure punctuation not in word bank
+ * Validate and sanitize a question from AI.
+ * Returns null if the question is fundamentally broken and should be skipped.
  */
-function sanitizeQuestion(q: BuildSentenceQuestion): BuildSentenceQuestion {
+function sanitizeQuestion(q: BuildSentenceQuestion): BuildSentenceQuestion | null {
   // Filter out empty chunks
-  const validChunks = q.puzzle.chunks.filter(c => c.text && c.text.trim().length > 0);
+  let chunks = q.puzzle.chunks.filter(c => c.text && c.text.trim().length > 0);
 
   // Remove punctuation-only chunks (should be anchor_end)
-  const filteredChunks = validChunks.filter(c => {
+  chunks = chunks.filter(c => {
     const trimmed = c.text.trim();
     return trimmed !== '?' && trimmed !== '.' && trimmed !== '!' && trimmed !== ',';
   });
 
+  const correctOrder = q.puzzle.correct_order;
+  const correctIdSet = new Set(correctOrder);
+
+  // Fix: chunks in correct_order must NOT be marked as distractor
+  chunks = chunks.map(c => {
+    if (correctIdSet.has(c.id) && c.is_distractor) {
+      console.warn(`[Sanitize] Chunk "${c.text}" (${c.id}) is in correct_order but marked distractor — fixing`);
+      return { ...c, is_distractor: false };
+    }
+    return c;
+  });
+
+  // Remove duplicate text chunks (keep the one in correct_order, or first occurrence)
+  const seenTexts = new Map<string, string>(); // text -> id
+  const duplicateIds = new Set<string>();
+  for (const c of chunks) {
+    const key = c.text.trim().toLowerCase();
+    if (seenTexts.has(key)) {
+      const existingId = seenTexts.get(key)!;
+      // Keep the one that's in correct_order
+      if (correctIdSet.has(c.id) && !correctIdSet.has(existingId)) {
+        duplicateIds.add(existingId);
+        seenTexts.set(key, c.id);
+      } else {
+        duplicateIds.add(c.id);
+      }
+      console.warn(`[Sanitize] Duplicate chunk text "${c.text}" — removing ${duplicateIds.has(c.id) ? c.id : existingId}`);
+    } else {
+      seenTexts.set(key, c.id);
+    }
+  }
+  chunks = chunks.filter(c => !duplicateIds.has(c.id));
+
+  // Verify all correct_order IDs exist in chunks
+  const chunkIdSet = new Set(chunks.map(c => c.id));
+  const missingIds = correctOrder.filter(id => !chunkIdSet.has(id));
+  if (missingIds.length > 0) {
+    console.error(`[Sanitize] correct_order references missing chunk IDs: ${missingIds.join(', ')} — skipping question`);
+    return null;
+  }
+
+  // Remove orphan chunks: not in correct_order AND not a distractor
+  chunks = chunks.filter(c => correctIdSet.has(c.id) || c.is_distractor);
+
+  // Fix slots_count: must equal correct_order length (non-distractor slots)
+  const fixedSlotsCount = correctOrder.length;
+  if (q.puzzle.slots_count !== fixedSlotsCount) {
+    console.warn(`[Sanitize] slots_count ${q.puzzle.slots_count} → ${fixedSlotsCount} (correct_order.length)`);
+  }
+
+  // Reject if too few chunks to be meaningful
+  if (correctOrder.length < 3) {
+    console.error(`[Sanitize] Too few chunks in correct_order (${correctOrder.length}) — skipping`);
+    return null;
+  }
+
+  // Verify sentence reconstruction: anchor_start + chunks(in order) + anchor_end = full_response
+  const chunkMap = new Map(chunks.map(c => [c.id, c.text.trim()]));
+  const chunkTexts = correctOrder.map(id => chunkMap.get(id) || '');
+  const anchorStart = (q.dialogue.speaker_b.anchor_start || '').trim();
+  const anchorEnd = (q.dialogue.speaker_b.anchor_end || '').trim();
+  const fullResponse = q.dialogue.speaker_b.full_response.trim();
+
+  const parts: string[] = [];
+  if (anchorStart) parts.push(anchorStart);
+  parts.push(...chunkTexts);
+  let reconstructed = parts.join(' ');
+  if (anchorEnd) {
+    if (/^[a-zA-Z]/.test(anchorEnd)) {
+      reconstructed += ' ' + anchorEnd;
+    } else {
+      reconstructed += anchorEnd;
+    }
+  }
+  const normalize = (s: string) => s.replace(/\s+/g, ' ').trim().toLowerCase();
+  if (normalize(reconstructed) !== normalize(fullResponse)) {
+    console.error(`[Sanitize] Reconstruction mismatch — skipping`);
+    console.error(`  Reconstructed: "${reconstructed}"`);
+    console.error(`  full_response: "${fullResponse}"`);
+    return null;
+  }
+
   // Shuffle chunks (Fisher-Yates) so they're never in answer order
-  const shuffled = [...filteredChunks];
+  const shuffled = [...chunks];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
 
   // Check if still in correct order and re-shuffle if needed
-  const correctOrder = q.puzzle.correct_order;
   const shuffledIds = shuffled.filter(c => !c.is_distractor).map(c => c.id);
   if (shuffledIds.length === correctOrder.length && shuffledIds.every((id, i) => id === correctOrder[i])) {
-    // Still in order - do one more shuffle
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -41,6 +122,7 @@ function sanitizeQuestion(q: BuildSentenceQuestion): BuildSentenceQuestion {
     puzzle: {
       ...q.puzzle,
       chunks: shuffled,
+      slots_count: fixedSlotsCount,
     },
   };
 }
@@ -161,6 +243,15 @@ export function useBuildSentence(): UseBuildSentenceReturn {
 
       if (firstResult.data) {
         const firstQ = sanitizeQuestion(firstResult.data);
+        if (!firstQ) {
+          // First question failed validation — fallback
+          console.warn('[BuildSentence] First AI question failed validation, falling back');
+          const picked = getSessionQuestions(totalCount, excludeKeys);
+          setQuestions(picked);
+          resetState(picked[0]);
+          setLoading(false);
+          return;
+        }
         console.log('[BuildSentence] First question ready, showing immediately');
         setQuestions([firstQ]);
         resetState(firstQ);
@@ -172,23 +263,31 @@ export function useBuildSentence(): UseBuildSentenceReturn {
 
         // Step 2: Generate remaining questions in background
         const generateRemaining = async () => {
+          const MAX_RETRIES_PER_SLOT = 2;
           for (let i = 1; i < totalCount; i++) {
             if (bgAbortRef.current) break;
 
-            try {
-              const result = await generateBuildSentenceQuestion(sessionExcludeIds);
+            for (let attempt = 0; attempt <= MAX_RETRIES_PER_SLOT; attempt++) {
               if (bgAbortRef.current) break;
+              try {
+                const result = await generateBuildSentenceQuestion(sessionExcludeIds);
+                if (bgAbortRef.current) break;
 
-              if (result.data) {
-                if (result.data.exercise_id) {
-                  sessionExcludeIds.push(result.data.exercise_id);
+                if (result.data) {
+                  if (result.data.exercise_id) {
+                    sessionExcludeIds.push(result.data.exercise_id);
+                  }
+                  const sanitized = sanitizeQuestion(result.data);
+                  if (sanitized) {
+                    setQuestions(prev => [...prev, sanitized]);
+                    console.log(`[BuildSentence] Background: question ${i + 1}/${totalCount} ready`);
+                    break; // success, move to next question
+                  }
+                  console.warn(`[BuildSentence] Background question ${i + 1} failed validation (attempt ${attempt + 1})`);
                 }
-                const sanitized = sanitizeQuestion(result.data);
-                setQuestions(prev => [...prev, sanitized]);
-                console.log(`[BuildSentence] Background: question ${i + 1}/${totalCount} ready`);
+              } catch (err) {
+                console.warn(`[BuildSentence] Background generation ${i + 1} failed:`, err);
               }
-            } catch (err) {
-              console.warn(`[BuildSentence] Background generation ${i + 1} failed:`, err);
             }
           }
           console.log('[BuildSentence] All background questions generated');
