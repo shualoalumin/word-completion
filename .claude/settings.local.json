@@ -26,7 +26,10 @@
       "Bash(git merge:*)",
       "Bash(echo:*)",
       "Bash(ls:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(npx deno run:*)",
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)"
     ]
   }
 }
